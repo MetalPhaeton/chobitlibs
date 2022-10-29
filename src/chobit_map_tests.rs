@@ -66,10 +66,10 @@ fn iter_test() {
 
     let mut iter = map.iter();
 
-    assert_eq!(iter.next().unwrap(), &value_1);
-    assert_eq!(iter.next().unwrap(), &value_3);
-    assert_eq!(iter.next().unwrap(), &value_2);
-    assert_eq!(iter.next().unwrap(), &value_4);
+    assert_eq!(iter.next().unwrap(), (key_1, &value_1));
+    assert_eq!(iter.next().unwrap(), (key_3, &value_3));
+    assert_eq!(iter.next().unwrap(), (key_2, &value_2));
+    assert_eq!(iter.next().unwrap(), (key_4, &value_4));
     assert!(iter.next().is_none());
     assert!(iter.next().is_none());
 }

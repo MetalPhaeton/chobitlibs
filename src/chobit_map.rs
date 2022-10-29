@@ -12,6 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+#![allow(dead_code)]
+
 //! Hash table library.
 //!
 //! If you use this in `no_std`, insert the following code at the first line of `chobit_map.rs`.
@@ -329,44 +331,55 @@ impl<T> ChobitMap<T> {
     ///
     /// let mut iter = map.iter();
     ///
-    /// assert_eq!(*iter.next().unwrap(), value_1);
-    /// assert_eq!(*iter.next().unwrap(), value_2);
-    /// assert_eq!(*iter.next().unwrap(), value_3);
+    /// assert_eq!(iter.next().unwrap(), (key_1, &value_1));
+    /// assert_eq!(iter.next().unwrap(), (key_2, &value_2));
+    /// assert_eq!(iter.next().unwrap(), (key_3, &value_3));
     /// assert!(iter.next().is_none());
     /// ```
     pub fn iter(&self) -> Iter<'_, T> {
         Iter::<'_, T> {
-            table_iter: self.value_table.iter(),
+            key_table_iter: self.key_table.iter(),
+            value_table_iter: self.value_table.iter(),
 
-            record_iter: None
+            key_record_iter: None,
+            value_record_iter: None
         }
     }
 }
 
 /// A iterator of `ChobitMap`.
 pub struct Iter<'a, T> {
-    table_iter: SIter<'a, Vec<T>>,
-    record_iter: Option<SIter<'a, T>>
+    key_table_iter: SIter<'a, Vec<u64>>,
+    value_table_iter: SIter<'a, Vec<T>>,
+
+    key_record_iter: Option<SIter<'a, u64>>,
+    value_record_iter: Option<SIter<'a, T>>
 }
 
 impl <'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
+    type Item = (u64, &'a T);
 
-    fn next(&mut self) -> Option<&'a T> {
-        match &mut self.record_iter {
-            Some(record_iter) => match &record_iter.next() {
-                Some(value) => Some(value),
+    fn next(&mut self) -> Option<(u64, &'a T)> {
+        match &mut self.key_record_iter {
+            Some(key_record_iter) => match &key_record_iter.next() {
+                Some(key) => Some((
+                    **key,
+                    self.value_record_iter.as_mut().unwrap().next().unwrap()
+                )),
 
                 None => {
-                    self.record_iter = None;
+                    self.key_record_iter = None;
+                    self.value_record_iter = None;
 
                     self.next()
                 }
             },
 
             None => {
-                let vec = self.table_iter.next()?;
-                self.record_iter = Some(vec.iter());
+                self.key_record_iter =
+                    Some(self.key_table_iter.next()?.iter());
+                self.value_record_iter =
+                    Some(self.value_table_iter.next()?.iter());
 
                 self.next()
             }

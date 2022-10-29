@@ -10,3 +10,4 @@ Libraries
 ---------
 
 * `chobit_map.rs` : Hash table.
+* `hash.rs` : Hash functions.

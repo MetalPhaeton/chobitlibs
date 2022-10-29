@@ -24,9 +24,13 @@
 //! ---------
 //! 
 //! * `chobit_map.rs` : Hash table.
+//! * `hash.rs` : Hash functions.
 
 pub mod chobit_map;
 #[cfg(test)] mod chobit_map_tests;
+
+pub mod hash;
+#[cfg(test)] mod hash_tests;
 
 #[cfg(test)]
 mod tests;
