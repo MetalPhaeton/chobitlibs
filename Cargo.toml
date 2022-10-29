@@ -6,3 +6,9 @@ edition = "2021"
 license = "WTFPL"
 readme = "README.md"
 
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "chobit_map_bench"
+harness = false
