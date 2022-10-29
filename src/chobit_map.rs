@@ -12,6 +12,14 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+//! Hash table library.
+//!
+//! If you use this in `no_std`, insert the following code at the first line of `chobit_map.rs`.
+//!
+//! ```ignore
+//! use alloc::vec::Vec;
+//! ```
+
 use core::{iter::Iterator, slice::Iter as SIter};
 
 /// This is a so-called `HashMap`, but key is specialized by `u64`.
