@@ -11,3 +11,4 @@ Libraries
 
 * `chobit_map.rs` : Hash table.
 * `hash.rs` : Hash functions.
+* `chobit_rand.rs` : Random number generator.

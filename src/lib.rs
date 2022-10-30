@@ -25,12 +25,16 @@
 //! 
 //! * `chobit_map.rs` : Hash table.
 //! * `hash.rs` : Hash functions.
+//! * `chobit_rand.rs` : Random number generator.
 
 pub mod chobit_map;
 #[cfg(test)] mod chobit_map_tests;
 
 pub mod hash;
 #[cfg(test)] mod hash_tests;
+
+pub mod chobit_rand;
+#[cfg(test)] mod chobit_rand_tests;
 
 #[cfg(test)]
 mod tests;
