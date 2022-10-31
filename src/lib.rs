@@ -42,7 +42,7 @@ pub mod chobit_rand;
 #[cfg(test)] mod chobit_rand_tests;
 
 pub mod chobit_ai;
-//#[cfg(test)] mod chobit_ai_tests;
+#[cfg(test)] mod chobit_ai_tests;
 
 #[cfg(test)]
 mod tests;
