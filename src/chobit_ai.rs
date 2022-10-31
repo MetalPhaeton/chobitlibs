@@ -796,7 +796,7 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     }
 }
 
-/// Simple perceptron.
+/// Neural network.
 ///
 /// * `OUT` : Dimension of output.
 /// * `MIDDLE` : Dimension of middle layer.
