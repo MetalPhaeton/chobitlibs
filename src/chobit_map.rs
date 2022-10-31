@@ -16,11 +16,13 @@
 
 //! Hash table library.
 //!
-//! If you use this in `no_std`, insert the following code at the first line of `chobit_map.rs`.
+//! If you use this in `no_std`, exclude the following code at the first line of `chobit_map.rs`.
 //!
 //! ```ignore
 //! use alloc::vec::Vec;
 //! ```
+
+use alloc::vec::Vec;
 
 use core::{iter::Iterator, slice::Iter as SIter};
 

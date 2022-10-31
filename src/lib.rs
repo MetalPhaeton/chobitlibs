@@ -12,6 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+#![no_std]
+
 //! Chobit
 //! ======
 //! 
@@ -27,6 +29,9 @@
 //! * `hash.rs` : Hash functions.
 //! * `chobit_rand.rs` : Random number generator.
 
+extern crate alloc;
+#[cfg(test)] extern crate std;
+
 pub mod chobit_map;
 #[cfg(test)] mod chobit_map_tests;
 
@@ -35,6 +40,9 @@ pub mod hash;
 
 pub mod chobit_rand;
 #[cfg(test)] mod chobit_rand_tests;
+
+pub mod chobit_ai;
+//#[cfg(test)] mod chobit_ai_tests;
 
 #[cfg(test)]
 mod tests;

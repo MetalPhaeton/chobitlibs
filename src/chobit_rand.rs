@@ -19,6 +19,7 @@
 use core::mem::size_of;
 
 /// Random number generator.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ChobitRand {
     body: [u64; 4]
 }

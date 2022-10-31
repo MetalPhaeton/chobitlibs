@@ -1,3 +1,5 @@
+use std::prelude::rust_2021::*;
+
 use crate::chobit_rand::*;
 
 const SEED: [u8; core::mem::size_of::<u64>() * 10] = [
@@ -38,7 +40,7 @@ fn chobit_rand_next_u64_test() {
 
     const PRINT_COUNT: usize = 10;
     for value in &v1[..PRINT_COUNT] {
-        println!("chobit_rand_next_u64_test: {}", value)
+        std::println!("chobit_rand_next_u64_test: {}", value)
     }
 }
 
@@ -69,7 +71,7 @@ fn chobit_rand_next_f64_test() {
 
     const PRINT_COUNT: usize = 10;
     for value in &v1[..PRINT_COUNT] {
-        println!("chobit_rand_next_f64_test: {}", value)
+        std::println!("chobit_rand_next_f64_test: {}", value)
     }
 }
 
@@ -102,6 +104,6 @@ fn chobit_rand_shubble_test() {
 
     const PRINT_COUNT: usize = 10;
     for value in &v1[..PRINT_COUNT] {
-        println!("chobit_rand_shuffle_test: {:?}", value)
+        std::println!("chobit_rand_shuffle_test: {:?}", value)
     }
 }
