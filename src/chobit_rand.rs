@@ -74,7 +74,7 @@ impl ChobitRand {
     /// ```
     /// use chobit::chobit_rand::ChobitRand;
     ///
-    /// let mut rand = ChobitRand::new(&[123u8; 100]);
+    /// let mut rand = ChobitRand::new("Hello World!".as_bytes());
     ///
     /// assert_ne!(rand.next_u64(), rand.next_u64());
     /// ```
@@ -104,7 +104,7 @@ impl ChobitRand {
     /// ```
     /// use chobit::chobit_rand::ChobitRand;
     ///
-    /// let mut rand = ChobitRand::new(&[123u8; 100]);
+    /// let mut rand = ChobitRand::new("Hello World!".as_bytes());
     ///
     /// assert_ne!(rand.next_f64(), rand.next_f64());
     /// ```
@@ -120,7 +120,7 @@ impl ChobitRand {
     /// ```
     /// use chobit::chobit_rand::ChobitRand;
     ///
-    /// let mut rand = ChobitRand::new(&[123u8; 100]);
+    /// let mut rand = ChobitRand::new("Hello World!".as_bytes());
     ///
     /// let cards_1: [i32; 13] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
     /// let mut cards_2: [i32; 13] = cards_1.clone();
