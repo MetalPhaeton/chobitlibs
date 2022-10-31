@@ -56,10 +56,12 @@ impl ChobitRand {
     fn to_u8_array(seed: &[u8]) -> [u8; size_of::<u64>() * 4] {
         let mut ret = [0u8; size_of::<u64>() * 4];
 
-        let seed_len = seed.len();
+        for seed_value in seed {
+            ret[0] = ret[0].wrapping_add(*seed_value);
 
-        for i in 0..ret.len() {
-            ret[i] = seed[i % seed_len];
+            for i in 1..ret.len() {
+                ret[i] = ret[i].wrapping_add(ret[i - 1]);
+            }
         }
 
         ret
