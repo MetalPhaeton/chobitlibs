@@ -16,10 +16,10 @@
 
 //! Hash table library.
 //!
-//! If you use this in `no_std`, exclude the following code at the first line of `chobit_map.rs`.
+//! This library needs `alloc` crate.
 //!
-//! ```ignore
-//! use alloc::vec::Vec;
+//! ```
+//! extern crate alloc;
 //! ```
 
 use alloc::vec::Vec;
