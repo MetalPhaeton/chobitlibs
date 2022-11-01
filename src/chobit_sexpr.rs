@@ -193,7 +193,7 @@ const CONS_FLAG: u32 = FLAG_MASK;
 /// |
 /// |
 /// ```
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct SexprHeader {
     body: u32
 }
