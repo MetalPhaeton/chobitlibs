@@ -31,6 +31,7 @@
 //! * `hash.rs` : Hash functions.
 //! * `chobit_rand.rs` : Random number generator.
 //! * `chobit_ai.rs` : Neural network library.
+//! * `chobit_sexpr.rs` : Structured byte string.
 
 extern crate alloc;
 #[cfg(test)] extern crate std;
