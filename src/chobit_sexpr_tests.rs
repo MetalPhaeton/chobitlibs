@@ -282,3 +282,39 @@ fn chobit_sexpr_error_test_2() {
     assert!(header.is_cons());
     assert_eq!(header.size(), new_data.len() - size_of::<u32>() + 1);
 }
+
+#[test]
+fn chobit_sexpr_convert_test() {
+    const COUNT: usize = 120;
+
+    macro_rules! convert_test_core {
+        ($type:ty, $num:expr) => {{
+            let val: $type = $num as $type;
+
+            let buf = ChobitSexprBuf::from(val);
+            let result = <$type>::try_from(buf.as_sexpr()).unwrap();
+            assert_eq!(result, val);
+
+            let buf: ChobitSexprBuf<Completed> = val.into();
+            let result: $type = buf.as_sexpr().try_into().unwrap();
+            assert_eq!(result, val);
+        }}
+    }
+
+    for i in 0..COUNT {
+        convert_test_core!(i8, i);
+        convert_test_core!(u8, i);
+        convert_test_core!(i16, i);
+        convert_test_core!(u16, i);
+        convert_test_core!(i32, i);
+        convert_test_core!(u32, i);
+        convert_test_core!(i64, i);
+        convert_test_core!(u64, i);
+        convert_test_core!(i128, i);
+        convert_test_core!(u128, i);
+        convert_test_core!(isize, i);
+        convert_test_core!(usize, i);
+        convert_test_core!(f32, i);
+        convert_test_core!(f64, i);
+    }
+}
