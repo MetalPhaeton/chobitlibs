@@ -831,7 +831,6 @@ impl<
     #[inline]
     pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
 
-
     /// Gets Middle Layer
     ///
     /// * _Return_ : Middle layer.
