@@ -22,7 +22,10 @@
 //! extern crate alloc;
 //! ```
 
-use alloc::vec::Vec;
+use alloc::{
+    vec::Vec,
+    borrow::{Borrow, ToOwned}
+};
 
 use core::{
     mem::size_of,
@@ -623,6 +626,22 @@ impl<const N: usize> AsMut<ChobitSexpr> for [u8; N] {
     }
 }
 
+impl ToOwned for ChobitSexpr {
+    type Owned = ChobitSexprBuf<Completed>;
+
+    fn to_owned(&self) -> ChobitSexprBuf<Completed> {
+        ChobitSexprBuf::<Completed> {
+            buffer: self.to_vec(),
+
+            _marker: PhantomData::<Completed>
+        }
+    }
+
+    fn clone_into(&self, target: &mut ChobitSexprBuf<Completed>) {
+        target.buffer = self.to_vec();
+    }
+}
+
 /// Typestate of ChobitSexprBuf. Indicates empty and imcomplete sexpr.
 #[derive(Debug, PartialEq)]
 pub enum Empty {}
@@ -947,5 +966,12 @@ impl AsMut<ChobitSexpr> for ChobitSexprBuf<Completed> {
     #[inline]
     fn as_mut(&mut self) -> &mut ChobitSexpr {
         self.as_mut_sexpr()
+    }
+}
+
+impl Borrow<ChobitSexpr> for ChobitSexprBuf<Completed> {
+    #[inline]
+    fn borrow(&self) -> &ChobitSexpr {
+        self.as_sexpr()
     }
 }
