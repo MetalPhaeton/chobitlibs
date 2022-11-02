@@ -28,7 +28,7 @@
 //! All libraries can be used in `no_std`.
 //! 
 //! * `chobit_map.rs` : Hash table.
-//! * `hash.rs` : Hash functions.
+//! * `chobit_hash.rs` : Hash functions.
 //! * `chobit_rand.rs` : Random number generator.
 //! * `chobit_ai.rs` : Neural network library.
 //! * `chobit_sexpr.rs` : Structured byte string.
@@ -39,8 +39,8 @@ extern crate alloc;
 pub mod chobit_map;
 #[cfg(test)] mod chobit_map_tests;
 
-pub mod hash;
-#[cfg(test)] mod hash_tests;
+pub mod chobit_hash;
+#[cfg(test)] mod chobit_hash_tests;
 
 pub mod chobit_rand;
 #[cfg(test)] mod chobit_rand_tests;

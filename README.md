@@ -12,7 +12,7 @@ Libraries
 All libraries can be used in `no_std`.
 
 * `chobit_map.rs` : Hash table.
-* `hash.rs` : Hash functions.
+* `chobit_hash.rs` : Hash functions.
 * `chobit_rand.rs` : Random number generator.
 * `chobit_ai.rs` : Neural network library.
 * `chobit_sexpr.rs` : Structured byte string.
