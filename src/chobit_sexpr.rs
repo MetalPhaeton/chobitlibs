@@ -34,15 +34,42 @@ use core::{
     ops::{Deref, DerefMut}
 };
 
-const HEADER_SIZE: usize = size_of::<u32>();
+/// Header size on byte string.
+pub const HEADER_SIZE: usize = size_of::<u32>();
 
-const FLAG_MASK: u32 = 0b10000000_00000000_00000000_00000000;
-const SIZE_MASK: u32 = !FLAG_MASK;
+/// Mask for flag.
+///
+/// ```
+/// use chobit::chobit_sexpr::*;
+///
+/// let header = SexprHeader::new_atom(10);
+/// assert_eq!(header.to_u32() & FLAG_MASK, ATOM_FLAG);
+///
+/// let header = SexprHeader::new_cons(10);
+/// assert_eq!(header.to_u32() & FLAG_MASK, CONS_FLAG);
+/// ```
+pub const FLAG_MASK: u32 = 0b10000000_00000000_00000000_00000000;
 
-const SIZE_MAX: usize = SIZE_MASK as usize;
+/// Mask for size.
+///
+/// ```
+/// use chobit::chobit_sexpr::*;
+///
+/// let header = SexprHeader::new_atom(10);
+/// assert_eq!(header.to_u32() & SIZE_MASK, 10);
+///
+/// let header = SexprHeader::new_cons(10);
+/// assert_eq!(header.to_u32() & SIZE_MASK, 10);
+pub const SIZE_MASK: u32 = !FLAG_MASK;
 
-const ATOM_FLAG: u32 = 0;
-const CONS_FLAG: u32 = FLAG_MASK;
+/// Max size of ChobitSexpr.
+pub const SIZE_MAX: usize = SIZE_MASK as usize;
+
+/// Flag of atom.
+pub const ATOM_FLAG: u32 = 0;
+
+/// Flag of cons.
+pub const CONS_FLAG: u32 = FLAG_MASK;
 
 /// Header of ChobitSexpr.
 ///
@@ -642,6 +669,60 @@ impl ToOwned for ChobitSexpr {
     }
 }
 
+macro_rules! def_try_from {
+    ($type:ty) => {
+        impl TryFrom<&ChobitSexpr> for $type {
+            type Error = ();
+
+            #[inline]
+            fn try_from(
+                sexpr: &ChobitSexpr
+            ) -> Result<$type, ()> {
+                let slice = sexpr.atom().ok_or_else(|| ())?;
+
+                if slice.len() == size_of::<$type>() {
+                    Ok(unsafe {
+                        <$type>::from_le(*(slice.as_ptr() as *const $type))
+                    })
+                } else {
+                    Err(())
+                }
+            }
+        }
+    };
+}
+
+def_try_from!(i8);
+def_try_from!(u8);
+def_try_from!(i16);
+def_try_from!(u16);
+def_try_from!(i32);
+def_try_from!(u32);
+def_try_from!(i64);
+def_try_from!(u64);
+def_try_from!(i128);
+def_try_from!(u128);
+def_try_from!(isize);
+def_try_from!(usize);
+
+impl TryFrom<&ChobitSexpr> for f32 {
+    type Error = ();
+
+    #[inline]
+    fn try_from(sexpr: &ChobitSexpr) -> Result<f32, ()> {
+        u32::try_from(sexpr).map(|bits| f32::from_bits(bits))
+    }
+}
+
+impl TryFrom<&ChobitSexpr> for f64 {
+    type Error = ();
+
+    #[inline]
+    fn try_from(sexpr: &ChobitSexpr) -> Result<f64, ()> {
+        u64::try_from(sexpr).map(|bits| f64::from_bits(bits))
+    }
+}
+
 /// Typestate of ChobitSexprBuf. Indicates empty and imcomplete sexpr.
 #[derive(Debug, PartialEq)]
 pub enum Empty {}
@@ -973,5 +1054,43 @@ impl Borrow<ChobitSexpr> for ChobitSexprBuf<Completed> {
     #[inline]
     fn borrow(&self) -> &ChobitSexpr {
         self.as_sexpr()
+    }
+}
+
+macro_rules! def_from {
+    ($type:ty) => {
+        impl From<$type> for ChobitSexprBuf<Completed> {
+            #[inline]
+            fn from(value: $type) -> Self {
+                ChobitSexprBuf::new().push_atom(&value.to_le_bytes())
+            }
+        }
+    };
+}
+
+def_from!(i8);
+def_from!(u8);
+def_from!(i16);
+def_from!(u16);
+def_from!(i32);
+def_from!(u32);
+def_from!(i64);
+def_from!(u64);
+def_from!(i128);
+def_from!(u128);
+def_from!(isize);
+def_from!(usize);
+
+impl From<f32> for ChobitSexprBuf<Completed> {
+    #[inline]
+    fn from(value: f32) -> Self {
+        ChobitSexprBuf::<Completed>::from(value.to_bits())
+    }
+}
+
+impl From<f64> for ChobitSexprBuf<Completed> {
+    #[inline]
+    fn from(value: f64) -> Self {
+        ChobitSexprBuf::<Completed>::from(value.to_bits())
     }
 }
