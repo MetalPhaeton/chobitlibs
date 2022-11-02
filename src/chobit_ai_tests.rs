@@ -5,42 +5,49 @@ use super::chobit_rand::*;
 
 #[test]
 fn weights_test() {
-    let weight_1 = Weights::<5>([1.0, 2.0, 3.0, 4.0, 5.0], 6.0);
-    let weight_2 = Weights::<5>([1.0, 2.0, 3.0, 4.0, 5.0], 6.0);
+    let weights_1 = Weights::<5>::new(
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        6.0
+    );
 
-    let check = Weights::<5>([
-        1.0 * 2.0,
-        2.0 * 2.0,
-        3.0 * 2.0,
-        4.0 * 2.0,
-        5.0 * 2.0
-    ], 6.0 * 2.0);
+    let weights_2 = weights_1;
 
-    assert_eq!(weight_1 + weight_2, check);
-    assert_eq!((weight_1 * 3.0) - weight_2, check);
-    assert_eq!((weight_1 * 4.0) / 2.0, check);
+    let check = Weights::<5>::new(
+        [
+            1.0 * 2.0,
+            2.0 * 2.0,
+            3.0 * 2.0,
+            4.0 * 2.0,
+            5.0 * 2.0
+        ],
+        6.0 * 2.0
+    );
 
-    let mut weight_1_c = weight_1.clone();
-    weight_1_c += weight_2;
-    assert_eq!(weight_1_c, check);
+    assert_eq!(weights_1 + weights_2, check);
+    assert_eq!((weights_1 * 3.0) - weights_2, check);
+    assert_eq!((weights_1 * 4.0) / 2.0, check);
 
-    let mut weight_1_c = weight_1.clone();
-    weight_1_c *= 3.0;
-    weight_1_c -= weight_2;
-    assert_eq!(weight_1_c, check);
+    let mut weights_1_c = weights_1.clone();
+    weights_1_c += weights_2;
+    assert_eq!(weights_1_c, check);
 
-    let mut weight_1_c = weight_1.clone();
-    weight_1_c *= 4.0;
-    weight_1_c /= 2.0;
-    assert_eq!(weight_1_c, check);
+    let mut weights_1_c = weights_1.clone();
+    weights_1_c *= 3.0;
+    weights_1_c -= weights_2;
+    assert_eq!(weights_1_c, check);
 
-    let check = Weights::<5>([1.0, 2.0, 3.0, 0.0, 1.0], 2.0);
+    let mut weights_1_c = weights_1.clone();
+    weights_1_c *= 4.0;
+    weights_1_c /= 2.0;
+    assert_eq!(weights_1_c, check);
 
-    assert_eq!(weight_1 % 4.0, check);
+    let check = Weights::<5>::new([1.0, 2.0, 3.0, 0.0, 1.0], 2.0);
 
-    let mut weight_1_c = weight_1.clone();
-    weight_1_c %= 4.0;
-    assert_eq!(weight_1_c, check);
+    assert_eq!(weights_1 % 4.0, check);
+
+    let mut weights_1_c = weights_1.clone();
+    weights_1_c %= 4.0;
+    assert_eq!(weights_1_c, check);
 
     let input: [f64; 5] = [1.1, 2.2, 3.3, 4.4, 5.5];
 
@@ -51,9 +58,9 @@ fn weights_test() {
         + (5.0 * 5.5)
         + 6.0;
 
-    assert_eq!(weight_1 * input, check);
+    assert_eq!(weights_1 * input, check);
 
-    let weight_3 = Weights::<5>([1.1, 2.2, 3.3, 4.4, 5.5], 6.6);
+    let weights_3 = Weights::<5>::new([1.1, 2.2, 3.3, 4.4, 5.5], 6.6);
 
     let check = (1.0 * 1.1)
         + (2.0 * 2.2)
@@ -62,7 +69,7 @@ fn weights_test() {
         + (5.0 * 5.5)
         + (6.0 * 6.6);
 
-    assert_eq!(weight_1 * weight_3, check);
+    assert_eq!(weights_1 * weights_3, check);
 }
 
 //--------------------//
@@ -144,7 +151,7 @@ fn chobit_ai_test_1() {
 
     // Gererates weights of output nodes with random numbers.
     let out_weights = [0u8; OUT].map(|_| {
-        Weights::<MIDDLE>(
+        Weights::<MIDDLE>::new(
             [0u8; MIDDLE].map(|_| {
                 convert(rand.next_f64())
             }),
@@ -154,7 +161,7 @@ fn chobit_ai_test_1() {
 
     // Gererates weights of middle nodes with random numbers.
     let middle_weights = [0u8; MIDDLE].map(|_| {
-        Weights::<IN>(
+        Weights::<IN>::new(
             [0u8; IN].map(|_| {
                 convert(rand.next_f64())
             }),

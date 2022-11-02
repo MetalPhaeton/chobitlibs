@@ -101,7 +101,7 @@
 //! 
 //! // Gererates weights of output nodes with random numbers.
 //! let out_weights = [0u8; OUT].map(|_| {
-//!     Weights::<MIDDLE>(
+//!     Weights::<MIDDLE>::new(
 //!         [0u8; MIDDLE].map(|_| {
 //!             convert(rand.next_f64())
 //!         }),
@@ -111,7 +111,7 @@
 //! 
 //! // Gererates weights of middle nodes with random numbers.
 //! let middle_weights = [0u8; MIDDLE].map(|_| {
-//!     Weights::<IN>(
+//!     Weights::<IN>::new(
 //!         [0u8; IN].map(|_| {
 //!             convert(rand.next_f64())
 //!         }),
@@ -241,12 +241,12 @@ fn sqrt(x: f64) -> f64 {
 ///
 /// const N: usize = 10;
 ///
-/// let weights_1 = Weights::<N>(
+/// let weights_1 = Weights::<N>::new(
 ///     [0u8; N].map(|_| rand.next_f64() * 10.0),
 ///     rand.next_f64() * 10.0
 /// );
 ///
-/// let weights_2 = Weights::<N>(
+/// let weights_2 = Weights::<N>::new(
 ///     [0u8; N].map(|_| rand.next_f64() * 10.0),
 ///     rand.next_f64() * 10.0
 /// );
@@ -273,13 +273,52 @@ fn sqrt(x: f64) -> f64 {
 /// let val: f64 = weights_1 * vector;
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Weights<const N: usize>(pub [f64; N], pub f64);
+pub struct Weights<const N: usize> {
+    w: [f64; N],
+    b: f64
+}
+
+impl<const N: usize> Weights<N> {
+    #[inline]
+    pub fn new(w: [f64; N], b: f64) -> Self {
+        Self {w: w, b: b}
+    }
+
+    #[inline]
+    pub fn w(&self) -> &[f64; N] {&self.w}
+
+    #[inline]
+    pub fn b(&self) -> f64 {self.b}
+}
 
 impl<const N: usize> Default for Weights<N> {
     #[inline]
     fn default() -> Self {
-        Self([f64::default(); N], f64::default())
+        Self {
+            w: [f64::default(); N],
+            b: f64::default()
+        }
     }
+}
+
+macro_rules! op_body_1 {
+    ($self:expr, $other:expr, $ops:tt) => {{
+        for i in 0..N {
+            $self.w[i] $ops $other.w[i];
+        }
+
+        $self.b $ops $other.b;
+    }};
+}
+
+macro_rules! op_body_2 {
+    ($self:expr, $other:expr, $ops:tt) => {{
+        for i in 0..N {
+            $self.w[i] $ops $other;
+        }
+
+        $self.b $ops $other;
+    }};
 }
 
 impl<const N: usize> Add<Self> for Weights<N> {
@@ -287,13 +326,9 @@ impl<const N: usize> Add<Self> for Weights<N> {
 
     #[inline]
     fn add(self, other: Self) -> Self {
-        let mut ret = Self::default();
+        let mut ret = self.clone();
 
-        for i in 0..N {
-            ret.0[i] = self.0[i] + other.0[i];
-        }
-
-        ret.1 = self.1 + other.1;
+        op_body_1!(ret, other, +=);
 
         ret
     }
@@ -302,11 +337,7 @@ impl<const N: usize> Add<Self> for Weights<N> {
 impl<const N: usize> AddAssign<Self> for Weights<N> {
     #[inline]
     fn add_assign(&mut self, other: Self) {
-        for i in 0..N {
-            self.0[i] += other.0[i];
-        }
-
-        self.1 += other.1;
+        op_body_1!(self, other, +=);
     }
 }
 
@@ -315,13 +346,9 @@ impl<const N: usize> Sub<Self> for Weights<N> {
 
     #[inline]
     fn sub(self, other: Self) -> Self {
-        let mut ret = Self::default();
+        let mut ret = self.clone();
 
-        for i in 0..N {
-            ret.0[i] = self.0[i] - other.0[i];
-        }
-
-        ret.1 = self.1 - other.1;
+        op_body_1!(ret, other, -=);
 
         ret
     }
@@ -330,11 +357,7 @@ impl<const N: usize> Sub<Self> for Weights<N> {
 impl<const N: usize> SubAssign<Self> for Weights<N> {
     #[inline]
     fn sub_assign(&mut self, other: Self) {
-        for i in 0..N {
-            self.0[i] -= other.0[i];
-        }
-
-        self.1 -= other.1;
+        op_body_1!(self, other, -=);
     }
 }
 
@@ -343,13 +366,9 @@ impl<const N: usize> Mul<f64> for Weights<N> {
 
     #[inline]
     fn mul(self, other: f64) -> Self {
-        let mut ret = Self::default();
+        let mut ret = self.clone();
 
-        for i in 0..N {
-            ret.0[i] = self.0[i] * other;
-        }
-
-        ret.1 = self.1 * other;
+        op_body_2!(ret, other, *=);
 
         ret
     }
@@ -358,11 +377,7 @@ impl<const N: usize> Mul<f64> for Weights<N> {
 impl<const N: usize> MulAssign<f64> for Weights<N> {
     #[inline]
     fn mul_assign(&mut self, other: f64) {
-        for i in 0..N {
-            self.0[i] *= other;
-        }
-
-        self.1 *= other;
+        op_body_2!(self, other, *=)
     }
 }
 
@@ -371,13 +386,9 @@ impl<const N: usize> Div<f64> for Weights<N> {
 
     #[inline]
     fn div(self, other: f64) -> Self {
-        let mut ret = Self::default();
+        let mut ret = self.clone();
 
-        for i in 0..N {
-            ret.0[i] = self.0[i] / other;
-        }
-
-        ret.1 = self.1 / other;
+        op_body_2!(ret, other, /=);
 
         ret
     }
@@ -386,11 +397,7 @@ impl<const N: usize> Div<f64> for Weights<N> {
 impl<const N: usize> DivAssign<f64> for Weights<N> {
     #[inline]
     fn div_assign(&mut self, other: f64) {
-        for i in 0..N {
-            self.0[i] /= other;
-        }
-
-        self.1 /= other;
+        op_body_2!(self, other, /=)
     }
 }
 
@@ -399,13 +406,9 @@ impl<const N: usize> Rem<f64> for Weights<N> {
 
     #[inline]
     fn rem(self, other: f64) -> Self {
-        let mut ret = Self::default();
+        let mut ret = self.clone();
 
-        for i in 0..N {
-            ret.0[i] = self.0[i] % other;
-        }
-
-        ret.1 = self.1 % other;
+        op_body_2!(ret, other, %=);
 
         ret
     }
@@ -414,11 +417,7 @@ impl<const N: usize> Rem<f64> for Weights<N> {
 impl<const N: usize> RemAssign<f64> for Weights<N> {
     #[inline]
     fn rem_assign(&mut self, other: f64) {
-        for i in 0..N {
-            self.0[i] %= other;
-        }
-
-        self.1 %= other;
+        op_body_2!(self, other, %=)
     }
 }
 
@@ -427,10 +426,10 @@ impl<const N: usize> Mul<Self> for Weights<N> {
 
     #[inline]
     fn mul(self, other: Self) -> f64 {
-        let mut ret = self.1 * other.1;
+        let mut ret = self.b * other.b;
 
         for i in 0..N {
-            ret += self.0[i] * other.0[i]
+            ret += self.w[i] * other.w[i]
         }
 
         ret
@@ -442,10 +441,10 @@ impl<const N: usize> Mul<[f64; N]> for Weights<N> {
 
     #[inline]
     fn mul(self, other: [f64; N]) -> f64 {
-        let mut ret = self.1;
+        let mut ret = self.b;
 
         for i in 0..N {
-            ret += self.0[i] * other[i]
+            ret += self.w[i] * other[i]
         }
 
         ret
@@ -584,7 +583,6 @@ impl<const N: usize> Neuron<N> {
     #[inline]
     pub fn activation(&self) -> Activation {self.activation}
 
-
     /// Gets total gradients.
     ///
     /// * _Return_ : Total gradients.
@@ -656,10 +654,10 @@ impl<const N: usize> Neuron<N> {
         let factor =
             feedback * self.activation.d_activate(self.weights * *input);
 
-        let mut grad_w = Weights::<N>(input.clone(), 1.0);
+        let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
         grad_w *= factor;
 
-        let grad_i = (self.weights * factor).0;
+        let grad_i = (self.weights * factor).w().clone();
 
         (grad_w, grad_i)
     }
