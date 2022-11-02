@@ -1,4 +1,4 @@
-use crate::hash::*;
+use crate::chobit_hash::*;
 
 #[test]
 fn hash_test() {
