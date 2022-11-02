@@ -66,9 +66,13 @@ pub const SIZE_MASK: u32 = !FLAG_MASK;
 pub const SIZE_MAX: usize = SIZE_MASK as usize;
 
 /// Flag of atom.
+///
+/// See [FLAG_MASK] for details.
 pub const ATOM_FLAG: u32 = 0;
 
 /// Flag of cons.
+///
+/// See [FLAG_MASK] for details.
 pub const CONS_FLAG: u32 = FLAG_MASK;
 
 /// Header of ChobitSexpr.
