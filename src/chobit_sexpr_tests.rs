@@ -312,9 +312,17 @@ fn chobit_sexpr_convert_test() {
         convert_test_core!(u64, i);
         convert_test_core!(i128, i);
         convert_test_core!(u128, i);
-        convert_test_core!(isize, i);
-        convert_test_core!(usize, i);
         convert_test_core!(f32, i);
         convert_test_core!(f64, i);
     }
+
+    let val = "hello world";
+
+    let buf = ChobitSexprBuf::from(val);
+    let result = <&str>::try_from(buf.as_sexpr()).unwrap();
+    assert_eq!(result, val);
+
+    let buf: ChobitSexprBuf<Completed> = val.into();
+    let result: &str = buf.as_sexpr().try_into().unwrap();
+    assert_eq!(result, val);
 }

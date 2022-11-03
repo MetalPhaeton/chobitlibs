@@ -730,7 +730,7 @@ impl<'a> TryFrom<&'a ChobitSexpr> for &'a str {
 
     #[inline]
     fn try_from(sexpr: &'a ChobitSexpr) -> Result<&'a str, ()> {
-        alloc::str::from_utf8(sexpr.atom().ok_or_else(|| ())?).map_err(|_| ())
+        core::str::from_utf8(sexpr.atom().ok_or_else(|| ())?).map_err(|_| ())
     }
 }
 
