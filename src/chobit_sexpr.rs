@@ -706,8 +706,6 @@ def_try_from!(i64);
 def_try_from!(u64);
 def_try_from!(i128);
 def_try_from!(u128);
-def_try_from!(isize);
-def_try_from!(usize);
 
 impl TryFrom<&ChobitSexpr> for f32 {
     type Error = ();
@@ -1082,8 +1080,6 @@ def_from!(i64);
 def_from!(u64);
 def_from!(i128);
 def_from!(u128);
-def_from!(isize);
-def_from!(usize);
 
 impl From<f32> for ChobitSexprBuf<Completed> {
     #[inline]
