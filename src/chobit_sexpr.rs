@@ -21,6 +21,31 @@
 //! ```
 //! extern crate alloc;
 //! ```
+//!
+//! # Structure of ChobitSexpr
+//!
+//! There are 2 types of [ChobitSexpr].  
+//! One type is __Atom__ , another is __Cons__ .
+//!
+//! ## Atom
+//!
+//! __Atom__ consists of [SexprHeader] and payload.
+//!
+//! | Position | Contents |
+//! |-|-|
+//! | The first of 4 bytes | [SexprHeader]. That contains atom flag and a size of payload in __little endian__ . |
+//! | The rest of bytes | Payload. That contains byte data. |
+//!
+//! ## Cons
+//!
+//! __Cons__ consists of [SexprHeader] and __car__ and __cdr__.  
+//! __Car__ and __cdr__ are [ChobitSexpr].
+//!
+//! | Position | Contents |
+//! |-|-|
+//! | The first of 4 bytes | [SexprHeader]. That contains cons flag and a size of car in __little endian__ . |
+//! | Next bytes that size is written in header | [ChobitSexpr]. That is called __car__. |
+//! | The rest of bytes | [ChobitSexpr]. That is called __cdr__. |
 
 use alloc::{
     vec::Vec,
@@ -78,155 +103,12 @@ pub const CONS_FLAG: u32 = FLAG_MASK;
 /// Header of ChobitSexpr.
 ///
 /// [SexprHeader] is `u32` value.  
-/// This can use methods of `u32` because of [Deref].
+/// This is written on byte string in __little endian__ .
 ///
-/// ```text
-/// High bit
-/// |---|
-/// |   | <-- Cons flag (1 bit) : if header of cons, 1. if header of atom, 0.
-/// |---|
-/// |   | -|
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |- Size (31 bits) :
-/// |---|  |      if header of cons, here is size of car.
-/// |   |  |      if header of atom, here is size of payload.
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   | -|
-/// |---|
-/// Low bit
-/// ```
-///
-/// But this header is recorded on the head of byte string in __little endian__.  
-/// So...
-///
-/// ```text
-/// Head of sexpr on byte string.
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   | <--- Cons flag is here, because of little endian.
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |   |
-/// |---|
-/// |
-/// |
-/// |
-/// |
-/// |
-/// |
-/// ```
+/// | Position | Cotents |
+/// |-|-|
+/// | The hightest of 1 bit | Flag. If sexpr is atom, 0. If sexpr is cons, 1. |
+/// | The rest of bits | If the sexpr is atom, a size of payload. If it is cons, a size of car. |
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct SexprHeader {
     body: u32
@@ -353,97 +235,259 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 
 /// Structured byte string.
 ///
-/// This is byte string structured by S-Expression.
+/// # Example of atom
 ///
-/// # Atom
+/// ```
+/// extern crate alloc;
+/// use alloc::vec::Vec;
 ///
-/// ```text
-/// Head of byte string
-/// |---|
-/// |   | -|
-/// |---|  |
-/// |   |  |- Header (4 bytes)
-/// |---|  |      Size of atom is written here.
-/// |   |  |
-/// |---|  |
-/// |   | -|
-/// |---| 
-/// |   | -|
-/// |---|  |
-/// |   |  |- Payload (size is written in the header)
-/// |---|  |      Contains byte data.
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
+/// use chobit::chobit_sexpr::{SexprHeader, ChobitSexpr};
 ///
-/// # Cons
+/// let payload: [u8; 5] = [1, 2, 3, 4, 5];
 ///
-/// ```text
-/// Head of byte string
-/// |---|
-/// |   | -|
-/// |---|  |
-/// |   |  |- Header (4 bytes)
-/// |---|  |      Size of car is written here.
-/// |   |  |
-/// |---|  |
-/// |   | -|
-/// |---| 
-/// |   | -|
-/// |---|  |
-/// |   |  |- Car (size is written in the header) 
-/// |---|  |      Contains ChobitSexpr.
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |   | -|
-/// |---| 
-/// |   | -|
-/// |---|  |
-/// |   |  |- Cdr (the rest of byte string)
-/// |---|  |      Contains ChobitSexpr
-/// |   |  |
-/// |---|  |
-/// |   |  |
-/// |---|  |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
-/// |      |
+/// let header = SexprHeader::new_atom(payload.len());
+///
+/// let mut body = Vec::<u8>::new();
+///
+/// body.extend_from_slice(&header.to_u32().to_le_bytes());
+/// body.extend_from_slice(&payload);
+///
+/// let sexpr = ChobitSexpr::new(&body);
+///
+/// assert_eq!(sexpr.atom().unwrap(), payload.as_slice());
+/// ```
+///
+/// # Example of cons
+///
+/// ```
+/// extern crate alloc;
+/// use alloc::vec::Vec;
+///
+/// use chobit::chobit_sexpr::{SexprHeader, ChobitSexpr};
+///
+/// let car_payload: [u8; 5] = [1, 2, 3, 4, 5];
+///
+/// let car_body = {
+///
+///     let header = SexprHeader::new_atom(car_payload.len());
+///
+///     let mut body = Vec::<u8>::new();
+///
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&car_payload);
+///
+///     body
+/// };
+///
+/// let car = ChobitSexpr::new(&car_body);
+///
+/// let cdr_payload: [u8; 5] = [6, 7, 8, 9, 10];
+///
+/// let cdr_body = {
+///     let header = SexprHeader::new_atom(cdr_payload.len());
+///
+///     let mut body = Vec::<u8>::new();
+///
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&cdr_payload);
+///
+///     body
+/// };
+///
+/// let cdr = ChobitSexpr::new(&cdr_body);
+///
+/// let mut body = Vec::<u8>::new();
+/// let header = SexprHeader::new_cons(car.len());
+///
+/// body.extend_from_slice(&header.to_u32().to_le_bytes());
+/// body.extend_from_slice(car);
+/// body.extend_from_slice(cdr);
+///
+/// let sexpr = ChobitSexpr::new(&body);
+///
+/// assert_eq!(sexpr.car().unwrap().as_bytes(), car.as_bytes());
+/// assert_eq!(sexpr.cdr().unwrap().as_bytes(), cdr.as_bytes());
+///
+/// assert_eq!(sexpr.car().unwrap().atom().unwrap(), car_payload.as_slice());
+/// assert_eq!(sexpr.cdr().unwrap().atom().unwrap(), cdr_payload.as_slice());
+/// ```
+///
+/// # Example of TryFrom trait
+///
+/// ```
+/// extern crate alloc;
+/// use alloc::vec::Vec;
+///
+/// use chobit::chobit_sexpr::{SexprHeader, ChobitSexpr};
+///
+/// {
+///     let value: i8 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<i8>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, i8::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: u8 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<u8>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, u8::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: i16 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<i16>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, i16::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: u16 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<u16>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, u16::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: i32 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<i32>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, i32::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: u32 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<u32>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, u32::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: i64 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<i64>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, i64::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: u64 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<u64>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, u64::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: i128 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<i128>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, i128::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: u128 = 111;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<u128>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, u128::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: f32 = 111.0;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<f32>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_bits().to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, f32::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: f64 = 111.0;
+///     let header = SexprHeader::new_atom(std::mem::size_of::<f64>());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.to_bits().to_le_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, f64::try_from(sexpr).unwrap());
+/// }
+///
+/// {
+///     let value: &str = "Hello World";
+///     let header = SexprHeader::new_atom(value.as_bytes().len());
+///
+///     let mut body = Vec::<u8>::new();
+///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&value.as_bytes());
+///
+///     let sexpr = ChobitSexpr::new(&body);
+///
+///     assert_eq!(value, <&str>::try_from(sexpr).unwrap());
+/// }
 /// ```
 #[derive(Debug, PartialEq)]
 pub struct ChobitSexpr {
