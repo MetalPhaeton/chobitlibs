@@ -246,29 +246,17 @@ macro_rules! chobit_module {
 static mut __MODULE: Option<ChobitModule<$user_object_type>> = None;
 
 #[allow(dead_code)]
-#[inline]
-fn __on_created() -> $user_object_type {
-    ($closure_1)()
-}
-
-#[allow(dead_code)]
-#[inline]
-fn __on_received(__module: &mut ChobitModule<$user_object_type>) {
-    ($closure_2)(__module)
-}
-
-#[allow(dead_code)]
 #[no_mangle]
 extern fn init(id: u64) {
-    let user_object = __on_created();
-
     unsafe {
-        __MODULE = Some(ChobitModule::__new(
-            id,
-            $input_buffer_size,
-            $output_buffer_size,
-            user_object
-        ));
+        __MODULE = __MODULE.take().or_else(|| {
+            Some(ChobitModule::<$user_object_type>::__new(
+                id,
+                $input_buffer_size,
+                $output_buffer_size,
+                ($closure_1)()
+            ))
+        })
     }
 }
 
@@ -279,7 +267,7 @@ extern fn recv(from: u64, length: usize) {
         Some(module) => {
             module.__set_recv_info(from, length);
 
-            __on_received(module);
+            ($closure_2)(module);
         },
 
         None => {}
