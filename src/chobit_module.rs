@@ -14,8 +14,9 @@
 
 #![allow(dead_code)]
 
-//! Wasm module library.
+//! WASM module library.
 //!
+//! See [ChobitModule] for detail.
 
 use alloc::{boxed::Box, vec};
 
@@ -27,6 +28,36 @@ extern {
     fn send(to: u64, length: usize);
 }
 
+/// An object that has all information and data of WASM.
+///
+/// # Exapmle
+///
+/// ```
+/// use chobit::chobit_module::{ChobitModule, chobit_module};
+///
+/// struct MyObject {
+///     pub value: i32
+/// }
+///
+/// chobit_module! {
+///     input_buffer_size = 16 * 1024;
+///     output_buffer_size = 16 * 1024;
+///     user_object_type = MyObject;
+///
+///     on_created = || -> MyObject {
+///         MyObject {
+///             value: 100
+///         }
+///     };
+///
+///     on_received = |module: &mut ChobitModule<MyObject>| {
+///         module.send(
+///             123,
+///             format!("Hello {}", module.user_object().value).as_bytes()
+///         );
+///     };
+/// }
+/// ```
 pub struct ChobitModule<T> {
     id: u64,
 
@@ -40,20 +71,42 @@ pub struct ChobitModule<T> {
 }
 
 impl<T> ChobitModule<T> {
+    /// Gets module ID.
+    ///
+    /// ID is given from runtime when the module is initialized.
+    ///
+    /// * _Return_ : Module ID.
     #[inline]
     pub fn id(&self) -> u64 {self.id}
 
+    /// Gets input buffer size.
+    ///
+    /// Input buffer is a buffer that is put input data from runtime.
+    ///
+    /// * _Return_ : A size of input buffer.
     #[inline]
     pub fn input_buffer_size(&self) -> usize {(*self.input_buffer).len()}
 
+    /// Gets output buffer size.
+    ///
+    /// Output buffer is a buffer that the module puts output data.
+    ///
+    /// * _Return_ : A size of output buffer.
     #[inline]
     pub fn output_buffer_size(&self) -> usize {(*self.output_buffer).len()}
 
+    /// Gets recieved data from other module.
+    ///
+    /// * _Return_ : (other_module_id, data)
     #[inline]
     pub fn recv_data(&self) -> (u64, &[u8]) {
         (self.recv_from, &(*self.input_buffer)[..self.recv_length])
     }
 
+    /// Sends data to other module.
+    ///
+    /// * `to` : Other module ID.
+    /// * `data` : Data that you want to send.
     pub fn send(&mut self, to: u64, data: &[u8]) {
         let data_len = data.len();
 
@@ -64,6 +117,9 @@ impl<T> ChobitModule<T> {
         }
     }
 
+    /// Resizes input buffer.
+    ///
+    /// * `size` : New size of input buffer.
     pub fn resize_input_buffer(&mut self, size: usize) {
         let buffer = vec![0u8; size].into_boxed_slice();
         let offset = (*buffer).as_ptr() as usize;
@@ -76,6 +132,9 @@ impl<T> ChobitModule<T> {
         self.input_buffer = buffer;
     }
 
+    /// Resizes output buffer.
+    ///
+    /// * `size` : New size of output buffer.
     pub fn resize_output_buffer(&mut self, size: usize) {
         let buffer = vec![0u8; size].into_boxed_slice();
         let offset = (*buffer).as_ptr() as usize;
@@ -88,9 +147,15 @@ impl<T> ChobitModule<T> {
         self.output_buffer = buffer;
     }
 
+    /// Gets immutable user object.
+    ///
+    /// * _Return_ : Immutable user object.
     #[inline]
     pub fn user_object(&self) -> &T {&self.user_object}
 
+    /// Gets mutable user object.
+    ///
+    /// * _Return_ : Mutable user object.
     #[inline]
     pub fn user_object_mut(&mut self) -> &mut T {&mut self.user_object}
 
@@ -137,56 +202,87 @@ impl<T> ChobitModule<T> {
     }
 }
 
+/// Defines WASM module.
+///
+/// ```
+/// use chobit::chobit_module::{ChobitModule, chobit_module};
+///
+/// struct MyObject {
+///     pub value: i32
+/// }
+///
+/// chobit_module! {
+///     input_buffer_size = 16 * 1024;  // Initial input buffer size.
+///     output_buffer_size = 16 * 1024;  // Initial output buffer size.
+///     user_object_type = MyObject;  // Indicates user object type.
+///
+///     // A closure that is called when this module has created.
+///     on_created = || -> MyObject {
+///         MyObject {
+///             value: 100
+///         }
+///     };
+///
+///     // A closure that is called when received data from other module.
+///     on_received = |module: &mut ChobitModule<MyObject>| {
+///         module.send(
+///             123,
+///             format!("Hello {}", module.user_object().value).as_bytes()
+///         );
+///     };
+/// }
+/// ```
 #[macro_export]
 macro_rules! chobit_module {
     (
         input_buffer_size = $input_buffer_size:expr;
         output_buffer_size = $output_buffer_size:expr;
+        user_object_type = $user_object_type:ty;
 
-        on_created = (): $user_object_type:ty => $proc_1:expr;
+        on_created = $closure_1:expr;
 
-        on_received = ($module_name:ident) => $proc_2:expr;
+        on_received = $closure_2:expr;
     ) => {
-fn on_created() -> $user_object_type {
-    $proc_1
-}
+static mut __MODULE: Option<ChobitModule<$user_object_type>> = None;
 
-fn on_received($module_name: &mut ChobitModule<$user_object_type>) {
-    $proc_2
-}
-
-#[doc(hidden)]
 #[allow(dead_code)]
-mod chobit_module_core {
-    use super::*;
+#[inline]
+fn __on_created() -> $user_object_type {
+    ($closure_1)()
+}
 
-    static mut MODULE: Option<ChobitModule<$user_object_type>> = None;
+#[allow(dead_code)]
+#[inline]
+fn __on_received(__module: &mut ChobitModule<$user_object_type>) {
+    ($closure_2)(__module)
+}
 
-    #[no_mangle]
-    extern fn init(id: u64) {
-        let user_object = on_created();
+#[allow(dead_code)]
+#[no_mangle]
+extern fn init(id: u64) {
+    let user_object = __on_created();
 
-        unsafe {
-            MODULE = Some(ChobitModule::__new(
-                id,
-                $input_buffer_size,
-                $output_buffer_size,
-                user_object
-            ));
-        }
+    unsafe {
+        __MODULE = Some(ChobitModule::__new(
+            id,
+            $input_buffer_size,
+            $output_buffer_size,
+            user_object
+        ));
     }
+}
 
-    #[no_mangle]
-    extern fn recv(from: u64, length: usize) {
-        match unsafe {MODULE.as_mut()} {
-            Some(module) => {
-                module.__set_recv_info(from, length);
+#[allow(dead_code)]
+#[no_mangle]
+extern fn recv(from: u64, length: usize) {
+    match unsafe {__MODULE.as_mut()} {
+        Some(module) => {
+            module.__set_recv_info(from, length);
 
-                on_received(module);
-            },
+            __on_received(module);
+        },
 
-            None => {}
-        }
+        None => {}
     }
 }
     };

@@ -8,12 +8,14 @@ struct TestObject {
 chobit_module! {
     input_buffer_size = 100;
     output_buffer_size = 200;
+    user_object_type = TestObject;
 
-    on_created = (): TestObject => TestObject {
-        value: 3
+    on_created = || -> TestObject {
+        let abc = 100;
+        TestObject {value: abc}
     };
 
-    on_received = (module) => {
+    on_received = |module: &mut ChobitModule<TestObject>| {
         let a = 3;
         assert_eq!(module.user_object().value, a);
     };

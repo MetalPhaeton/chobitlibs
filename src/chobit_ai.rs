@@ -453,7 +453,7 @@ impl<const N: usize> Mul<[f64; N]> for Weights<N> {
 
 /// Activation function for Neuron.
 ///
-/// See [Neuron].
+/// See [Neuron] for details.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Activation {
     /// No activation function.
@@ -762,11 +762,11 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
 
     /// Studies gradients.
     ///
-    /// See [Neuron::study]
+    /// See [Neuron::study] for details.
     ///
-    /// * `feedback` : Feedback from next layer. See [Neuron::study]
+    /// * `feedback` : Feedback from next layer. See [Neuron::study] for details.
     /// * `input` : Input vector
-    /// * _Return_ : Feedback to previous layer. See [Neuron::study]
+    /// * _Return_ : Feedback to previous layer. See [Neuron::study] for details.
     pub fn study(
         &mut self,
         feedback: &[f64; OUT],

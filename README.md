@@ -16,3 +16,4 @@ All libraries can be used in `no_std`.
 * `chobit_rand.rs` : Random number generator.
 * `chobit_ai.rs` : Neural network library.
 * `chobit_sexpr.rs` : Structured byte string.
+* `chobit_module.rs` : WASM module library.
