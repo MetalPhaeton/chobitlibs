@@ -51,5 +51,8 @@ pub mod chobit_ai;
 pub mod chobit_sexpr;
 #[cfg(test)] mod chobit_sexpr_tests;
 
+pub mod chobit_module;
+#[cfg(test)] mod chobit_module_tests;
+
 #[cfg(test)]
 mod tests;
