@@ -42,20 +42,19 @@ extern {
 /// chobit_module! {
 ///     input_buffer_size = 16 * 1024;
 ///     output_buffer_size = 16 * 1024;
-///     user_object_type = MyObject;
 ///
-///     on_created = || -> MyObject {
+///     on_created() -> MyObject {
 ///         MyObject {
 ///             value: 100
 ///         }
-///     };
+///     }
 ///
-///     on_received = |module: &mut ChobitModule<MyObject>| {
+///     on_received(module: &mut ChobitModule<MyObject>) {
 ///         module.send(
 ///             123,
 ///             format!("Hello {}", module.user_object().value).as_bytes()
 ///         );
-///     };
+///     }
 /// }
 /// ```
 pub struct ChobitModule<T> {
@@ -214,22 +213,21 @@ impl<T> ChobitModule<T> {
 /// chobit_module! {
 ///     input_buffer_size = 16 * 1024;  // Initial input buffer size.
 ///     output_buffer_size = 16 * 1024;  // Initial output buffer size.
-///     user_object_type = MyObject;  // Indicates user object type.
 ///
-///     // A closure that is called when this module has created.
-///     on_created = || -> MyObject {
+///     // This is called when this module has created.
+///     on_created() -> MyObject {
 ///         MyObject {
 ///             value: 100
 ///         }
-///     };
+///     }
 ///
-///     // A closure that is called when received data from other module.
-///     on_received = |module: &mut ChobitModule<MyObject>| {
+///     // This is called when received data from other module.
+///     on_received(module: &mut ChobitModule<MyObject>) {
 ///         module.send(
 ///             123,
 ///             format!("Hello {}", module.user_object().value).as_bytes()
 ///         );
-///     };
+///     }
 /// }
 /// ```
 #[macro_export]
@@ -237,13 +235,24 @@ macro_rules! chobit_module {
     (
         input_buffer_size = $input_buffer_size:expr;
         output_buffer_size = $output_buffer_size:expr;
-        user_object_type = $user_object_type:ty;
 
-        on_created = $closure_1:expr;
+        on_created() -> $user_object_type:ty {
+            $($code_1:tt)*
+        }
 
-        on_received = $closure_2:expr;
+        on_received($($args:tt)*) {
+            $($code_2:tt)*
+        }
     ) => {
 static mut __MODULE: Option<ChobitModule<$user_object_type>> = None;
+
+fn __on_created() -> $user_object_type {
+    $($code_1)*
+}
+
+fn __on_received($($args)*) {
+    $($code_2)*
+}
 
 #[allow(dead_code)]
 #[no_mangle]
@@ -254,7 +263,7 @@ extern fn init(id: u64) {
                 id,
                 $input_buffer_size,
                 $output_buffer_size,
-                ($closure_1)()
+                __on_created()
             ))
         })
     }
@@ -267,7 +276,7 @@ extern fn recv(from: u64, length: usize) {
         Some(module) => {
             module.__set_recv_info(from, length);
 
-            ($closure_2)(module);
+            __on_received(module);
         },
 
         None => {}
