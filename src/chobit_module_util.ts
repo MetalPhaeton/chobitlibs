@@ -14,7 +14,6 @@
 
 export class MessageEncoder {
     private _textEncoder: TextEncoder;
-    private _toID: (text: string) => bigint;
     private _initID: bigint;
     private _recvID: bigint;
     private _notifyInputBufferID: bigint;
@@ -24,31 +23,23 @@ export class MessageEncoder {
     constructor() {
         this._textEncoder = new TextEncoder;
 
-        const fnv1a64 = (bytes: Uint8Array): bigint => {
-            const dataArray = new BigUint64Array([
-                0xcbf29ce484222325n,
-                0x00000100000001b3n,
-                0n
-            ]);
+        this._initID = this.toID("init");
+        this._recvID = this.toID("recv");
+        this._notifyInputBufferID = this.toID("notify_input_buffer");
+        this._notifyOutputBufferID = this.toID("notify_output_buffer");
+        this._sendID = this.toID("send");
+    }
 
-            bytes.forEach((x) => {
-                dataArray[2] = BigInt(x);
-                dataArray[0] ^= dataArray[2];
-                dataArray[0] *= dataArray[1];
-            });
+    private _fnv1a64(bytes: Uint8Array) {
+        let ret: bigint = 0xcbf29ce484222325n;
+        const PRIME: bigint = 0x00000100000001b3n as const;
 
-            return dataArray[0];
-        };
+        bytes.forEach((x) => {
+            ret = (ret ^ BigInt(x)) & 0xffffffffffffffffn;
+            ret = (ret * PRIME) & 0xffffffffffffffffn;
+        });
 
-        this._toID = (text: string): bigint => {
-            return fnv1a64(this._textEncoder.encode(text));
-        };
-
-        this._initID = this._toID("init");
-        this._recvID = this._toID("recv");
-        this._notifyInputBufferID = this._toID("notify_input_buffer");
-        this._notifyOutputBufferID = this._toID("notify_output_buffer");
-        this._sendID = this._toID("send");
+        return ret;
     }
 
     get initID(): bigint {return this._initID;}
@@ -58,7 +49,7 @@ export class MessageEncoder {
     get sendID(): bigint {return this._sendID;}
 
     toID(text: string): bigint {
-        return this._toID(text);
+        return this._fnv1a64(this._textEncoder.encode(text));
     }
 
     decodeMsgID(bytes: Uint8Array): bigint | null {
@@ -218,87 +209,350 @@ export class MessageEncoder {
     }
 }
 
+interface Exports {
+    memory: WebAssembly.Memory,
+
+    init: (id: bigint) => void,
+    recv: (from: bigint, length: number) => void
+}
+
+export class ChobitWASM {
+    private _exports: Exports | null;
+
+    private _inputBufferInfo: [number, number];
+    private _outputBufferInfo: [number, number];
+
+    constructor() {
+        this._exports = null;
+
+        this._inputBufferInfo = [0, 0];
+        this._outputBufferInfo = [0, 0];
+    }
+
+    genWASM(
+        url: URL,
+        id: bigint,
+        imports: any
+    ): Promise<void> | null {
+        return WebAssembly.instantiateStreaming(
+            fetch(url),
+            imports
+        ).then((obj) => {
+            this._exports = obj.instance.exports as unknown as Exports;
+
+            this._exports.init(id);
+        });
+    }
+
+    genDefaultImports(
+        outputHandler: (to: bigint, data: Uint8Array) => void
+    ): any {
+        return {
+            env: {
+                notify_input_buffer: (offset: number, size: number) => {
+                    this._inputBufferInfo = [offset, size];
+                },
+
+                notify_output_buffer: (offset: number, size: number) => {
+                    this._outputBufferInfo = [offset, size];
+                },
+
+                send: (to: bigint, length: number) => {
+                    if (length > this._outputBufferInfo[1]) {return;}
+
+                    if (this._exports) {
+                        const data = new Uint8Array(
+                            this._exports.memory.buffer,
+                            this._outputBufferInfo[0],
+                            length
+                        );
+
+                        outputHandler(to, data);
+                    }
+                }
+            }
+        };
+    }
+
+    input(from: bigint, data: Uint8Array) {
+        if (data.length > this._inputBufferInfo[1]) {return;}
+
+        if (this._exports) {
+            const inputBuffer = new Uint8Array(
+                this._exports.memory.buffer,
+                this._inputBufferInfo[0],
+                this._inputBufferInfo[1]
+            );
+
+            inputBuffer.set(data);
+
+            this._exports.recv(from, data.length);
+        }
+    }
+}
+
+//interface ChobitWASM {
+//    memory: WebAssembly.Memory,
+//    init: (id: bigint) => void,
+//    recv: (from: bigint, length: number) => void
+//};
+//
 //export class ChobitModuleBase {
 //    private _messageEncoder: MessageEncoder;
 //
-//    private _thisThread: [bigint, WebAssembly.Instance, [number, number], [number, number] ][];
+//    private _thisThread: [
+//        bigint,
+//        ChobitWASM,
+//        [number, number],
+//        [number, number]
+//    ][];
 //
 //    private _workerThread: [bigint, Worker][];
+//
+//    private _onMessageHandler: (event: MessageEvent) => void;
 //
 //    constructor() {
 //        this._messageEncoder = new MessageEncoder();
 //
 //        this._thisThread = [];
 //        this._workerThread = [];
+//
+//        this._onMessageHandler = this._genOnMessageHandler();
 //    }
 //
-//    genChobitModuleInThisThread(url: string, id: bigint): boolean {
+//    private _genOnMessageHandler() {
+//        const self = this;
+//
+//        return (event: MessageEvent) => {
+//            const msg = new Uint8Array(event.data as unknown as ArrayBuffer);
+//
+//            self._handleMsg(msg);
+//        };
+//    }
+//
+//    private _handleMsg(msg: Uint8Array) {
+//        const parsedData = this._messageEncoder.decodeSendMsg(msg);
+//
+//        if (parsedData) {
+//            this.sendData(parsedData[1], parsedData[2]);
+//        }
+//    }
+//
+//    genChobitModuleInThisThread(
+//        url: string,
+//        id: bigint,
+//        importObject: any = this.genDefaultInportObject(id)
+//    ): Promise<void> | null {
 //        const self = this;
 //
 //        // checks if id exists or not.
-//        let found = false;
+//        for (const elm of this._thisThread) {
+//            if (elm[0] == id) {return null;}
+//        }
+//        for (const elm of this._workerThread) {
+//            if (elm[0] == id) {return null;}
+//        }
 //
-//        self._thisThread.forEach((elm) => {
-//            if (elm[0] == id) {found = true;}
+//        return this._genWebAssemblyInstance(url, id, importObject);
+//    }
+//
+//    private _genWebAssemblyInstance(
+//        url: string,
+//        id: bigint,
+//        importObject: any
+//    ): Promise<void> {
+//        const self = this;
+//
+//        return WebAssembly.instantiateStreaming(fetch(url), importObject).then(
+//            (obj) => {
+//                let chobitInstance =
+//                    obj.instance.exports as unknown as ChobitWASM;
+//
+//                self._thisThread.push([
+//                    id,
+//                    chobitInstance,
+//                    [0, 0],
+//                    [0, 0]
+//                ]);
+//
+//                chobitInstance.init(id);
+//            }
+//        );
+//    }
+//
+//    genChobitModuleWorker(
+//        worker_url: string,
+//        wasm_url: string,
+//        id: bigint
+//    ): Promise<void> | null {
+//        const self = this;
+//
+//        // checks if id exists or not.
+//        for (const elm of this._thisThread) {
+//            if (elm[0] == id) {return null;}
+//        }
+//        for (const elm of this._workerThread) {
+//            if (elm[0] == id) {return null;}
+//        }
+//
+//        return fetch(wasm_url).then((response) => {
+//            return response.arrayBuffer();
+//        }).then((buffer) => {
+//            const wasmFile = new Uint8Array(buffer);
+//
+//            const msg = new Uint8Array(wasmFile.length + 16);
+//
+//            const tmp = new BigUint64Array(msg.buffer, 0, 2);
+//            tmp[0] = self._messageEncoder.initID;
+//            tmp[1] = id;
+//
+//            msg.set(wasmFile, 16);
+//
+//            const worker = new Worker(worker_url, {type: "module"});
+//            worker.onmessage = this._onMessageHandler;
+//
+//            const msgBuffer = msg.buffer;
+//            worker.postMessage(msgBuffer, [msgBuffer]);
+//
+//            self._workerThread.push([id, worker]);
 //        });
-//        self._workerThread.forEach((elm) => {
-//            if (elm[0] == id) {found = true;}
-//        });
+//    }
 //
-//        if (found) {return false;}
-//
-//        // generates imports.
-//        const importObject = {
+//    genDefaultInportObject(id: bigint): any {
+//        const self = this;
+//        return {
 //            env: {
 //                notify_input_buffer: (offset: number, size: number) => {
-//                    self._thisThread.forEach((elm) => {
+//                    for (const elm of self._thisThread) {
 //                        if (elm[0] == id) {
 //                            elm[2][0] = offset;
 //                            elm[2][1] = size;
+//
+//                            return;
 //                        }
-//                    });
+//                    }
 //                },
 //
 //                notify_output_buffer: (offset: number, size: number) => {
-//                    self._thisThread.forEach((elm) => {
+//                    for (const elm of self._thisThread) {
 //                        if (elm[0] == id) {
 //                            elm[3][0] = offset;
 //                            elm[3][1] = size;
+//
+//                            return;
 //                        }
-//                    });
+//                    }
 //                },
 //
 //                send: (to: bigint, length: number) => {
-//                    self._thisThread.forEach((elm) => {
-//                        if (elm[0] != id) {return;}
+//                    for (const elm of self._thisThread) {
+//                        if (elm[0] == id) {
+//                            const offset = elm[3][0];
+//                            const size = elm[3][1];
 //
-//                        const offset = elm[3][0];
-//                        const size = elm[3][1];
+//                            if (length > size) {return;}
 //
-//                        if (length > size) {return;}
+//                            const data = new Uint8Array(
+//                                elm[1].memory.buffer,
+//                                offset,
+//                                length
+//                            );
 //
-//                        const buffer = new Uint8Array(
-//                            (elm[1].exports.memory as TypedArray).buffer
-//                        );
+//                            self.sendData(to, data);
 //
-//                        const data = buffer.slice(offset, offset + length);
-//                        self.sendData(to, data);
-//                    });
+//                            return;
+//                        }
+//                    }
 //                }
 //            }
 //        };
-//
-//        // generates wasm.
-//        WebAssembly.instantiateStreaming(fetch(url), importObject).then(
-//            (obj) => {
-//                self._thisThread.push([id, obj.instance, [0, 0], [0, 0]]);
-//            }
-//        );
-//
-//        return true;
 //    }
 //
 //    sendData(to: bigint, data: Uint8Array) {
-//        // TODO
+//        for (const elm of this._thisThread) {
+//            if (elm[0] == to) {
+//                const offset = elm[2][0];
+//                const size = elm[2][1];
+//
+//                const inputBuffer =
+//                    new Uint8Array(elm[1].memory.buffer, offset, size);
+//
+//                inputBuffer.set(data);
+//
+//                elm[1].recv(to, data.length);
+//
+//                return;
+//            }
+//        }
+//
+//        for (const elm of this._workerThread) {
+//            if (elm[0] == to) {
+//                const msg =
+//                    this._messageEncoder.encodeRecvMsg(to, data).buffer;
+//
+//                elm[1].postMessage(msg, [msg]);
+//
+//                return;
+//            }
+//        }
+//    }
+//}
+//
+//export class ChobitWorker {
+//    private _messageEncoder: MessageEncoder;
+//    private _global: Worker;
+//
+//    private _id: bigint;
+//    private _imporObject: any;
+//    private _wasm: ChobitWASM | null;
+//    private _input_buffer_info: [number, number];
+//    private _output_buffer_info: [number, number];
+//
+//    constructor(importObject: any) {
+//        this._messageEncoder = new MessageEncoder();
+//        this._global = globalThis as unknown as Worker;
+//
+//        const self = this;
+//        this._global.onmessage = (event: MessageEvent) => {
+//            const msg = new Uint8Array(event.data);
+//
+//            self.handleMsg(msg);
+//        };
+//
+//        this._id = 0n;
+//        this._imporObject = importObject;
+//        this._wasm = null;
+//
+//        this._input_buffer_info = [0, 0];
+//        this._output_buffer_info = [0, 0];
+//    }
+//
+//    private handleMsg(msg: Uint8Array): Promise<void> | null {
+//        const initInfo = this._messageEncoder.decodeInitMsg(msg);
+//
+//        if (initInfo) {
+//            const data = new Uint8Array(msg.buffer, 16, msg.length - 16);
+//
+//            return this.initWASM(initInfo[1], data);
+//        }
+//
+//        const sendInfo = this._messageEncoder.decodeSendMsg(msg);
+//
+//        if (sendInfo) {
+//            // TODO
+//            return null;
+//        }
+//    }
+//
+//    private initWASM(id: bigint, data: Uint8Array): Promise<void> | null {
+//        if (this._wasm) {return null;}
+//        if (data <= 0) {return null;}
+//
+//        return WebAssembly.instantiateStreaming(
+//            data,
+//            this._importObject
+//        ).then((obj) => {
+//            // TODO
+//        });
 //    }
 //}

@@ -1,4 +1,4 @@
-import {MessageEncoder} from "./chobit_module_util.ts";
+import {MessageEncoder, ChobitWASM} from "./chobit_module_util.ts";
 
 function test1Core(encoder: MessageEncoder, msg: Uint8Array) {
     console.log("decodeMsgID(): " + encoder.decodeMsgID(msg));
@@ -65,4 +65,24 @@ function test1() {
     test1Core(encoder, send);
 }
 
-test1();
+function test2() {
+    const wasm = new ChobitWASM();
+
+    const imports = wasm.genDefaultImports((to, data) => {
+        console.log(
+            "send_to: " + to.toString()
+                + ", send_data: " + (new TextDecoder()).decode(data)
+        );
+    });
+
+    wasm.genWASM(
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+        111n,
+        imports
+    ).then(() => {
+        wasm.input(222n, (new TextEncoder()).encode("Alice plays chess."))
+    });
+
+}
+
+test2();
