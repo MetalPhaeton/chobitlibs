@@ -38,7 +38,7 @@ export class MessageBuffer {
 
     constructor(bufferSize: number) {
         this._textEncoder = new TextEncoder();
-        this._buffer = new Uint8Array(bufferSize).buffer;
+        this._buffer = new ArrayBuffer(bufferSize);
 
         this._initID = this.toMsgID("init");
         this._recvID = this.toMsgID("recv");
@@ -58,7 +58,7 @@ export class MessageBuffer {
                 size *= 2;
             }
 
-            this._buffer = new Uint8Array(size).buffer;
+            this._buffer = new ArrayBuffer(size);
         }
     }
 
@@ -197,7 +197,7 @@ export class ChobitWASM {
     }
 
     genDefaultImports(
-        outputHandler: (to: bigint, data: Uint8Array) => void
+        onOutput: (to: bigint, data: Uint8Array) => void
     ): any {
         return {
             env: {
@@ -219,7 +219,7 @@ export class ChobitWASM {
                             length
                         );
 
-                        outputHandler(to, data);
+                        onOutput(to, data);
                     }
                 }
             }
@@ -243,128 +243,148 @@ export class ChobitWASM {
     }
 }
 
-//class ChobitWorkerChannel {
-//    private _msgBuffer: MessageBuffer;
-//    private _worker: Worker;
-//
-//    private _wasmID: bigint;
-//
-//    constructor(
-//        workerURL: URL,
-//        wasmID: bigint,
-//        wasmURL: URL,
-//        recvHandler: (from: bigint, data: Uint8Array) => void
-//    ) {
-//        this._msgBuffer = new MessageBuffer();
-//        this._wasmID = wasmID;
-//
-//        this._worker =
-//            this._initWorker(workerURL, wasmID, wasmURL, recvHandler);
-//    }
-//
-//    get wasmID(): bigint {return this._wasmID;}
-//
-//    private _initWorker(
-//        workerURL: URL,
-//        wasmID: bigint,
-//        wasmURL: URL,
-//        recvHandler: (from: bigint, data: Uint8Array) => void
-//    ): Worker {
-//        const ret = new Worker(workerURL, {type: "module"});
-//
-//        ret.onmessage = (msg) => {
-//            const decodedMsg = this._msgBuffer.decodeSendMsg(
-//                msg.data as unknown as ArrayBuffer
-//            );
-//
-//            if (decodedMsg) {
-//                recvHandler(decodedMsg[1], decodedMsg[2]);
-//            }
-//        };
-//
-//        const msgBuffer = this._msgBuffer.encodeInitMsg(
-//            wasmID,
-//            new TextEncoder().encode(wasmURL.href)
-//        );
-//
-//        ret.postMessage(msgBuffer, [msgBuffer]);
-//
-//        return ret;
-//    }
-//
-//    sendMsg(from: bigint, data: Uint8Array) {
-//        const msg = this._msgBuffer.encodeSendMsg(from, data);
-//        this._worker.postMessage(msg, [msg]);
-//    }
-//}
+export class ChobitWorkerChannel {
+    private _msgBuffer: MessageBuffer;
+    private _worker: Worker;
 
-//class ChobitWorker {
-//    private _global: Worker;
-//    private _msgBuffer: MessageBuffer;
-//    private _wasm: ChobitWASM;
-//
-//    constructor() {
-//        this._global = globalThis as unknown as Worker;
-//
-//        this._msgBuffer = new MessageBuffer();
-//
-//        this._wasm = new ChobitWASM();
-//
-//        this._global.onmessage = (msg) => {
-//            this._handleMsg(msg.data as unknown as ArrayBuffer);
-//        };
-//    }
-//
-//    private _handleMsg(msg: ArrayBuffer) {
-//        if (this._wasm.isBuilt()) {
-//            this._handleSendMsg(msg);
-//        } else {
-//            this._handleInitMsg(msg);
-//        }
-//    }
-//
-//    private _handleInitMsg(msg: ArrayBuffer) {
-//        const decodedMsg = this._msgBuffer.decodeInitMsg(msg);
-//
-//        if (decodedMsg) {
-//            const id = decodedMsg[1];
-//
-//            const imports = this._wasm.genDefaultImports(
-//                this._genOutputHandler()
-//            );
-//
-//            const promise = this._wasm.genWASM(
-//                new URL(new TextDecoder().decode(decodedMsg[2])),
-//                id,
-//                imports
-//            );
-//
-//            if (promise) {
-//                promise.then(() => {
-//                    const msg = this._msgBuffer.encodeWASMOKMsg(
-//                        id,
-//                        new Uint8Array(0)
-//                    );
-//
-//                    this._global.postMessage(msg, [msg]);
-//                })
-//            }
-//        }
-//    }
-//
-//    private _genOutputHandler(): (to: bigint, data: Uint8Array) => void {
-//        return (to: bigint, data: Uint8Array) => {
-//            const msg = this._msgBuffer.encodeSendMsg(to, data);
-//
-//            this._global.postMessage(msg, [msg]);
-//        };
-//    }
-//
-//    private _handleSendMsg(msg: ArrayBuffer) {
-//        const decodedMsg = this._msgBuffer.decodeSendMsg(msg);
-//
-//        if (decodedMsg) {
-//            this._wasm.input(decodedMsg[1], decodedMsg[2]);
-//        }
-//    }
-//}
+    private _wasmID: bigint;
+
+    constructor(
+        bufferSize: number,
+        workerURL: URL,
+        wasmID: bigint,
+        wasmURL: URL,
+        onWasmOK: (from: bigint, data: Uint8Array) => void,
+        onMessage: (from: bigint, data: Uint8Array) => void
+    ) {
+        this._msgBuffer = new MessageBuffer(bufferSize);
+        this._wasmID = wasmID;
+
+        this._worker = this._initWorker(
+            workerURL,
+            wasmID,
+            wasmURL,
+            onWasmOK,
+            onMessage
+        );
+    }
+
+    get wasmID(): bigint {return this._wasmID;}
+
+    private _initWorker(
+        workerURL: URL,
+        wasmID: bigint,
+        wasmURL: URL,
+        onWasmOK: (from: bigint, data: Uint8Array) => void,
+        onMessage: (from: bigint, data: Uint8Array) => void
+    ): Worker {
+        const ret = new Worker(workerURL, {type: "module"});
+
+        ret.onmessage = (msg) => {
+            const decodedMsg = this._msgBuffer.decodeSendMsg(
+                msg.data as unknown as ArrayBuffer
+            );
+
+            if (decodedMsg) {
+                onMessage(decodedMsg[1], decodedMsg[2]);
+            } else {
+                const decodedMsg = this._msgBuffer.decodeWASMOKMsg(
+                    msg.data as unknown as ArrayBuffer
+                );
+
+                if (decodedMsg) {
+                    onWasmOK(decodedMsg[1], decodedMsg[2]);
+                }
+            }
+        };
+
+        const msg = this._msgBuffer.encodeInitMsg(
+            wasmID,
+            new TextEncoder().encode(wasmURL.href)
+        );
+
+        ret.postMessage(msg);
+
+        return ret;
+    }
+
+    postMessage(from: bigint, data: Uint8Array) {
+        const msg = this._msgBuffer.encodeSendMsg(from, data);
+        this._worker.postMessage(msg);
+    }
+
+    terminateWorker() {
+        this._worker.terminate();
+    }
+}
+
+export class ChobitWorker {
+    private _global: Worker;
+    private _msgBuffer: MessageBuffer;
+    private _wasm: ChobitWASM;
+
+    constructor(bufferSize: number) {
+        this._global = globalThis as unknown as Worker;
+
+        this._msgBuffer = new MessageBuffer(bufferSize);
+
+        this._wasm = new ChobitWASM();
+
+        this._global.onmessage = (msg) => {
+            this._handleMsg(msg.data as unknown as ArrayBuffer);
+        };
+    }
+
+    private _handleMsg(msg: ArrayBuffer) {
+        if (this._wasm.isBuilt()) {
+            this._handleSendMsg(msg);
+        } else {
+            this._handleInitMsg(msg);
+        }
+    }
+
+    private _handleInitMsg(msg: ArrayBuffer) {
+        const decodedMsg = this._msgBuffer.decodeInitMsg(msg);
+
+        if (decodedMsg) {
+            const id = decodedMsg[1];
+
+            const imports = this._wasm.genDefaultImports(
+                this._genOutputHandler()
+            );
+
+            const promise = this._wasm.genWASM(
+                new URL(new TextDecoder().decode(decodedMsg[2])),
+                id,
+                imports
+            );
+
+            if (promise) {
+                promise.then(() => {
+                    const msg = this._msgBuffer.encodeWASMOKMsg(
+                        id,
+                        new Uint8Array(0)
+                    );
+
+                    this._global.postMessage(msg);
+                })
+            }
+        }
+    }
+
+    private _genOutputHandler(): (to: bigint, data: Uint8Array) => void {
+        return (to: bigint, data: Uint8Array) => {
+            const msg = this._msgBuffer.encodeSendMsg(to, data);
+
+            this._global.postMessage(msg);
+        };
+    }
+
+    private _handleSendMsg(msg: ArrayBuffer) {
+        const decodedMsg = this._msgBuffer.decodeSendMsg(msg);
+
+        if (decodedMsg) {
+            this._wasm.input(decodedMsg[1], decodedMsg[2]);
+        }
+    }
+}

@@ -1,4 +1,8 @@
-import {MessageBuffer, ChobitWASM} from "./chobit_module_util.ts";
+import {
+    MessageBuffer,
+    ChobitWASM,
+    ChobitWorkerChannel
+} from "./chobit_module_util.ts";
 
 function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
     console.log("decode***() ----------------------------");
@@ -94,8 +98,36 @@ function test2() {
     }
 }
 
+function test3() {
+    const channel = new ChobitWorkerChannel(
+        1024,
+        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+        111n,
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+        (from, data) => {
+            console.log("wasmOK!");
+            console.log("from: " + from);
+            console.log("data: " + new TextDecoder().decode(data));
+
+            channel.postMessage(
+                222n,
+                new TextEncoder().encode("From ChobitWorkerChannel!")
+            );
+        },
+        (from, data) => {
+            console.log("from: " + from);
+            console.log("data: " + new TextDecoder().decode(data));
+
+            channel.terminateWorker();
+        }
+    );
+}
+
 console.log("test1 ==================================")
 test1();
 
 console.log("test2 ==================================")
-test2();
+//test2();
+
+console.log("test3 ==================================")
+test3();
