@@ -27,7 +27,7 @@ export function fnv1a64(bytes: Uint8Array): bigint {
 const DATA_LENGTH_OFFSET: number = 16 as const;
 const HEADER_OFFSET: number = 20 as const;
 
-export class MessageEncoder {
+export class MessageBuffer {
     private _textEncoder: TextEncoder;
     private _buffer: ArrayBuffer;
 
@@ -38,7 +38,7 @@ export class MessageEncoder {
 
     constructor(bufferSize: number) {
         this._textEncoder = new TextEncoder();
-        this._buffer = new Uint8Array(bufferSize + HEADER_OFFSET).buffer;
+        this._buffer = new Uint8Array(bufferSize).buffer;
 
         this._initID = this.toMsgID("init");
         this._recvID = this.toMsgID("recv");
@@ -51,8 +51,15 @@ export class MessageEncoder {
     get sendID(): bigint {return this._sendID;}
     get wasmOKID(): bigint {return this._wasmOKID;}
 
-    resizeBuffer(bufferSize: number) {
-        this._buffer = new Uint8Array(bufferSize + HEADER_OFFSET).buffer;
+    private _fixBufferSize(requiredSize: number) {
+        if (this._buffer.byteLength < requiredSize) {
+            let size = this._buffer.byteLength;
+            while (size < requiredSize) {
+                size *= 2;
+            }
+
+            this._buffer = new Uint8Array(size).buffer;
+        }
     }
 
     toMsgID(text: string): bigint {
@@ -63,10 +70,8 @@ export class MessageEncoder {
         msgID: bigint,
         id: bigint,
         data: Uint8Array
-    ): ArrayBuffer | null {
-        if ((data.length + HEADER_OFFSET) > this._buffer.byteLength) {
-            return null;
-        }
+    ): ArrayBuffer {
+        this._fixBufferSize(data.length + HEADER_OFFSET);
 
         const tmp1 = new BigUint64Array(this._buffer, 0, 2);
         tmp1[0] = msgID;
@@ -95,7 +100,7 @@ export class MessageEncoder {
         return [tmp1[0], tmp1[1], tmp3];
     }
 
-    encodeInitMsg(id: bigint, data: Uint8Array): ArrayBuffer | null {
+    encodeInitMsg(id: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._initID, id, data);
     }
 
@@ -109,7 +114,7 @@ export class MessageEncoder {
         }
     }
 
-    encodeRecvMsg(from: bigint, data: Uint8Array): ArrayBuffer | null {
+    encodeRecvMsg(from: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._recvID, from, data);
     }
 
@@ -123,7 +128,7 @@ export class MessageEncoder {
         }
     }
 
-    encodeSendMsg(to: bigint, data: Uint8Array): ArrayBuffer | null {
+    encodeSendMsg(to: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._sendID, to, data);
     }
 
@@ -137,7 +142,7 @@ export class MessageEncoder {
         }
     }
 
-    encodeWASMOKMsg(id: bigint, data: Uint8Array): ArrayBuffer | null {
+    encodeWASMOKMsg(id: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._wasmOKID, id, data);
     }
 
@@ -152,94 +157,94 @@ export class MessageEncoder {
     }
 }
 
-//interface Exports {
-//    memory: WebAssembly.Memory,
-//
-//    init: (id: bigint) => void,
-//    recv: (from: bigint, length: number) => void
-//}
-//
-//export class ChobitWASM {
-//    private _exports: Exports | null;
-//
-//    private _inputBufferInfo: [number, number];
-//    private _outputBufferInfo: [number, number];
-//
-//    constructor() {
-//        this._exports = null;
-//
-//        this._inputBufferInfo = [0, 0];
-//        this._outputBufferInfo = [0, 0];
-//    }
-//
-//    isBuilt(): boolean {
-//        return this._exports != null;
-//    }
-//
-//    genWASM(
-//        url: URL,
-//        id: bigint,
-//        imports: any
-//    ): Promise<void> | null {
-//        return WebAssembly.instantiateStreaming(
-//            fetch(url),
-//            imports
-//        ).then((obj) => {
-//            this._exports = obj.instance.exports as unknown as Exports;
-//
-//            this._exports.init(id);
-//        });
-//    }
-//
-//    genDefaultImports(
-//        outputHandler: (to: bigint, data: Uint8Array) => void
-//    ): any {
-//        return {
-//            env: {
-//                notify_input_buffer: (offset: number, size: number) => {
-//                    this._inputBufferInfo = [offset, size];
-//                },
-//
-//                notify_output_buffer: (offset: number, size: number) => {
-//                    this._outputBufferInfo = [offset, size];
-//                },
-//
-//                send: (to: bigint, length: number) => {
-//                    if (length > this._outputBufferInfo[1]) {return;}
-//
-//                    if (this._exports) {
-//                        const data = new Uint8Array(
-//                            this._exports.memory.buffer,
-//                            this._outputBufferInfo[0],
-//                            length
-//                        );
-//
-//                        outputHandler(to, data);
-//                    }
-//                }
-//            }
-//        };
-//    }
-//
-//    input(from: bigint, data: Uint8Array) {
-//        if (data.length > this._inputBufferInfo[1]) {return;}
-//
-//        if (this._exports) {
-//            const inputBuffer = new Uint8Array(
-//                this._exports.memory.buffer,
-//                this._inputBufferInfo[0],
-//                this._inputBufferInfo[1]
-//            );
-//
-//            inputBuffer.set(data);
-//
-//            this._exports.recv(from, data.length);
-//        }
-//    }
-//}
-//
+interface Exports {
+    memory: WebAssembly.Memory,
+
+    init: (id: bigint) => void,
+    recv: (from: bigint, length: number) => void
+}
+
+export class ChobitWASM {
+    private _exports: Exports | null;
+
+    private _inputBufferInfo: [number, number];
+    private _outputBufferInfo: [number, number];
+
+    constructor() {
+        this._exports = null;
+
+        this._inputBufferInfo = [0, 0];
+        this._outputBufferInfo = [0, 0];
+    }
+
+    isBuilt(): boolean {
+        return this._exports != null;
+    }
+
+    genWASM(
+        url: URL,
+        id: bigint,
+        imports: any
+    ): Promise<void> | null {
+        return WebAssembly.instantiateStreaming(
+            fetch(url),
+            imports
+        ).then((obj) => {
+            this._exports = obj.instance.exports as unknown as Exports;
+
+            this._exports.init(id);
+        });
+    }
+
+    genDefaultImports(
+        outputHandler: (to: bigint, data: Uint8Array) => void
+    ): any {
+        return {
+            env: {
+                notify_input_buffer: (offset: number, size: number) => {
+                    this._inputBufferInfo = [offset, size];
+                },
+
+                notify_output_buffer: (offset: number, size: number) => {
+                    this._outputBufferInfo = [offset, size];
+                },
+
+                send: (to: bigint, length: number) => {
+                    if (length > this._outputBufferInfo[1]) {return;}
+
+                    if (this._exports) {
+                        const data = new Uint8Array(
+                            this._exports.memory.buffer,
+                            this._outputBufferInfo[0],
+                            length
+                        );
+
+                        outputHandler(to, data);
+                    }
+                }
+            }
+        };
+    }
+
+    input(from: bigint, data: Uint8Array) {
+        if (data.length > this._inputBufferInfo[1]) {return;}
+
+        if (this._exports) {
+            const inputBuffer = new Uint8Array(
+                this._exports.memory.buffer,
+                this._inputBufferInfo[0],
+                this._inputBufferInfo[1]
+            );
+
+            inputBuffer.set(data);
+
+            this._exports.recv(from, data.length);
+        }
+    }
+}
+
 //class ChobitWorkerChannel {
-//    private _messageEncoder: MessageEncoder;
+//    private _msgBuffer: MessageBuffer;
 //    private _worker: Worker;
 //
 //    private _wasmID: bigint;
@@ -250,7 +255,7 @@ export class MessageEncoder {
 //        wasmURL: URL,
 //        recvHandler: (from: bigint, data: Uint8Array) => void
 //    ) {
-//        this._messageEncoder = new MessageEncoder();
+//        this._msgBuffer = new MessageBuffer();
 //        this._wasmID = wasmID;
 //
 //        this._worker =
@@ -268,7 +273,7 @@ export class MessageEncoder {
 //        const ret = new Worker(workerURL, {type: "module"});
 //
 //        ret.onmessage = (msg) => {
-//            const decodedMsg = this._messageEncoder.decodeSendMsg(
+//            const decodedMsg = this._msgBuffer.decodeSendMsg(
 //                msg.data as unknown as ArrayBuffer
 //            );
 //
@@ -277,7 +282,7 @@ export class MessageEncoder {
 //            }
 //        };
 //
-//        const msgBuffer = this._messageEncoder.encodeInitMsg(
+//        const msgBuffer = this._msgBuffer.encodeInitMsg(
 //            wasmID,
 //            new TextEncoder().encode(wasmURL.href)
 //        );
@@ -288,20 +293,20 @@ export class MessageEncoder {
 //    }
 //
 //    sendMsg(from: bigint, data: Uint8Array) {
-//        const msg = this._messageEncoder.encodeSendMsg(from, data);
+//        const msg = this._msgBuffer.encodeSendMsg(from, data);
 //        this._worker.postMessage(msg, [msg]);
 //    }
 //}
-//
+
 //class ChobitWorker {
 //    private _global: Worker;
-//    private _messageEncoder: MessageEncoder;
+//    private _msgBuffer: MessageBuffer;
 //    private _wasm: ChobitWASM;
 //
 //    constructor() {
 //        this._global = globalThis as unknown as Worker;
 //
-//        this._messageEncoder = new MessageEncoder();
+//        this._msgBuffer = new MessageBuffer();
 //
 //        this._wasm = new ChobitWASM();
 //
@@ -319,7 +324,7 @@ export class MessageEncoder {
 //    }
 //
 //    private _handleInitMsg(msg: ArrayBuffer) {
-//        const decodedMsg = this._messageEncoder.decodeInitMsg(msg);
+//        const decodedMsg = this._msgBuffer.decodeInitMsg(msg);
 //
 //        if (decodedMsg) {
 //            const id = decodedMsg[1];
@@ -336,7 +341,7 @@ export class MessageEncoder {
 //
 //            if (promise) {
 //                promise.then(() => {
-//                    const msg = this._messageEncoder.encodeWASMOKMsg(
+//                    const msg = this._msgBuffer.encodeWASMOKMsg(
 //                        id,
 //                        new Uint8Array(0)
 //                    );
@@ -349,14 +354,14 @@ export class MessageEncoder {
 //
 //    private _genOutputHandler(): (to: bigint, data: Uint8Array) => void {
 //        return (to: bigint, data: Uint8Array) => {
-//            const msg = this._messageEncoder.encodeSendMsg(to, data);
+//            const msg = this._msgBuffer.encodeSendMsg(to, data);
 //
 //            this._global.postMessage(msg, [msg]);
 //        };
 //    }
 //
 //    private _handleSendMsg(msg: ArrayBuffer) {
-//        const decodedMsg = this._messageEncoder.decodeSendMsg(msg);
+//        const decodedMsg = this._msgBuffer.decodeSendMsg(msg);
 //
 //        if (decodedMsg) {
 //            this._wasm.input(decodedMsg[1], decodedMsg[2]);
