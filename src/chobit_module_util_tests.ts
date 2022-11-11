@@ -1,6 +1,6 @@
 import {
     MessageBuffer,
-    ChobitWASM,
+    ChobitWasm,
     ChobitWorkerChannel
 } from "./chobit_module_util.ts";
 
@@ -9,7 +9,7 @@ function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
     console.log("decodeInitMsg(): " + msgBuffer2.decodeInitMsg(msg));
     console.log("decodeRecvMsg(): " + msgBuffer2.decodeRecvMsg(msg));
     console.log("decodeSendMsg(): " + msgBuffer2.decodeSendMsg(msg));
-    console.log("decodeWASMOKMsg(): " + msgBuffer2.decodeWASMOKMsg(msg));
+    console.log("decodeWasmOKMsg(): " + msgBuffer2.decodeWasmOKMsg(msg));
 }
 
 function test1() {
@@ -65,7 +65,7 @@ function test1() {
 
     console.log("----------------------------------------");
 
-    const wasmOK = msgBuffer1.encodeWASMOKMsg(100n, data);
+    const wasmOK = msgBuffer1.encodeWasmOKMsg(100n, data);
     if (wasmOK) {
         test1Core(msgBuffer2, wasmOK);
     } else {
@@ -74,7 +74,7 @@ function test1() {
 }
 
 function test2() {
-    const wasm = new ChobitWASM();
+    const wasm = new ChobitWasm();
 
     const imports = wasm.genDefaultImports((to, data) => {
         console.log(
@@ -83,19 +83,25 @@ function test2() {
         );
     });
 
-    const promise = wasm.genWASM(
+    wasm.build(
         new URL("../tests/test_wasm.wasm", import.meta.url),
         111n,
         imports
-    );
+    ).then(() => {
+        wasm.input(222n, (new TextEncoder()).encode("Alice plays chess."))
+    }).catch(() => {
+        console.log("unreachable!");
+    });
 
-    if (promise) {
-        promise.then(() => {
-            wasm.input(222n, (new TextEncoder()).encode("Alice plays chess."))
-        });
-    } else {
-        console.log("promise is null");
-    }
+    wasm.build(
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+        111n,
+        imports
+    ).then(() => {
+        console.log("unreachable!");
+    }).catch((error) => {
+        console.log(error);
+    });
 }
 
 function test3() {
@@ -127,7 +133,7 @@ console.log("test1 ==================================")
 test1();
 
 console.log("test2 ==================================")
-//test2();
+test2();
 
 console.log("test3 ==================================")
 test3();

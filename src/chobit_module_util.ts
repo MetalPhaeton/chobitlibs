@@ -142,11 +142,11 @@ export class MessageBuffer {
         }
     }
 
-    encodeWASMOKMsg(id: bigint, data: Uint8Array): ArrayBuffer {
+    encodeWasmOKMsg(id: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._wasmOKID, id, data);
     }
 
-    decodeWASMOKMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
+    decodeWasmOKMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this._decodeMsg(msg);
 
         if (ret && (ret[0] == this._wasmOKID)) {
@@ -164,34 +164,41 @@ interface Exports {
     recv: (from: bigint, length: number) => void
 }
 
-export class ChobitWASM {
+export class ChobitWasm {
     private _exports: Exports | null;
 
+    private _wasmID: bigint;
     private _inputBufferInfo: [number, number];
     private _outputBufferInfo: [number, number];
 
     constructor() {
         this._exports = null;
 
+        this._wasmID = 0n;
         this._inputBufferInfo = [0, 0];
         this._outputBufferInfo = [0, 0];
     }
 
-    isBuilt(): boolean {
-        return this._exports != null;
-    }
+    get wasmID() {return this._wasmID;}
 
-    genWASM(
+    isBuilt(): boolean {return this._exports != null;}
+
+    build(
         url: URL,
         id: bigint,
         imports: any
-    ): Promise<void> | null {
+    ): Promise<void> {
         return WebAssembly.instantiateStreaming(
             fetch(url),
             imports
         ).then((obj) => {
+            if (this.isBuilt()) {
+                throw "wasmID: " + this._wasmID + " is already built";
+            }
+
             this._exports = obj.instance.exports as unknown as Exports;
 
+            this._wasmID = id;
             this._exports.init(id);
         });
     }
@@ -288,7 +295,7 @@ export class ChobitWorkerChannel {
             if (decodedMsg) {
                 onMessage(decodedMsg[1], decodedMsg[2]);
             } else {
-                const decodedMsg = this._msgBuffer.decodeWASMOKMsg(
+                const decodedMsg = this._msgBuffer.decodeWasmOKMsg(
                     msg.data as unknown as ArrayBuffer
                 );
 
@@ -321,19 +328,25 @@ export class ChobitWorkerChannel {
 export class ChobitWorker {
     private _global: Worker;
     private _msgBuffer: MessageBuffer;
-    private _wasm: ChobitWASM;
+
+    private _wasmID: bigint;
+    private _wasm: ChobitWasm;
 
     constructor(bufferSize: number) {
         this._global = globalThis as unknown as Worker;
 
         this._msgBuffer = new MessageBuffer(bufferSize);
 
-        this._wasm = new ChobitWASM();
+        this._wasmID = 0n;
+
+        this._wasm = new ChobitWasm();
 
         this._global.onmessage = (msg) => {
             this._handleMsg(msg.data as unknown as ArrayBuffer);
         };
     }
+
+    get wasmID() {return this._wasmID;}
 
     private _handleMsg(msg: ArrayBuffer) {
         if (this._wasm.isBuilt()) {
@@ -353,22 +366,20 @@ export class ChobitWorker {
                 this._genOutputHandler()
             );
 
-            const promise = this._wasm.genWASM(
+            this._wasm.build(
                 new URL(new TextDecoder().decode(decodedMsg[2])),
                 id,
                 imports
-            );
+            ).then(() => {
+                this._wasmID = id;
 
-            if (promise) {
-                promise.then(() => {
-                    const msg = this._msgBuffer.encodeWASMOKMsg(
-                        id,
-                        new Uint8Array(0)
-                    );
+                const msg = this._msgBuffer.encodeWasmOKMsg(
+                    id,
+                    new Uint8Array(0)
+                );
 
-                    this._global.postMessage(msg);
-                })
-            }
+                this._global.postMessage(msg);
+            });
         }
     }
 
@@ -388,3 +399,16 @@ export class ChobitWorker {
         }
     }
 }
+
+//export class ChobitModuleBase {
+//    private _wasmInThisThread: ChobitWasm[];
+//    private _workerChannels: ChobitWorkerChannel[];
+//
+//    constructor() {
+//        this._modulesInThisThread = [];
+//        this._workerChannels = [];
+//    }
+//
+//    genWasm() {
+//    }
+//}
