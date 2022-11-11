@@ -399,16 +399,3 @@ export class ChobitWorker {
         }
     }
 }
-
-//export class ChobitModuleBase {
-//    private _wasmInThisThread: ChobitWasm[];
-//    private _workerChannels: ChobitWorkerChannel[];
-//
-//    constructor() {
-//        this._modulesInThisThread = [];
-//        this._workerChannels = [];
-//    }
-//
-//    genWasm() {
-//    }
-//}
