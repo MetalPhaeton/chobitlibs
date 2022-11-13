@@ -260,32 +260,49 @@ interface Exports {
 }
 
 /**
- * Instance of ChobitModule.
+ * Instance of ChobitWasm.
  */
 export class ChobitWasm {
     private _instance: WebAssembly.Instance | null;
     private _exports: Exports | null;
 
-    private _wasmID: bigint;
+    private _moduleID: bigint;
     private _inputBufferInfo: [number, number];
     private _outputBufferInfo: [number, number];
 
     /**
-     * Constructor.
+     * Constructor. But Wasm is not established.
      */
     constructor() {
         this._instance = null;
         this._exports = null;
 
-        this._wasmID = 0n;
+        this._moduleID = 0n;
         this._inputBufferInfo = [0, 0];
         this._outputBufferInfo = [0, 0];
     }
 
-    get wasmID() {return this._wasmID;}
+    /**
+     * Gets module ID. If this is not established, returns 0.
+     *
+     * @return Module ID.
+     */
+    get moduleID() {return this._moduleID;}
 
+    /**
+     * Whether Wasm is established or not.
+     *
+     * @return If Wasm is established, returns true.
+     */
     isEstablished(): boolean {return this._exports != null;}
 
+    /**
+     * Establishes Wasm in async.
+     *
+     * @param url URL of Wasm file.
+     * @param id Module id.
+     * @return Promise.
+     */
     establish(
         url: URL,
         id: bigint,
@@ -300,13 +317,13 @@ export class ChobitWasm {
             imports
         ).then((obj) => {
             if (this.isEstablished()) {
-                throw "wasmID: " + this._wasmID + " is already built";
+                throw "moduleID: " + this._moduleID + " is already built";
             }
 
             this._instance = obj.instance;
             this._exports = this._instance.exports as unknown as Exports;
 
-            this._wasmID = id;
+            this._moduleID = id;
             this._exports.init(id);
         });
     }
@@ -368,33 +385,33 @@ export class ChobitWorkerChannel {
     private _msgBuffer: MessageBuffer;
     private _worker: Worker;
 
-    private _wasmID: bigint;
+    private _moduleID: bigint;
 
     constructor(
         bufferSize: number,
         workerURL: URL,
-        wasmID: bigint,
+        moduleID: bigint,
         wasmURL: URL,
         onWasmOK: (from: bigint, data: Uint8Array) => void,
         onMessage: (from: bigint, data: Uint8Array) => void
     ) {
         this._msgBuffer = new MessageBuffer(bufferSize);
-        this._wasmID = wasmID;
+        this._moduleID = moduleID;
 
         this._worker = this._initWorker(
             workerURL,
-            wasmID,
+            moduleID,
             wasmURL,
             onWasmOK,
             onMessage
         );
     }
 
-    get wasmID(): bigint {return this._wasmID;}
+    get moduleID(): bigint {return this._moduleID;}
 
     private _initWorker(
         workerURL: URL,
-        wasmID: bigint,
+        moduleID: bigint,
         wasmURL: URL,
         onWasmOK: (from: bigint, data: Uint8Array) => void,
         onMessage: (from: bigint, data: Uint8Array) => void
@@ -420,7 +437,7 @@ export class ChobitWorkerChannel {
         };
 
         const msg = this._msgBuffer.encodeInitMsg(
-            wasmID,
+            moduleID,
             new TextEncoder().encode(wasmURL.href)
         );
 
@@ -443,7 +460,7 @@ export class ChobitWorker {
     private _global: Worker;
     private _msgBuffer: MessageBuffer;
 
-    private _wasmID: bigint;
+    private _moduleID: bigint;
     private _wasm: ChobitWasm;
 
     constructor(bufferSize: number) {
@@ -451,7 +468,7 @@ export class ChobitWorker {
 
         this._msgBuffer = new MessageBuffer(bufferSize);
 
-        this._wasmID = 0n;
+        this._moduleID = 0n;
 
         this._wasm = new ChobitWasm();
 
@@ -460,7 +477,7 @@ export class ChobitWorker {
         };
     }
 
-    get wasmID() {return this._wasmID;}
+    get moduleID() {return this._moduleID;}
 
     private _handleMsg(msg: ArrayBuffer) {
         if (this._wasm.isEstablished()) {
@@ -481,7 +498,7 @@ export class ChobitWorker {
                 id,
                 this._genOutputHandler()
             ).then(() => {
-                this._wasmID = id;
+                this._moduleID = id;
 
                 const msg = this._msgBuffer.encodeWasmOKMsg(
                     id,
