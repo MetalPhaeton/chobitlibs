@@ -266,18 +266,31 @@ export class ChobitWasm {
     private _instance: WebAssembly.Instance | null;
     private _exports: Exports | null;
 
+    private _moduleURL: URL;
     private _moduleID: bigint;
+    private _imports: any;
     private _inputBufferInfo: [number, number];
     private _outputBufferInfo: [number, number];
 
     /**
      * Constructor. But Wasm is not established.
+     *
+     * @param url URL of Wasm file.
+     * @param id Module id.
+     * @param onSend Called when the module calls send() from wasm.
      */
-    constructor() {
+    constructor(
+        url: URL,
+        id: bigint,
+        onSend: (to: bigint, data: Uint8Array) => void
+    ) {
         this._instance = null;
         this._exports = null;
 
-        this._moduleID = 0n;
+        this._imports = this._genDefaultImports(onSend);
+
+        this._moduleURL = url;
+        this._moduleID = id;
         this._inputBufferInfo = [0, 0];
         this._outputBufferInfo = [0, 0];
     }
@@ -297,24 +310,14 @@ export class ChobitWasm {
     isEstablished(): boolean {return this._exports != null;}
 
     /**
-     * Establishes Wasm in async.
+     * Establishes Wasm.
      *
-     * @param url URL of Wasm file.
-     * @param id Module id.
      * @return Promise.
      */
-    establish(
-        url: URL,
-        id: bigint,
-        onSend: (to: bigint, data: Uint8Array) => void,
-        additionalImports: any = {}
-    ): Promise<void> {
-        const imports = this._genDefaultImports(onSend);
-        this._addProps(imports, additionalImports);
-
+    establish(): Promise<void> {
         return WebAssembly.instantiateStreaming(
-            fetch(url),
-            imports
+            fetch(this._moduleURL),
+            this._imports
         ).then((obj) => {
             if (this.isEstablished()) {
                 throw "moduleID: " + this._moduleID + " is already built";
@@ -323,8 +326,7 @@ export class ChobitWasm {
             this._instance = obj.instance;
             this._exports = this._instance.exports as unknown as Exports;
 
-            this._moduleID = id;
-            this._exports.init(id);
+            this._exports.init(this._moduleID);
         });
     }
 
@@ -358,13 +360,7 @@ export class ChobitWasm {
         };
     }
 
-    private _addProps(obj: any, additional: any) {
-        for (const key in additional) {
-            obj.env[key] = additional[key];
-        }
-    }
-
-    input(from: bigint, data: Uint8Array) {
+    postMessage(from: bigint, data: Uint8Array) {
         if (data.length > this._inputBufferInfo[1]) {return;}
 
         if (this._exports) {
@@ -461,7 +457,7 @@ export class ChobitWorker {
     private _msgBuffer: MessageBuffer;
 
     private _moduleID: bigint;
-    private _wasm: ChobitWasm;
+    private _wasm: ChobitWasm | null;
 
     constructor(bufferSize: number) {
         this._global = globalThis as unknown as Worker;
@@ -470,7 +466,7 @@ export class ChobitWorker {
 
         this._moduleID = 0n;
 
-        this._wasm = new ChobitWasm();
+        this._wasm = null;
 
         this._global.onmessage = (msg) => {
             this._handleMsg(msg.data as unknown as ArrayBuffer);
@@ -480,7 +476,7 @@ export class ChobitWorker {
     get moduleID() {return this._moduleID;}
 
     private _handleMsg(msg: ArrayBuffer) {
-        if (this._wasm.isEstablished()) {
+        if (this._wasm) {
             this._handleSendMsg(msg);
         } else {
             this._handleInitMsg(msg);
@@ -493,11 +489,13 @@ export class ChobitWorker {
         if (decodedMsg) {
             const id = decodedMsg[1];
 
-            this._wasm.establish(
+            this._wasm = new ChobitWasm(
                 new URL(new TextDecoder().decode(decodedMsg[2])),
                 id,
                 this._genOutputHandler()
-            ).then(() => {
+            );
+
+            this._wasm.establish().then(() => {
                 this._moduleID = id;
 
                 const msg = this._msgBuffer.encodeWasmOKMsg(
@@ -521,8 +519,8 @@ export class ChobitWorker {
     private _handleSendMsg(msg: ArrayBuffer) {
         const decodedMsg = this._msgBuffer.decodeSendMsg(msg);
 
-        if (decodedMsg) {
-            this._wasm.input(decodedMsg[1], decodedMsg[2]);
+        if (decodedMsg&& this._wasm) {
+            this._wasm.postMessage(decodedMsg[1], decodedMsg[2]);
         }
     }
 }

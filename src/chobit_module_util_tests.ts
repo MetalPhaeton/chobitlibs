@@ -74,9 +74,7 @@ function test1() {
 }
 
 function test2() {
-    const wasm = new ChobitWasm();
-
-    wasm.establish(
+    const wasm = new ChobitWasm(
         new URL("../tests/test_wasm.wasm", import.meta.url),
         111n,
         (to, data) => {
@@ -85,22 +83,18 @@ function test2() {
                     + ", send_data: " + (new TextDecoder()).decode(data)
             );
         }
-    ).then(() => {
-        wasm.input(222n, (new TextEncoder()).encode("Alice plays chess."))
+    );
+
+    wasm.establish().then(() => {
+        wasm.postMessage(
+            222n,
+            new TextEncoder().encode("Alice plays chess.")
+        )
     }).catch(() => {
         console.log("unreachable!");
     });
 
-    wasm.establish(
-        new URL("../tests/test_wasm.wasm", import.meta.url),
-        111n,
-        (to, data) => {
-            console.log(
-                "send_to: " + to.toString()
-                    + ", send_data: " + (new TextDecoder()).decode(data)
-            );
-        }
-    ).then(() => {
+    wasm.establish().then(() => {
         console.log("unreachable!");
     }).catch((error) => {
         console.log(error);
@@ -139,4 +133,4 @@ console.log("test2 ==================================")
 test2();
 
 console.log("test3 ==================================")
-test3();
+//test3();
