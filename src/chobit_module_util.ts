@@ -395,7 +395,7 @@ export class ChobitWorkerChannel {
     /**
      * Constructor.
      *
-     * @param bufferSize Buffer size for internal MessageBuffer.
+     * @param bufferSize Initial Buffer size for internal MessageBuffer.
      * @param workerURL URL of Javascript file for worker.
      * @param moduleID Module ID for ChobitWasm on ChobitWorker.
      * @param wasmURL URL of wasm file for ChobitWasm on ChobitWorker.
@@ -485,6 +485,9 @@ export class ChobitWorkerChannel {
     }
 }
 
+/**
+ * Worker for ChobitWasm.
+ */
 export class ChobitWorker {
     private _global: Worker;
     private _msgBuffer: MessageBuffer;
@@ -492,6 +495,11 @@ export class ChobitWorker {
     private _moduleID: bigint;
     private _wasm: ChobitWasm | null;
 
+    /**
+     * Constructor.
+     *
+     * @param bufferSize Initial Buffer size for internal MessageBuffer.
+     */
     constructor(bufferSize: number) {
         this._global = globalThis as unknown as Worker;
 
@@ -506,6 +514,11 @@ export class ChobitWorker {
         };
     }
 
+    /**
+     * Gets module ID.
+     *
+     * @return Module ID.
+     */
     get moduleID() {return this._moduleID;}
 
     private _handleMsg(msg: ArrayBuffer) {
