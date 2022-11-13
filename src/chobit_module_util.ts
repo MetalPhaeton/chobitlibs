@@ -30,7 +30,6 @@ export function fnv1a64(bytes: Uint8Array): bigint {
     return ret;
 }
 
-const DATA_LENGTH_OFFSET: number = 16 as const;
 const HEADER_OFFSET: number = 20 as const;
 
 /**
@@ -116,16 +115,15 @@ export class MessageBuffer {
     ): ArrayBuffer {
         this._fixBufferSize(data.length + HEADER_OFFSET);
 
-        const tmp1 = new BigUint64Array(this._buffer, 0, 2);
-        tmp1[0] = msgID;
-        tmp1[1] = id;
+        const view = new DataView(this._buffer);
+        view.setBigUint64(0, msgID, true);
+        view.setBigUint64(8, id, true);
 
-        const tmp2 = new Uint32Array(this._buffer, DATA_LENGTH_OFFSET, 1);
-        tmp2[0] = data.length;
+        view.setUint32(16, data.length, true);
 
-        const tmp3 = new Uint8Array(this._buffer, HEADER_OFFSET, data.length);
+        const tmp = new Uint8Array(this._buffer, HEADER_OFFSET, data.length);
 
-        tmp3.set(data);
+        tmp.set(data);
 
         return this._buffer;
     }
@@ -133,14 +131,16 @@ export class MessageBuffer {
     private _decodeMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         if (msg.byteLength < HEADER_OFFSET) {return null;}
 
-        const tmp1 = new BigUint64Array(msg, 0, 2);
-        const tmp2 = new Uint32Array(msg, DATA_LENGTH_OFFSET, 1);
+        const view = new DataView(msg);
+        const msgID = view.getBigUint64(0, true);
+        const moduleID = view.getBigUint64(8, true);
+        const dataLength = view.getUint32(16, true);
 
-        if ((tmp2[0] + HEADER_OFFSET) > msg.byteLength) {return null;}
+        if ((dataLength + HEADER_OFFSET) > msg.byteLength) {return null;}
 
-        const tmp3 = new Uint8Array(msg, HEADER_OFFSET, tmp2[0]);
+        const tmp = new Uint8Array(msg, HEADER_OFFSET, dataLength);
 
-        return [tmp1[0], tmp1[1], tmp3];
+        return [msgID, moduleID, tmp];
     }
 
     /**
@@ -360,7 +360,13 @@ export class ChobitWasm {
         };
     }
 
-    postMessage(from: bigint, data: Uint8Array) {
+    /**
+     * Posts data to wasm.
+     *
+     * @param from Sender ID.
+     * @param data Data.
+     */
+    postData(from: bigint, data: Uint8Array) {
         if (data.length > this._inputBufferInfo[1]) {return;}
 
         if (this._exports) {
@@ -377,19 +383,32 @@ export class ChobitWasm {
     }
 }
 
+/**
+ * Cannel from main thread to ChobitWorker.
+ */
 export class ChobitWorkerChannel {
     private _msgBuffer: MessageBuffer;
     private _worker: Worker;
 
     private _moduleID: bigint;
 
+    /**
+     * Constructor.
+     *
+     * @param bufferSize Buffer size for internal MessageBuffer.
+     * @param workerURL URL of Javascript file for worker.
+     * @param moduleID Module ID for ChobitWasm on ChobitWorker.
+     * @param wasmURL URL of wasm file for ChobitWasm on ChobitWorker.
+     * @param onWasmOK Called when wasm is established on ChobitWorker.
+     * @param onRecv Called when ChobitWorker send message to this.
+     */
     constructor(
         bufferSize: number,
         workerURL: URL,
         moduleID: bigint,
         wasmURL: URL,
         onWasmOK: (from: bigint, data: Uint8Array) => void,
-        onMessage: (from: bigint, data: Uint8Array) => void
+        onRecv: (from: bigint, data: Uint8Array) => void
     ) {
         this._msgBuffer = new MessageBuffer(bufferSize);
         this._moduleID = moduleID;
@@ -399,10 +418,15 @@ export class ChobitWorkerChannel {
             moduleID,
             wasmURL,
             onWasmOK,
-            onMessage
+            onRecv
         );
     }
 
+    /**
+     * Gets module ID of ChobitWasm on ChobitWorker.
+     *
+     * @return Module ID.
+     */
     get moduleID(): bigint {return this._moduleID;}
 
     private _initWorker(
@@ -410,7 +434,7 @@ export class ChobitWorkerChannel {
         moduleID: bigint,
         wasmURL: URL,
         onWasmOK: (from: bigint, data: Uint8Array) => void,
-        onMessage: (from: bigint, data: Uint8Array) => void
+        onRecv: (from: bigint, data: Uint8Array) => void
     ): Worker {
         const ret = new Worker(workerURL, {type: "module"});
 
@@ -420,7 +444,7 @@ export class ChobitWorkerChannel {
             );
 
             if (decodedMsg) {
-                onMessage(decodedMsg[1], decodedMsg[2]);
+                onRecv(decodedMsg[1], decodedMsg[2]);
             } else {
                 const decodedMsg = this._msgBuffer.decodeWasmOKMsg(
                     msg.data as unknown as ArrayBuffer
@@ -442,11 +466,20 @@ export class ChobitWorkerChannel {
         return ret;
     }
 
-    postMessage(from: bigint, data: Uint8Array) {
+    /**
+     * Posts data to ChobitWasm on ChobitWorker.
+     *
+     * @param from Sender ID.
+     * @param data Data.
+     */
+    postData(from: bigint, data: Uint8Array) {
         const msg = this._msgBuffer.encodeSendMsg(from, data);
         this._worker.postMessage(msg);
     }
 
+    /**
+     * Terminates ChobitWorker.
+     */
     terminateWorker() {
         this._worker.terminate();
     }
@@ -520,7 +553,7 @@ export class ChobitWorker {
         const decodedMsg = this._msgBuffer.decodeSendMsg(msg);
 
         if (decodedMsg&& this._wasm) {
-            this._wasm.postMessage(decodedMsg[1], decodedMsg[2]);
+            this._wasm.postData(decodedMsg[1], decodedMsg[2]);
         }
     }
 }
