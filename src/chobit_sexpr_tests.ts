@@ -4,6 +4,8 @@ function chobitSexprTest1() {
     const data = new Uint8Array([1, 2, 3, 4, 5]);
 
     const sexpr = ChobitSexpr.genAtom(data);
+    console.assert(sexpr.isAtom());
+    console.assert(!sexpr.isCons());
 
     const atom = sexpr.atom();
     if (atom) {
@@ -19,6 +21,8 @@ function chobitSexprTest2() {
     const cdr = ChobitSexpr.genAtom(data2);
 
     const sexpr = ChobitSexpr.genCons(car, cdr);
+    console.assert(!sexpr.isAtom());
+    console.assert(sexpr.isCons());
     const car2 = sexpr.car();
     const cdr2 = sexpr.cdr();
 
@@ -58,6 +62,9 @@ function chobitSexprTest3() {
     while (current) {
         const car = current.car();
         if (car) {
+            console.assert(!current.isAtom());
+            console.assert(current.isCons());
+
             const data = car.atom();
             if (data) {
                 console.log(data);
