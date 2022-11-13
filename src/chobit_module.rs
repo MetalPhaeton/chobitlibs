@@ -26,6 +26,10 @@ extern {
     fn notify_output_buffer(offset: usize, size: usize);
 
     fn send(to: u64, length: usize);
+
+    fn log_info(length: usize);
+    fn log_warn(length: usize);
+    fn log_error(length: usize);
 }
 
 /// An object that has all information and data of WASM.
@@ -102,17 +106,22 @@ impl<T> ChobitModule<T> {
         (self.recv_from, &(*self.input_buffer)[..self.recv_length])
     }
 
-    /// Sends data to other module.
-    ///
-    /// * `to` : Other module ID.
-    /// * `data` : Data that you want to send.
-    pub fn send(&mut self, to: u64, data: &[u8]) {
+    fn copy_to_output_buffer(&mut self, data: &[u8]) -> usize {
         let data_len = data.len();
 
         (*self.output_buffer)[..data_len].copy_from_slice(data);
 
+        data_len
+    }
+
+    /// Sends data to other module.
+    ///
+    /// * `to` : Other module ID.
+    /// * `data` : Data that you want to send.
+    #[inline]
+    pub fn send(&mut self, to: u64, data: &[u8]) {
         unsafe {
-            send(to, data_len);
+            send(to, self.copy_to_output_buffer(data));
         }
     }
 
@@ -157,6 +166,36 @@ impl<T> ChobitModule<T> {
     /// * _Return_ : Mutable user object.
     #[inline]
     pub fn user_object_mut(&mut self) -> &mut T {&mut self.user_object}
+
+    /// Outputs message as information.
+    ///
+    /// * `message` : Message.
+    #[inline]
+    pub fn log_info(&mut self, message: &str) {
+        unsafe {
+            log_info(self.copy_to_output_buffer(message.as_bytes()));
+        }
+    }
+
+    /// Outputs message as warning.
+    ///
+    /// * `message` : Message.
+    #[inline]
+    pub fn log_warn(&mut self, message: &str) {
+        unsafe {
+            log_warn(self.copy_to_output_buffer(message.as_bytes()));
+        }
+    }
+
+    /// Outputs message as error.
+    ///
+    /// * `message` : Message.
+    #[inline]
+    pub fn log_error(&mut self, message: &str) {
+        unsafe {
+            log_error(self.copy_to_output_buffer(message.as_bytes()));
+        }
+    }
 
     #[doc(hidden)]
     pub fn __new(
