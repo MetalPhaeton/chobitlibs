@@ -12,6 +12,12 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
+/**
+ * FNV-1a 64 bits.
+ *
+ * @param bytes Bytes to hash.
+ * @return Hash value.
+ */
 export function fnv1a64(bytes: Uint8Array): bigint {
     let ret: bigint = 0xcbf29ce484222325n;
     const PRIME: bigint = 0x00000100000001b3n as const;
@@ -27,6 +33,9 @@ export function fnv1a64(bytes: Uint8Array): bigint {
 const DATA_LENGTH_OFFSET: number = 16 as const;
 const HEADER_OFFSET: number = 20 as const;
 
+/**
+ * Buffer memory for messages of chobit module.
+ */
 export class MessageBuffer {
     private _textEncoder: TextEncoder;
     private _buffer: ArrayBuffer;
@@ -36,6 +45,11 @@ export class MessageBuffer {
     private _sendID: bigint;
     private _wasmOKID: bigint;
 
+    /**
+     * Constructor.
+     *
+     * @param bufferSize Initial buffer size.
+     */
     constructor(bufferSize: number) {
         this._textEncoder = new TextEncoder();
         this._buffer = new ArrayBuffer(bufferSize);
@@ -46,9 +60,32 @@ export class MessageBuffer {
         this._wasmOKID = this.toMsgID("wasm-ok");
     }
 
+    /**
+     * Gets ID of "init" message.
+     *
+     * @return ID
+     */
     get initID(): bigint {return this._initID;}
+
+    /**
+     * Gets ID of "recv" message.
+     *
+     * @return ID
+     */
     get recvID(): bigint {return this._recvID;}
+
+    /**
+     * Gets ID of "send" message.
+     *
+     * @return ID
+     */
     get sendID(): bigint {return this._sendID;}
+
+    /**
+     * Gets ID of "wasm-ok" message.
+     *
+     * @return ID
+     */
     get wasmOKID(): bigint {return this._wasmOKID;}
 
     private _fixBufferSize(requiredSize: number) {
@@ -62,6 +99,12 @@ export class MessageBuffer {
         }
     }
 
+    /**
+     * Hashes from text into FNV-1a.
+     *
+     * @param text Text to hash.
+     * @return Hash value.
+     */
     toMsgID(text: string): bigint {
         return fnv1a64(this._textEncoder.encode(text));
     }
@@ -100,10 +143,23 @@ export class MessageBuffer {
         return [tmp1[0], tmp1[1], tmp3];
     }
 
+    /**
+     * Encodes "init" message data into byte string.
+     *
+     * @param id Module ID.
+     * @param data Additional data.
+     * @return Byte string using ArrayBuffer of this MessageBuffer instance.
+     */
     encodeInitMsg(id: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._initID, id, data);
     }
 
+    /**
+     * Decodes "init" message byte string into message data.
+     *
+     * @param msg Message as byte string.
+     * @return [message ID, module ID, additional data]
+     */
     decodeInitMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this._decodeMsg(msg);
 
@@ -114,10 +170,23 @@ export class MessageBuffer {
         }
     }
 
+    /**
+     * Encodes "recv" message data into byte string.
+     *
+     * @param from Sender ID.
+     * @param data Additional data.
+     * @return Byte string using ArrayBuffer of this MessageBuffer instance.
+     */
     encodeRecvMsg(from: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._recvID, from, data);
     }
 
+    /**
+     * Decodes "recv" message byte string into message data.
+     *
+     * @param msg Message as byte string.
+     * @return [message ID, sender ID, additional data]
+     */
     decodeRecvMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this._decodeMsg(msg);
 
@@ -128,10 +197,23 @@ export class MessageBuffer {
         }
     }
 
+    /**
+     * Encodes "send" message data into byte string.
+     *
+     * @param to Receiver ID.
+     * @param data Additional data.
+     * @return Byte string using ArrayBuffer of this MessageBuffer instance.
+     */
     encodeSendMsg(to: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._sendID, to, data);
     }
 
+    /**
+     * Decodes "send" message byte string into message data.
+     *
+     * @param msg Message as byte string.
+     * @return [message ID, receiver ID, additional data]
+     */
     decodeSendMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this._decodeMsg(msg);
 
@@ -142,10 +224,23 @@ export class MessageBuffer {
         }
     }
 
+    /**
+     * Encodes "wasm-ok" message data into byte string.
+     *
+     * @param to Module ID.
+     * @param data Additional data.
+     * @return Byte string using ArrayBuffer of this MessageBuffer instance.
+     */
     encodeWasmOKMsg(id: bigint, data: Uint8Array): ArrayBuffer {
         return this._encodeMsg(this._wasmOKID, id, data);
     }
 
+    /**
+     * Decodes "wasm-ok" message byte string into message data.
+     *
+     * @param msg Message as byte string.
+     * @return [message ID, module ID, additional data]
+     */
     decodeWasmOKMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this._decodeMsg(msg);
 
@@ -164,14 +259,22 @@ interface Exports {
     recv: (from: bigint, length: number) => void
 }
 
+/**
+ * Instance of ChobitModule.
+ */
 export class ChobitWasm {
+    private _instance: WebAssembly.Instance | null;
     private _exports: Exports | null;
 
     private _wasmID: bigint;
     private _inputBufferInfo: [number, number];
     private _outputBufferInfo: [number, number];
 
+    /**
+     * Constructor.
+     */
     constructor() {
+        this._instance = null;
         this._exports = null;
 
         this._wasmID = 0n;
@@ -181,30 +284,35 @@ export class ChobitWasm {
 
     get wasmID() {return this._wasmID;}
 
-    isBuilt(): boolean {return this._exports != null;}
+    isEstablished(): boolean {return this._exports != null;}
 
-    build(
+    establish(
         url: URL,
         id: bigint,
-        imports: any
+        onSend: (to: bigint, data: Uint8Array) => void,
+        additionalImports: any = {}
     ): Promise<void> {
+        const imports = this._genDefaultImports(onSend);
+        this._addProps(imports, additionalImports);
+
         return WebAssembly.instantiateStreaming(
             fetch(url),
             imports
         ).then((obj) => {
-            if (this.isBuilt()) {
+            if (this.isEstablished()) {
                 throw "wasmID: " + this._wasmID + " is already built";
             }
 
-            this._exports = obj.instance.exports as unknown as Exports;
+            this._instance = obj.instance;
+            this._exports = this._instance.exports as unknown as Exports;
 
             this._wasmID = id;
             this._exports.init(id);
         });
     }
 
-    genDefaultImports(
-        onOutput: (to: bigint, data: Uint8Array) => void
+    private _genDefaultImports(
+        onSend: (to: bigint, data: Uint8Array) => void
     ): any {
         return {
             env: {
@@ -226,11 +334,17 @@ export class ChobitWasm {
                             length
                         );
 
-                        onOutput(to, data);
+                        onSend(to, data);
                     }
                 }
             }
         };
+    }
+
+    private _addProps(obj: any, additional: any) {
+        for (const key in additional) {
+            obj.env[key] = additional[key];
+        }
     }
 
     input(from: bigint, data: Uint8Array) {
@@ -349,7 +463,7 @@ export class ChobitWorker {
     get wasmID() {return this._wasmID;}
 
     private _handleMsg(msg: ArrayBuffer) {
-        if (this._wasm.isBuilt()) {
+        if (this._wasm.isEstablished()) {
             this._handleSendMsg(msg);
         } else {
             this._handleInitMsg(msg);
@@ -362,14 +476,10 @@ export class ChobitWorker {
         if (decodedMsg) {
             const id = decodedMsg[1];
 
-            const imports = this._wasm.genDefaultImports(
-                this._genOutputHandler()
-            );
-
-            this._wasm.build(
+            this._wasm.establish(
                 new URL(new TextDecoder().decode(decodedMsg[2])),
                 id,
-                imports
+                this._genOutputHandler()
             ).then(() => {
                 this._wasmID = id;
 

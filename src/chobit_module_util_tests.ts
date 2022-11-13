@@ -76,27 +76,30 @@ function test1() {
 function test2() {
     const wasm = new ChobitWasm();
 
-    const imports = wasm.genDefaultImports((to, data) => {
-        console.log(
-            "send_to: " + to.toString()
-                + ", send_data: " + (new TextDecoder()).decode(data)
-        );
-    });
-
-    wasm.build(
+    wasm.establish(
         new URL("../tests/test_wasm.wasm", import.meta.url),
         111n,
-        imports
+        (to, data) => {
+            console.log(
+                "send_to: " + to.toString()
+                    + ", send_data: " + (new TextDecoder()).decode(data)
+            );
+        }
     ).then(() => {
         wasm.input(222n, (new TextEncoder()).encode("Alice plays chess."))
     }).catch(() => {
         console.log("unreachable!");
     });
 
-    wasm.build(
+    wasm.establish(
         new URL("../tests/test_wasm.wasm", import.meta.url),
         111n,
-        imports
+        (to, data) => {
+            console.log(
+                "send_to: " + to.toString()
+                    + ", send_data: " + (new TextDecoder()).decode(data)
+            );
+        }
     ).then(() => {
         console.log("unreachable!");
     }).catch((error) => {
