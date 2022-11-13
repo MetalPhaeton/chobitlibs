@@ -26,10 +26,6 @@ extern {
     fn notify_output_buffer(offset: usize, size: usize);
 
     fn send(to: u64, length: usize);
-
-    fn log_info(length: usize);
-    fn log_warn(length: usize);
-    fn log_error(length: usize);
 }
 
 /// An object that has all information and data of WASM.
@@ -166,36 +162,6 @@ impl<T> ChobitModule<T> {
     /// * _Return_ : Mutable user object.
     #[inline]
     pub fn user_object_mut(&mut self) -> &mut T {&mut self.user_object}
-
-    /// Outputs message as information.
-    ///
-    /// * `message` : Message.
-    #[inline]
-    pub fn log_info(&mut self, message: &str) {
-        unsafe {
-            log_info(self.copy_to_output_buffer(message.as_bytes()));
-        }
-    }
-
-    /// Outputs message as warning.
-    ///
-    /// * `message` : Message.
-    #[inline]
-    pub fn log_warn(&mut self, message: &str) {
-        unsafe {
-            log_warn(self.copy_to_output_buffer(message.as_bytes()));
-        }
-    }
-
-    /// Outputs message as error.
-    ///
-    /// * `message` : Message.
-    #[inline]
-    pub fn log_error(&mut self, message: &str) {
-        unsafe {
-            log_error(self.copy_to_output_buffer(message.as_bytes()));
-        }
-    }
 
     #[doc(hidden)]
     pub fn __new(
