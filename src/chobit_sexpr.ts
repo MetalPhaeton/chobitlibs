@@ -216,7 +216,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Int8 value.
+     * Reads Int8 value.
      *
      * @return If this sexpr is atom and payload is 1 byte, returns value. Otherwise, returns null.
      */
@@ -232,7 +232,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Int8 value.
+     * Writes Int8 value.
      *
      * @param value A value.
      */
@@ -247,7 +247,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Uint8 value.
+     * Reads Uint8 value.
      *
      * @return If this sexpr is atom and payload is 1 byte, returns value. Otherwise, returns null.
      */
@@ -263,7 +263,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Uint8 value.
+     * Writes Uint8 value.
      *
      * @param value A value.
      */
@@ -278,7 +278,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Int16 value.
+     * Reads Int16 value.
      *
      * @return If this sexpr is atom and payload is 2 byte, returns value. Otherwise, returns null.
      */
@@ -295,7 +295,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Int16 value.
+     * Writes Int16 value.
      *
      * @param value A value.
      */
@@ -310,7 +310,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Uint16 value.
+     * Reads Uint16 value.
      *
      * @return If this sexpr is atom and payload is 2 byte, returns value. Otherwise, returns null.
      */
@@ -327,7 +327,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Uint16 value.
+     * Writes Uint16 value.
      *
      * @param value A value.
      */
@@ -342,7 +342,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Int32 value.
+     * Reads Int32 value.
      *
      * @return If this sexpr is atom and payload is 4 byte, returns value. Otherwise, returns null.
      */
@@ -359,7 +359,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Int32 value.
+     * Writes Int32 value.
      *
      * @param value A value.
      */
@@ -374,7 +374,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Uint32 value.
+     * Reads Uint32 value.
      *
      * @return If this sexpr is atom and payload is 4 byte, returns value. Otherwise, returns null.
      */
@@ -391,7 +391,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Uint32 value.
+     * Writes Uint32 value.
      *
      * @param value A value.
      */
@@ -406,7 +406,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Int64 value.
+     * Reads Int64 value.
      *
      * @return If this sexpr is atom and payload is 8 byte, returns value. Otherwise, returns null.
      */
@@ -423,7 +423,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Int64 value.
+     * Writes Int64 value.
      *
      * @param value A value.
      */
@@ -438,7 +438,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Uint64 value.
+     * Reads Uint64 value.
      *
      * @return If this sexpr is atom and payload is 8 byte, returns value. Otherwise, returns null.
      */
@@ -455,7 +455,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Uint64 value.
+     * Writes Uint64 value.
      *
      * @param value A value.
      */
@@ -470,7 +470,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Float32 value.
+     * Reads Float32 value.
      *
      * @return If this sexpr is atom and payload is 4 byte, returns value. Otherwise, returns null.
      */
@@ -487,7 +487,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Float32 value.
+     * Writes Float32 value.
      *
      * @param value A value.
      */
@@ -502,7 +502,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Read Float64 value.
+     * Reads Float64 value.
      *
      * @return If this sexpr is atom and payload is 8 byte, returns value. Otherwise, returns null.
      */
@@ -519,7 +519,7 @@ export class ChobitSexpr {
     }
 
     /**
-     * Write Float64 value.
+     * Writes Float64 value.
      *
      * @param value A value.
      */
@@ -531,6 +531,20 @@ export class ChobitSexpr {
                     .setFloat64(atom.byteOffset, value, true);
             }
         }
+    }
+
+    /**
+     * Reads String.
+     *
+     * @return If this sexpr is atom, returns value. Otherwise, returns null.
+     */
+    readString(): string | null {
+        const atom = this.atom();
+        if (atom) {
+            return new TextDecoder().decode(atom);
+        }
+
+        return null;
     }
 
     private static _genNumberSexpr(length: number): ChobitSexpr {
@@ -656,6 +670,20 @@ export class ChobitSexpr {
     static genF64(value: number): ChobitSexpr {
         const ret = ChobitSexpr._genNumberSexpr(8);
         ret.writeF64(value);
+        return ret;
+    }
+
+    /**
+     * Generates String atom.
+     *
+     * @param value A value.
+     * @return Atom.
+     */
+    static genString(value: string): ChobitSexpr {
+        const bytes = new TextEncoder().encode(value);
+
+        const ret = ChobitSexpr._genNumberSexpr(bytes.length);
+        ret._body.set(bytes, SEXPR_HEADER_LEN);
         return ret;
     }
 }

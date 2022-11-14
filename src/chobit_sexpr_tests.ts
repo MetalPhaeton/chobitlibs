@@ -165,6 +165,12 @@ function chobitSexprTest4() {
         atom.writeF64(value + 1.0);
         console.assert(atom.readF64() == (value + 1.0));
     }
+
+    {
+        const value = "Hello World";
+        const atom = ChobitSexpr.genString(value);
+        console.assert(atom.readString() == value);
+    }
 }
 
 console.log("chobitSexprTest1 ===========================================")
