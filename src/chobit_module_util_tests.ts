@@ -1,7 +1,8 @@
 import {
     MessageBuffer,
     ChobitWasm,
-    ChobitWorkerChannel
+    //ChobitWorkerChannel,
+    //ChobitWorkerBase
 } from "./chobit_module_util.ts";
 
 function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
@@ -9,7 +10,6 @@ function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
     console.log("decodeInitMsg(): " + msgBuffer2.decodeInitMsg(msg));
     console.log("decodeRecvMsg(): " + msgBuffer2.decodeRecvMsg(msg));
     console.log("decodeSendMsg(): " + msgBuffer2.decodeSendMsg(msg));
-    console.log("decodeWasmOKMsg(): " + msgBuffer2.decodeWasmOKMsg(msg));
 }
 
 function test1() {
@@ -19,7 +19,6 @@ function test1() {
     console.log(msgBuffer1.initID);
     console.log(msgBuffer1.recvID);
     console.log(msgBuffer1.sendID);
-    console.log(msgBuffer1.wasmOKID);
 
     const msgBuffer2 = new MessageBuffer(10);
 
@@ -62,72 +61,85 @@ function test1() {
     } else {
         console.log("send is null");
     }
-
-    console.log("----------------------------------------");
-
-    const wasmOK = msgBuffer1.encodeWasmOKMsg(100n, data);
-    if (wasmOK) {
-        test1Core(msgBuffer2, wasmOK);
-    } else {
-        console.log("wasmOK is null");
-    }
 }
 
-function test2() {
-    const wasm = new ChobitWasm(
+async function test2() {
+    await ChobitWasm.instantiate(
+        100n,
         new URL("../tests/test_wasm.wasm", import.meta.url),
-        111n,
         (to, data) => {
-            console.log(
-                "send_to: " + to.toString()
-                    + ", send_data: " + (new TextDecoder()).decode(data)
-            );
+            console.log("send to: " + to);
+            console.log("send data: " + new TextDecoder().decode(data));
         }
-    );
-
-    wasm.establish().then(() => {
-        wasm.postData(
-            222n,
-            new TextEncoder().encode("Alice plays chess.")
-        )
-    }).catch(() => {
-        console.log("unreachable!");
-    });
-
-    wasm.establish().then(() => {
-        console.log("unreachable!");
-    }).catch((error) => {
-        console.log(error);
+    ).then((chobitWasm) => {
+        chobitWasm.postData(
+            777n,
+            new TextEncoder().encode("Hello from test2!")
+        );
     });
 }
 
-function test3() {
-    const channel = new ChobitWorkerChannel(
-        1024,
-        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
-        111n,
-        new URL("../tests/test_wasm.wasm", import.meta.url),
-        (from, data) => {
-            console.log("wasmOK!");
-            console.log("from: " + from);
-            console.log("data: " + new TextDecoder().decode(data));
-
-            channel.postData(
-                222n,
-                new TextEncoder().encode("From ChobitWorkerChannel!")
-            );
-        },
-        (from, data) => {
-            console.log("from: " + from);
-            console.log("data: " + new TextDecoder().decode(data));
-
-            channel.terminateWorker();
-        }
-    );
-}
-
+//function test3() {
+//    const channel = new ChobitWorkerChannel(
+//        1024,
+//        111n,
+//        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+//        new URL("../tests/test_wasm.wasm", import.meta.url),
+//        (from, data) => {
+//            console.log("wasmOK!");
+//            console.log("from: " + from);
+//            console.log("data: " + new TextDecoder().decode(data));
+//
+//            channel.postData(
+//                222n,
+//                new TextEncoder().encode("From ChobitWorkerChannel!")
+//            );
+//        },
+//        (from, data) => {
+//            console.log("from: " + from);
+//            console.log("data: " + new TextDecoder().decode(data));
+//
+//            channel.terminateWorker();
+//        }
+//    );
+//}
+//
+//function test4() {
+//    const base = new ChobitWorkerBase((from, data) => {
+//        console.log("ChobitWorkerBase receive from " + from);
+//        console.log("data: " + new TextDecoder().decode(data));
+//    });
+//
+//    base.addWorker(
+//        1024,
+//        2n,
+//        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+//        new URL("../tests/test_wasm.wasm", import.meta.url),
+//    );
+//
+//    base.addWorker(
+//        1024,
+//        1n,
+//        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+//        new URL("../tests/test_wasm.wasm", import.meta.url),
+//    );
+//
+//    setTimeout(() => {
+//        for (const ch of base.channels) {
+//            if (ch.channel.moduleID == 2n) {
+//                ch.channel.postData(
+//                    base.moduleID,
+//                    new TextEncoder().encode("Hello")
+//                );
+//            }
+//        }
+//    }, 1000);
+//}
+//
 test1();
 
-//test2();
-
-test3();
+test2();
+//
+//test3();
+//
+//test4();
