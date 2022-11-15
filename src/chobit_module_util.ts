@@ -310,188 +310,161 @@ export class ChobitWasm {
     }
 }
 
-///**
-// * Cannel from main thread to ChobitWorker.
-// */
-//export class ChobitWorkerChannel {
-//    private _msgBuffer: MessageBuffer;
-//
-//    private _moduleID: bigint;
-//
-//    private _worker: Worker;
-//
-//    /**
-//     * Constructor.
-//     *
-//     * @param bufferSize Initial Buffer size for internal MessageBuffer.
-//     * @param workerURL URL of Javascript file for worker.
-//     * @param moduleID Module ID for ChobitWasm on ChobitWorker.
-//     * @param wasmURL URL of wasm file for ChobitWasm on ChobitWorker.
-//     * @param onWasmOK Called when wasm is established on ChobitWorker.
-//     * @param sendMsgHandler Called when ChobitWorker send message to this.
-//     */
-//    constructor(
-//        bufferSize: number,
-//        moduleID: bigint,
-//        workerURL: URL,
-//        wasmURL: URL,
-//        sendMsgHandler: (to: bigint, data: Uint8Array) => void
-//    ) {
-//        this._msgBuffer = new MessageBuffer(bufferSize);
-//        this._moduleID = moduleID;
-//
-//        this._worker = this._initWorker(
-//            workerURL,
-//            moduleID,
-//            wasmURL,
-//            sendMsgHandler
-//        );
-//    }
-//
-//    /**
-//     * Gets module ID of ChobitWasm on ChobitWorker.
-//     *
-//     * @return Module ID.
-//     */
-//    get moduleID(): bigint {return this._moduleID;}
-//
-//    private _initWorker(
-//        workerURL: URL,
-//        moduleID: bigint,
-//        wasmURL: URL,
-//        sendMsgHandler: (to: bigint, data: Uint8Array) => void
-//    ): Worker {
-//        const ret = new Worker(workerURL, {type: "module"});
-//
-//        ret.onmessage = (msg) => {
-//            const decodedMsg = this._msgBuffer.decodeSendMsg(
-//                msg.data as unknown as ArrayBuffer
-//            );
-//
-//            if (decodedMsg) {
-//                sendMsgHandler(decodedMsg[1], decodedMsg[2]);
-//            }
-//        };
-//
-//        const msg = this._msgBuffer.encodeInitMsg(
-//            moduleID,
-//            new TextEncoder().encode(wasmURL.href)
-//        );
-//
-//        ret.postMessage(msg);
-//
-//        return ret;
-//    }
-//
-//    /**
-//     * Posts data to ChobitWasm on ChobitWorker.
-//     *
-//     * @param from Sender ID.
-//     * @param data Data.
-//     */
-//    postData(from: bigint, data: Uint8Array) {
-//        const msg = this._msgBuffer.encodeSendMsg(from, data);
-//        this._worker.postMessage(msg);
-//    }
-//
-//    /**
-//     * Terminates ChobitWorker.
-//     */
-//    terminateWorker() {
-//        this._worker.terminate();
-//    }
-//}
-//
-///**
-// * Worker for ChobitWasm.
-// */
-//export class ChobitWorker {
-//    private _global: Worker;
-//    private _msgBuffer: MessageBuffer;
-//
-//    private _moduleID: bigint;
-//    private _wasm: ChobitWasm | null;
-//
-//    /**
-//     * Constructor.
-//     *
-//     * @param bufferSize Initial Buffer size for internal MessageBuffer.
-//     */
-//    constructor(bufferSize: number) {
-//        this._global = globalThis as unknown as Worker;
-//
-//        this._msgBuffer = new MessageBuffer(bufferSize);
-//
-//        this._moduleID = 0n;
-//
-//        this._wasm = null;
-//
-//        this._global.onmessage = (msg) => {
-//            this._handleMsg(msg.data as unknown as ArrayBuffer);
-//        };
-//    }
-//
-//    /**
-//     * Gets module ID.
-//     *
-//     * @return Module ID.
-//     */
-//    get moduleID(): bigint {return this._moduleID;}
-//
-//    private _handleMsg(msg: ArrayBuffer) {
-//        if (this._wasm) {
-//            this._handleSendMsg(msg);
-//        } else {
-//            this._handleInitMsg(msg);
-//        }
-//    }
-//
-//    private _handleInitMsg(msg: ArrayBuffer) {
-//        const decodedMsg = this._msgBuffer.decodeInitMsg(msg);
-//
-//        if (decodedMsg) {
-//            const id = decodedMsg[1];
-//
-//            this._wasm = new ChobitWasm(
-//                id,
-//                new URL(new TextDecoder().decode(decodedMsg[2])),
-//                this._genSendMsgHandler()
-//            );
-//
-//            this._wasm.establish().then(() => {
-//                this._moduleID = id;
-//
-//                const msg = this._msgBuffer.encodeWasmOKMsg(
-//                    id,
-//                    new Uint8Array(0)
-//                );
-//
-//                this._global.postMessage(msg);
-//            });
-//        }
-//    }
-//
-//    private _genSendMsgHandler(): (to: bigint, data: Uint8Array) => void {
-//        return (to: bigint, data: Uint8Array) => {
-//            const msg = this._msgBuffer.encodeSendMsg(to, data);
-//
-//            this._global.postMessage(msg);
-//        };
-//    }
-//
-//    private _handleSendMsg(msg: ArrayBuffer) {
-//        if (this._wasm) {
-//            if (this._wasm.isEstablished()) {
-//                const decodedMsg = this._msgBuffer.decodeSendMsg(msg);
-//
-//                if (decodedMsg) {
-//                    this._wasm.postData(decodedMsg[1], decodedMsg[2]);
-//                }
-//            }
-//        }
-//    }
-//}
-//
+export class ChobitModule {
+    private _msgBuffer: MessageBuffer;
+
+    private _global: Worker;
+    private _channel: MessageChannel;
+    private _wasm: ChobitWasm | null;
+    private _firstMessage: boolean;
+
+    constructor(messageBufferSize: number) {
+        this._msgBuffer = new MessageBuffer(messageBufferSize);
+
+        this._global = globalThis as unknown as Worker;
+        this._channel = new MessageChannel();
+        this._wasm = null;
+        this._firstMessage = true;
+
+        this._global.onmessage = this._genOnMessage();
+        this._channel.port1.onmessage = (evt: MessageEvent) => {
+            this._global.postMessage(evt.data, [evt.data]);
+        };
+    }
+
+    private _genOnMessage(): (evt: MessageEvent) => void {
+        return (evt) => {
+            if (this._firstMessage) {
+                const msg = this._msgBuffer.decodeInitMsg(
+                    evt.data as unknown as ArrayBuffer
+                );
+
+                if (msg) {
+                    this._firstMessage = false;
+                    ChobitWasm.instantiate(
+                        msg[1],
+                        new URL(new TextDecoder().decode(msg[2])),
+                        (to, data) => {
+                            this._channel.port2.postMessage(
+                                this._msgBuffer.encodeSendMsg(to, data)
+                            );
+                        }
+                    ).then((wasm) => {
+                        this._wasm = wasm;
+
+                        this._channel.port2.onmessage = (evt) => {
+                            if (this._wasm) {
+                                const msg = this._msgBuffer.decodeRecvMsg(
+                                    evt.data as unknown as ArrayBuffer
+                                );
+
+                                if (msg) {
+                                    console.log("mark");
+                                    this._wasm.postData(msg[1], msg[2]);
+                                }
+                            }
+                        };
+                    });
+                }
+            } else {
+                this._channel.port1.postMessage(evt.data, [evt.data]);
+            }
+        };
+    }
+}
+
+/**
+ * Cannel from main thread to ChobitWorker.
+ */
+export class ChobitWorker{
+    private _msgBuffer: MessageBuffer;
+
+    private _moduleID: bigint;
+
+    private _worker: Worker;
+
+    /**
+     * Constructor.
+     *
+     * @param bufferSize Initial Buffer size for internal MessageBuffer.
+     * @param workerURL URL of Javascript file for worker.
+     * @param moduleID Module ID for ChobitWasm on ChobitWorker.
+     * @param wasmURL URL of wasm file for ChobitWasm on ChobitWorker.
+     * @param onWasmOK Called when wasm is established on ChobitWorker.
+     * @param sendMsgHandler Called when ChobitWorker send message to this.
+     */
+    constructor(
+        msgBufferSize: number,
+        moduleID: bigint,
+        moduleURL: URL,
+        wasmURL: URL,
+        sendMsgHandler: (to: bigint, data: Uint8Array) => void
+    ) {
+        this._msgBuffer = new MessageBuffer(msgBufferSize);
+        this._moduleID = moduleID;
+
+        this._worker = this._initWorker(
+            moduleID,
+            moduleURL,
+            wasmURL,
+            sendMsgHandler
+        );
+    }
+
+    /**
+     * Gets module ID of ChobitWasm on ChobitWorker.
+     *
+     * @return Module ID.
+     */
+    get moduleID(): bigint {return this._moduleID;}
+
+    private _initWorker(
+        moduleID: bigint,
+        moduleURL: URL,
+        wasmURL: URL,
+        sendMsgHandler: (to: bigint, data: Uint8Array) => void
+    ): Worker {
+        const ret = new Worker(moduleURL, {type: "module"});
+
+        ret.onmessage = (evt) => {
+            const msg = this._msgBuffer.decodeSendMsg(
+                evt.data as unknown as ArrayBuffer
+            );
+
+            if (msg) {
+                sendMsgHandler(msg[1], msg[2]);
+            }
+        };
+
+        const msg = this._msgBuffer.encodeInitMsg(
+            moduleID,
+            new TextEncoder().encode(wasmURL.href)
+        );
+
+        ret.postMessage(msg);
+
+        return ret;
+    }
+
+    /**
+     * Posts data to ChobitWasm on ChobitWorker.
+     *
+     * @param from Sender ID.
+     * @param data Data.
+     */
+    postData(from: bigint, data: Uint8Array) {
+        const msg = this._msgBuffer.encodeRecvMsg(from, data);
+        this._worker.postMessage(msg);
+    }
+
+    /**
+     * Terminates ChobitWorker.
+     */
+    terminate() {
+        this._worker.terminate();
+    }
+}
+
 //export class ChobitWorkerBase {
 //    private _moduleID: bigint;
 //

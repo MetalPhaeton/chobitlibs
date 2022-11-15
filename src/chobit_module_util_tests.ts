@@ -1,7 +1,7 @@
 import {
     MessageBuffer,
     ChobitWasm,
-    //ChobitWorkerChannel,
+    ChobitWorker,
     //ChobitWorkerBase
 } from "./chobit_module_util.ts";
 
@@ -79,31 +79,23 @@ async function test2() {
     });
 }
 
-//function test3() {
-//    const channel = new ChobitWorkerChannel(
-//        1024,
-//        111n,
-//        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
-//        new URL("../tests/test_wasm.wasm", import.meta.url),
-//        (from, data) => {
-//            console.log("wasmOK!");
-//            console.log("from: " + from);
-//            console.log("data: " + new TextDecoder().decode(data));
-//
-//            channel.postData(
-//                222n,
-//                new TextEncoder().encode("From ChobitWorkerChannel!")
-//            );
-//        },
-//        (from, data) => {
-//            console.log("from: " + from);
-//            console.log("data: " + new TextDecoder().decode(data));
-//
-//            channel.terminateWorker();
-//        }
-//    );
-//}
-//
+function test3() {
+    const worker = new ChobitWorker(
+        1024,
+        111n,
+        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+        (to, data) => {
+            console.log("send' to: " + to);
+            console.log("send' data: " + new TextDecoder().decode(data));
+
+            worker.terminate();
+        }
+    );
+
+    worker.postData(1000n, new TextEncoder().encode("Hello from test3!"));
+}
+
 //function test4() {
 //    const base = new ChobitWorkerBase((from, data) => {
 //        console.log("ChobitWorkerBase receive from " + from);
@@ -136,10 +128,10 @@ async function test2() {
 //    }, 1000);
 //}
 //
-test1();
+//test1();
+//
+//test2();
 
-test2();
-//
-//test3();
-//
+test3();
+
 //test4();
