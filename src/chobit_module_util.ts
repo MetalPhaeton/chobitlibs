@@ -235,6 +235,13 @@ export class ChobitWasm {
         private _outputBufferInfo: [number, number]
     ) {}
 
+    /**
+     * Instatiates ChobitWasm.
+     *
+     * @param moduleID Module ID.
+     * @param wasmURL URL of wasm file.
+     * @param sendMsgHandler Calls when wasm call `send(to, length)`.
+     */
     static instantiate(
         moduleID: bigint,
         wasmURL: URL,
@@ -318,8 +325,13 @@ export class ChobitModule {
     private _firstMessage: boolean;
     private _moduleID: bigint;
 
-    constructor(messageBufferSize: number) {
-        this._msgBuffer = new MessageBuffer(messageBufferSize);
+    /**
+     * Constructor.
+     *
+     * @param msgBufferSize A size of internal MessageBuffer.
+     */
+    constructor(msgBufferSize: number) {
+        this._msgBuffer = new MessageBuffer(msgBufferSize);
 
         this._global = globalThis as unknown as Worker;
         this._channel = new MessageChannel();
@@ -383,11 +395,10 @@ export class ChobitWorker{
     /**
      * Constructor.
      *
-     * @param bufferSize Initial Buffer size for internal MessageBuffer.
-     * @param moduleID Module ID for ChobitWasm on ChobitModule.
-     * @param moduleURL URL of Javascript file for worker.
-     * @param wasmURL URL of wasm file for ChobitWasm on ChobitModule.
-     * @param onWasmOK Called when wasm is established on ChobitModule.
+     * @param msgBufferSize A size of internal MessageBuffer.
+     * @param moduleID Module ID for ChobitModule.
+     * @param moduleURL URL of Javascript file for ChobitModule.
+     * @param wasmURL URL of wasm file for ChobitModule.
      * @param sendMsgHandler Called when ChobitModule send message to this.
      */
     constructor(
@@ -409,7 +420,7 @@ export class ChobitWorker{
     }
 
     /**
-     * Gets module ID of ChobitWasm on ChobitWorker.
+     * Gets module ID.
      *
      * @return Module ID.
      */
@@ -444,7 +455,7 @@ export class ChobitWorker{
     }
 
     /**
-     * Posts data to ChobitWasm on ChobitWorker.
+     * Posts data to ChobitModule.
      *
      * @param from Sender ID.
      * @param data Data.
@@ -455,13 +466,16 @@ export class ChobitWorker{
     }
 
     /**
-     * Terminates ChobitWorker.
+     * Terminates worker.
      */
     terminate() {
         this._worker.terminate();
     }
 }
 
+/**
+ * ChobitWorker's communication terminal.
+ */
 export class ChobitBase {
     private _moduleID: bigint;
 
@@ -469,6 +483,11 @@ export class ChobitBase {
 
     private _onRecv: (from: bigint, data: Uint8Array) => void;
 
+    /**
+     * Constructor.
+     *
+     * @param onRecv Called when a worker sends message to ID 0.
+     */
     constructor(onRecv: (from: bigint, data: Uint8Array) => void) {
         this._moduleID = 0n;
 
@@ -477,16 +496,29 @@ export class ChobitBase {
         this._onRecv = onRecv;
     }
 
+    /**
+     * Gets module ID of this base.
+     *
+     * @return Module ID.
+     */
     get moduleID(): bigint {return this._moduleID;}
 
+    /**
+     * Adds ChobitWorker.
+     *
+     * @param msgBufferSize A size of internal MessageBuffer on the worker.
+     * @param moduleID Module ID for the worker.
+     * @param moduleURL URL of Javascript file for ChobitModule.
+     * @param wasmURL URL of wasm file for ChobitModule.
+     */
     addWorker(
-        bufferSize: number,
+        msgBufferSize: number,
         moduleID: bigint,
         moduleURL: URL,
         wasmURL: URL
     ) {
         this._workers.push(new ChobitWorker(
-            bufferSize,
+            msgBufferSize,
             moduleID,
             moduleURL,
             wasmURL,
@@ -512,6 +544,13 @@ export class ChobitBase {
         };
     }
 
+    /**
+     * Posts data to a worker.
+     *
+     * @param moduleID Receiver ID.
+     * @param from Sender ID.
+     * @param data Data.
+     */
     postData(moduleID: bigint, from: bigint, data: Uint8Array) {
         for (const worker of this._workers) {
             if (worker.moduleID == moduleID) {
@@ -520,6 +559,11 @@ export class ChobitBase {
         }
     }
 
+    /**
+     * Terminats a worker.
+     *
+     * @param moduleID Module ID of the worker.
+     */
     terminate(moduleID: bigint) {
         this._workers = this._workers.filter((worker) => {
             if (worker.moduleID == moduleID) {
@@ -531,5 +575,10 @@ export class ChobitBase {
         });
     }
 
+    /**
+     * Gets number of  workers.
+     *
+     * @return Number of workers.
+     */
     numWorkers(): number {return this._workers.length;}
 }
