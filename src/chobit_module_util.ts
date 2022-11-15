@@ -359,7 +359,6 @@ export class ChobitModule {
                                 );
 
                                 if (msg) {
-                                    console.log("mark");
                                     this._wasm.postData(msg[1], msg[2]);
                                 }
                             }
