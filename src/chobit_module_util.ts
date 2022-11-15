@@ -315,16 +315,16 @@ export class ChobitModule {
 
     private _global: Worker;
     private _channel: MessageChannel;
-    private _wasm: ChobitWasm | null;
     private _firstMessage: boolean;
+    private _moduleID: bigint;
 
     constructor(messageBufferSize: number) {
         this._msgBuffer = new MessageBuffer(messageBufferSize);
 
         this._global = globalThis as unknown as Worker;
         this._channel = new MessageChannel();
-        this._wasm = null;
         this._firstMessage = true;
+        this._moduleID = 0n;
 
         this._global.onmessage = this._genOnMessage();
         this._channel.port1.onmessage = (evt: MessageEvent) => {
@@ -341,6 +341,8 @@ export class ChobitModule {
 
                 if (msg) {
                     this._firstMessage = false;
+                    this._moduleID = msg[1];
+
                     ChobitWasm.instantiate(
                         msg[1],
                         new URL(new TextDecoder().decode(msg[2])),
@@ -350,17 +352,13 @@ export class ChobitModule {
                             );
                         }
                     ).then((wasm) => {
-                        this._wasm = wasm;
-
                         this._channel.port2.onmessage = (evt) => {
-                            if (this._wasm) {
-                                const msg = this._msgBuffer.decodeRecvMsg(
-                                    evt.data as unknown as ArrayBuffer
-                                );
+                            const msg = this._msgBuffer.decodeRecvMsg(
+                                evt.data as unknown as ArrayBuffer
+                            );
 
-                                if (msg) {
-                                    this._wasm.postData(msg[1], msg[2]);
-                                }
+                            if (msg) {
+                                wasm.postData(msg[1], msg[2]);
                             }
                         };
                     });
@@ -386,11 +384,11 @@ export class ChobitWorker{
      * Constructor.
      *
      * @param bufferSize Initial Buffer size for internal MessageBuffer.
-     * @param workerURL URL of Javascript file for worker.
-     * @param moduleID Module ID for ChobitWasm on ChobitWorker.
-     * @param wasmURL URL of wasm file for ChobitWasm on ChobitWorker.
-     * @param onWasmOK Called when wasm is established on ChobitWorker.
-     * @param sendMsgHandler Called when ChobitWorker send message to this.
+     * @param moduleID Module ID for ChobitWasm on ChobitModule.
+     * @param moduleURL URL of Javascript file for worker.
+     * @param wasmURL URL of wasm file for ChobitWasm on ChobitModule.
+     * @param onWasmOK Called when wasm is established on ChobitModule.
+     * @param sendMsgHandler Called when ChobitModule send message to this.
      */
     constructor(
         msgBufferSize: number,
@@ -464,80 +462,74 @@ export class ChobitWorker{
     }
 }
 
-//export class ChobitWorkerBase {
-//    private _moduleID: bigint;
-//
-//    private _channels: {channel: ChobitWorkerChannel, established: boolean}[];
-//
-//    private _onRecv: (from: bigint, data: Uint8Array) => void;
-//
-//    constructor(onRecv: (from: bigint, data: Uint8Array) => void) {
-//        this._moduleID = 0n;
-//
-//        this._channels = [];
-//
-//        this._onRecv = onRecv;
-//    }
-//
-//    get moduleID(): bigint {return this._moduleID;}
-//
-//    addWorker(
-//        bufferSize: number,
-//        moduleID: bigint,
-//        workerURL: URL,
-//        wasmURL: URL
-//    ) {
-//        this._channels.push({
-//            channel: new ChobitWorkerChannel(
-//                bufferSize,
-//                moduleID,
-//                workerURL,
-//                wasmURL,
-//                this._genWasmOkHandler(),
-//                this._genSendMsgHandler(moduleID)
-//            ),
-//            established: false
-//        });
-//    }
-//
-//    private _genWasmOkHandler(): (from: bigint, data: Uint8Array) => void {
-//        return (id, data) => {
-//            for (const elm of this._channels) {
-//                if (elm.channel.moduleID == id) {
-//                    elm.established = true;
-//                    break;
-//                }
-//            }
-//        };
-//    }
-//
-//    private _genSendMsgHandler(
-//        moduleID: bigint
-//    ): (to: bigint, data: Uint8Array) => void {
-//        return (to, data) => {
-//            if (to == this._moduleID) {
-//                this._onRecv(moduleID, data);
-//            } else {
-//                for (const elm of this._channels) {
-//                    if (elm.channel.moduleID == to) {
-//                        if (elm.established) {
-//                            elm.channel.postData(moduleID, data);
-//                        }
-//
-//                        break;
-//                    }
-//                }
-//            }
-//        };
-//    }
-//
-//    postData(moduleID: bigint, from: bigint, data: Uint8Array) {
-//        for (const elm of this._channels) {
-//            if (elm.channel.moduleID == moduleID) {
-//                if (elm.established) {
-//                    elm.channel.postData()
-//                }
-//            }
-//        }
-//    }
-//}
+export class ChobitBase {
+    private _moduleID: bigint;
+
+    private _workers: ChobitWorker[];
+
+    private _onRecv: (from: bigint, data: Uint8Array) => void;
+
+    constructor(onRecv: (from: bigint, data: Uint8Array) => void) {
+        this._moduleID = 0n;
+
+        this._workers = [];
+
+        this._onRecv = onRecv;
+    }
+
+    get moduleID(): bigint {return this._moduleID;}
+
+    addWorker(
+        bufferSize: number,
+        moduleID: bigint,
+        moduleURL: URL,
+        wasmURL: URL
+    ) {
+        this._workers.push(new ChobitWorker(
+            bufferSize,
+            moduleID,
+            moduleURL,
+            wasmURL,
+            this._genSendMsgHandler(moduleID)
+        ));
+    }
+
+    private _genSendMsgHandler(
+        moduleID: bigint
+    ): (to: bigint, data: Uint8Array) => void {
+        return (to, data) => {
+            if (to == this._moduleID) {
+                this._onRecv(moduleID, data);
+            } else {
+                for (const worker of this._workers) {
+                    if (worker.moduleID == to) {
+                        worker.postData(moduleID, data);
+
+                        break;
+                    }
+                }
+            }
+        };
+    }
+
+    postData(moduleID: bigint, from: bigint, data: Uint8Array) {
+        for (const worker of this._workers) {
+            if (worker.moduleID == moduleID) {
+                worker.postData(from, data);
+            }
+        }
+    }
+
+    terminate(moduleID: bigint) {
+        this._workers = this._workers.filter((worker) => {
+            if (worker.moduleID == moduleID) {
+                worker.terminate();
+                return false;
+            } else {
+                return true;
+            }
+        });
+    }
+
+    numWorkers(): number {return this._workers.length;}
+}

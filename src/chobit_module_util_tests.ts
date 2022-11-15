@@ -2,7 +2,7 @@ import {
     MessageBuffer,
     ChobitWasm,
     ChobitWorker,
-    //ChobitWorkerBase
+    ChobitBase
 } from "./chobit_module_util.ts";
 
 function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
@@ -96,37 +96,37 @@ function test3() {
     worker.postData(1000n, new TextEncoder().encode("Hello from test3!"));
 }
 
-//function test4() {
-//    const base = new ChobitWorkerBase((from, data) => {
-//        console.log("ChobitWorkerBase receive from " + from);
-//        console.log("data: " + new TextDecoder().decode(data));
-//    });
-//
-//    base.addWorker(
-//        1024,
-//        2n,
-//        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
-//        new URL("../tests/test_wasm.wasm", import.meta.url),
-//    );
-//
-//    base.addWorker(
-//        1024,
-//        1n,
-//        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
-//        new URL("../tests/test_wasm.wasm", import.meta.url),
-//    );
-//
-//    setTimeout(() => {
-//        for (const ch of base.channels) {
-//            if (ch.channel.moduleID == 2n) {
-//                ch.channel.postData(
-//                    base.moduleID,
-//                    new TextEncoder().encode("Hello")
-//                );
-//            }
-//        }
-//    }, 1000);
-//}
+function test4() {
+    const base = new ChobitBase((from, data) => {
+        console.log("ChobitBase receive from " + from);
+        console.log("data: " + new TextDecoder().decode(data));
+
+        base.terminate(10n);
+        console.assert(base.numWorkers() == 2);
+
+        base.terminate(2n);
+        console.assert(base.numWorkers() == 1);
+
+        base.terminate(1n);
+        console.assert(base.numWorkers() == 0);
+    });
+
+    base.addWorker(
+        1024,
+        2n,
+        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+    );
+
+    base.addWorker(
+        1024,
+        1n,
+        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+    );
+
+    base.postData(2n, 99n, new TextEncoder().encode("Let's Go!"));
+}
 
 test1();
 
@@ -134,4 +134,4 @@ test2();
 
 test3();
 
-//test4();
+test4();
