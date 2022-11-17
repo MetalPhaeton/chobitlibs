@@ -36,12 +36,12 @@ const HEADER_OFFSET: number = 20 as const;
  * Buffer memory for messages of chobit module.
  */
 export class MessageBuffer {
-    private _textEncoder: TextEncoder;
-    private _buffer: ArrayBuffer;
+    #textEncoder: TextEncoder;
+    #buffer: ArrayBuffer;
 
-    private _initID: bigint;
-    private _recvID: bigint;
-    private _sendID: bigint;
+    #initID: bigint;
+    #recvID: bigint;
+    #sendID: bigint;
 
     /**
      * Constructor.
@@ -49,12 +49,12 @@ export class MessageBuffer {
      * @param bufferSize Initial buffer size.
      */
     constructor(bufferSize: number) {
-        this._textEncoder = new TextEncoder();
-        this._buffer = new ArrayBuffer(bufferSize);
+        this.#textEncoder = new TextEncoder();
+        this.#buffer = new ArrayBuffer(bufferSize);
 
-        this._initID = this.toMsgID("init");
-        this._recvID = this.toMsgID("recv");
-        this._sendID = this.toMsgID("send");
+        this.#initID = this.toMsgID("init");
+        this.#recvID = this.toMsgID("recv");
+        this.#sendID = this.toMsgID("send");
     }
 
     /**
@@ -62,30 +62,30 @@ export class MessageBuffer {
      *
      * @return ID
      */
-    get initID(): bigint {return this._initID;}
+    get initID(): bigint {return this.#initID;}
 
     /**
      * Gets ID of "recv" message.
      *
      * @return ID
      */
-    get recvID(): bigint {return this._recvID;}
+    get recvID(): bigint {return this.#recvID;}
 
     /**
      * Gets ID of "send" message.
      *
      * @return ID
      */
-    get sendID(): bigint {return this._sendID;}
+    get sendID(): bigint {return this.#sendID;}
 
-    private _fixBufferSize(requiredSize: number) {
-        if (this._buffer.byteLength < requiredSize) {
-            let size = this._buffer.byteLength;
+    #fixBufferSize(requiredSize: number) {
+        if (this.#buffer.byteLength < requiredSize) {
+            let size = this.#buffer.byteLength;
             while (size < requiredSize) {
                 size *= 2;
             }
 
-            this._buffer = new ArrayBuffer(size);
+            this.#buffer = new ArrayBuffer(size);
         }
     }
 
@@ -96,30 +96,30 @@ export class MessageBuffer {
      * @return Hash value.
      */
     toMsgID(text: string): bigint {
-        return fnv1a64(this._textEncoder.encode(text));
+        return fnv1a64(this.#textEncoder.encode(text));
     }
 
-    private _encodeMsg(
+    #encodeMsg(
         msgID: bigint,
         id: bigint,
         data: Uint8Array
     ): ArrayBuffer {
-        this._fixBufferSize(data.length + HEADER_OFFSET);
+        this.#fixBufferSize(data.length + HEADER_OFFSET);
 
-        const view = new DataView(this._buffer);
+        const view = new DataView(this.#buffer);
         view.setBigUint64(0, msgID, true);
         view.setBigUint64(8, id, true);
 
         view.setUint32(16, data.length, true);
 
-        const tmp = new Uint8Array(this._buffer, HEADER_OFFSET, data.length);
+        const tmp = new Uint8Array(this.#buffer, HEADER_OFFSET, data.length);
 
         tmp.set(data);
 
-        return this._buffer;
+        return this.#buffer;
     }
 
-    private _decodeMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
+    #decodeMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         if (msg.byteLength < HEADER_OFFSET) {return null;}
 
         const view = new DataView(msg);
@@ -142,7 +142,7 @@ export class MessageBuffer {
      * @return Byte string using ArrayBuffer of this MessageBuffer instance.
      */
     encodeInitMsg(id: bigint, data: Uint8Array): ArrayBuffer {
-        return this._encodeMsg(this._initID, id, data);
+        return this.#encodeMsg(this.#initID, id, data);
     }
 
     /**
@@ -152,9 +152,9 @@ export class MessageBuffer {
      * @return [message ID, module ID, additional data]
      */
     decodeInitMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
-        const ret = this._decodeMsg(msg);
+        const ret = this.#decodeMsg(msg);
 
-        if (ret && (ret[0] == this._initID)) {
+        if (ret && (ret[0] == this.#initID)) {
             return ret;
         } else {
             return null;
@@ -169,7 +169,7 @@ export class MessageBuffer {
      * @return Byte string using ArrayBuffer of this MessageBuffer instance.
      */
     encodeRecvMsg(from: bigint, data: Uint8Array): ArrayBuffer {
-        return this._encodeMsg(this._recvID, from, data);
+        return this.#encodeMsg(this.#recvID, from, data);
     }
 
     /**
@@ -179,9 +179,9 @@ export class MessageBuffer {
      * @return [message ID, sender ID, additional data]
      */
     decodeRecvMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
-        const ret = this._decodeMsg(msg);
+        const ret = this.#decodeMsg(msg);
 
-        if (ret && (ret[0] == this._recvID)) {
+        if (ret && (ret[0] == this.#recvID)) {
             return ret;
         } else {
             return null;
@@ -196,7 +196,7 @@ export class MessageBuffer {
      * @return Byte string using ArrayBuffer of this MessageBuffer instance.
      */
     encodeSendMsg(to: bigint, data: Uint8Array): ArrayBuffer {
-        return this._encodeMsg(this._sendID, to, data);
+        return this.#encodeMsg(this.#sendID, to, data);
     }
 
     /**
@@ -206,9 +206,9 @@ export class MessageBuffer {
      * @return [message ID, receiver ID, additional data]
      */
     decodeSendMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
-        const ret = this._decodeMsg(msg);
+        const ret = this.#decodeMsg(msg);
 
-        if (ret && (ret[0] == this._sendID)) {
+        if (ret && (ret[0] == this.#sendID)) {
             return ret;
         } else {
             return null;
@@ -227,13 +227,25 @@ interface Exports {
  * Instance of ChobitWasm.
  */
 export class ChobitWasm {
+    #moduleID: bigint;
+    #instance: WebAssembly.Instance | null;
+    #exports: Exports | null;
+    #inputBufferInfo: [number, number];
+    #outputBufferInfo: [number, number];
+
     private constructor(
-        private _moduleID: bigint,
-        private _instance: WebAssembly.Instance | null,
-        private _exports: Exports | null,
-        private _inputBufferInfo: [number, number],
-        private _outputBufferInfo: [number, number]
-    ) {}
+        moduleID: bigint,
+        instance: WebAssembly.Instance | null,
+        exports: Exports | null,
+        inputBufferInfo: [number, number],
+        outputBufferInfo: [number, number]
+    ) {
+        this.#moduleID = moduleID;
+        this.#instance = instance;
+        this.#exports = exports;
+        this.#inputBufferInfo = inputBufferInfo;
+        this.#outputBufferInfo = outputBufferInfo;
+    }
 
     /**
      * Instatiates ChobitWasm.
@@ -251,39 +263,39 @@ export class ChobitWasm {
 
         return WebAssembly.instantiateStreaming(
             fetch(wasmURL),
-            chobitWasm._genImports(sendMsgHandler)
+            chobitWasm.#genImports(sendMsgHandler)
         ).then((obj) => {
-            chobitWasm._moduleID = moduleID;
-            chobitWasm._instance = obj.instance;
-            chobitWasm._exports =
-                chobitWasm._instance.exports as unknown as Exports;
+            chobitWasm.#moduleID = moduleID;
+            chobitWasm.#instance = obj.instance;
+            chobitWasm.#exports =
+                chobitWasm.#instance.exports as unknown as Exports;
 
-            chobitWasm._exports.init(chobitWasm._moduleID);
+            chobitWasm.#exports.init(chobitWasm.#moduleID);
 
             return chobitWasm;
         });
     }
 
-    private _genImports(
+    #genImports(
         sendMsgHandler: (to: bigint, data: Uint8Array) => void
     ): any {
         return {
             env: {
                 notify_input_buffer: (offset: number, size: number) => {
-                    this._inputBufferInfo = [offset, size];
+                    this.#inputBufferInfo = [offset, size];
                 },
 
                 notify_output_buffer: (offset: number, size: number) => {
-                    this._outputBufferInfo = [offset, size];
+                    this.#outputBufferInfo = [offset, size];
                 },
 
                 send: (to: bigint, length: number) => {
-                    if (length > this._outputBufferInfo[1]) {return;}
+                    if (length > this.#outputBufferInfo[1]) {return;}
 
-                    if (this._exports) {
+                    if (this.#exports) {
                         const data = new Uint8Array(
-                            this._exports.memory.buffer,
-                            this._outputBufferInfo[0],
+                            this.#exports.memory.buffer,
+                            this.#outputBufferInfo[0],
                             length
                         );
 
@@ -301,29 +313,29 @@ export class ChobitWasm {
      * @param data Data.
      */
     postData(from: bigint, data: Uint8Array) {
-        if (data.length > this._inputBufferInfo[1]) {return;}
+        if (data.length > this.#inputBufferInfo[1]) {return;}
 
-        if (this._exports) {
+        if (this.#exports) {
             const inputBuffer = new Uint8Array(
-                this._exports.memory.buffer,
-                this._inputBufferInfo[0],
-                this._inputBufferInfo[1]
+                this.#exports.memory.buffer,
+                this.#inputBufferInfo[0],
+                this.#inputBufferInfo[1]
             );
 
             inputBuffer.set(data);
 
-            this._exports.recv(from, data.length);
+            this.#exports.recv(from, data.length);
         }
     }
 }
 
 export class ChobitModule {
-    private _msgBuffer: MessageBuffer;
+    #msgBuffer: MessageBuffer;
 
-    private _global: Worker;
-    private _channel: MessageChannel;
-    private _firstMessage: boolean;
-    private _moduleID: bigint;
+    #global: Worker;
+    #channel: MessageChannel;
+    #firstMessage: boolean;
+    #moduleID: bigint;
 
     /**
      * Constructor.
@@ -331,41 +343,41 @@ export class ChobitModule {
      * @param msgBufferSize A size of internal MessageBuffer.
      */
     constructor(msgBufferSize: number) {
-        this._msgBuffer = new MessageBuffer(msgBufferSize);
+        this.#msgBuffer = new MessageBuffer(msgBufferSize);
 
-        this._global = globalThis as unknown as Worker;
-        this._channel = new MessageChannel();
-        this._firstMessage = true;
-        this._moduleID = 0n;
+        this.#global = globalThis as unknown as Worker;
+        this.#channel = new MessageChannel();
+        this.#firstMessage = true;
+        this.#moduleID = 0n;
 
-        this._global.onmessage = this._genOnMessage();
-        this._channel.port1.onmessage = (evt: MessageEvent) => {
-            this._global.postMessage(evt.data, [evt.data]);
+        this.#global.onmessage = this.#genOnMessage();
+        this.#channel.port1.onmessage = (evt: MessageEvent) => {
+            this.#global.postMessage(evt.data, [evt.data]);
         };
     }
 
-    private _genOnMessage(): (evt: MessageEvent) => void {
+    #genOnMessage(): (evt: MessageEvent) => void {
         return (evt) => {
-            if (this._firstMessage) {
-                const msg = this._msgBuffer.decodeInitMsg(
+            if (this.#firstMessage) {
+                const msg = this.#msgBuffer.decodeInitMsg(
                     evt.data as unknown as ArrayBuffer
                 );
 
                 if (msg) {
-                    this._firstMessage = false;
-                    this._moduleID = msg[1];
+                    this.#firstMessage = false;
+                    this.#moduleID = msg[1];
 
                     ChobitWasm.instantiate(
                         msg[1],
                         new URL(new TextDecoder().decode(msg[2])),
                         (to, data) => {
-                            this._channel.port2.postMessage(
-                                this._msgBuffer.encodeSendMsg(to, data)
+                            this.#channel.port2.postMessage(
+                                this.#msgBuffer.encodeSendMsg(to, data)
                             );
                         }
                     ).then((wasm) => {
-                        this._channel.port2.onmessage = (evt) => {
-                            const msg = this._msgBuffer.decodeRecvMsg(
+                        this.#channel.port2.onmessage = (evt) => {
+                            const msg = this.#msgBuffer.decodeRecvMsg(
                                 evt.data as unknown as ArrayBuffer
                             );
 
@@ -376,7 +388,7 @@ export class ChobitModule {
                     });
                 }
             } else {
-                this._channel.port1.postMessage(evt.data, [evt.data]);
+                this.#channel.port1.postMessage(evt.data, [evt.data]);
             }
         };
     }
@@ -386,11 +398,11 @@ export class ChobitModule {
  * Cannel from main thread to ChobitWorker.
  */
 export class ChobitWorker{
-    private _msgBuffer: MessageBuffer;
+    #msgBuffer: MessageBuffer;
 
-    private _moduleID: bigint;
+    #moduleID: bigint;
 
-    private _worker: Worker;
+    #worker: Worker;
 
     /**
      * Constructor.
@@ -408,10 +420,10 @@ export class ChobitWorker{
         wasmURL: URL,
         sendMsgHandler: (to: bigint, data: Uint8Array) => void
     ) {
-        this._msgBuffer = new MessageBuffer(msgBufferSize);
-        this._moduleID = moduleID;
+        this.#msgBuffer = new MessageBuffer(msgBufferSize);
+        this.#moduleID = moduleID;
 
-        this._worker = this._initWorker(
+        this.#worker = this.#initWorker(
             moduleID,
             moduleURL,
             wasmURL,
@@ -424,9 +436,9 @@ export class ChobitWorker{
      *
      * @return Module ID.
      */
-    get moduleID(): bigint {return this._moduleID;}
+    get moduleID(): bigint {return this.#moduleID;}
 
-    private _initWorker(
+    #initWorker(
         moduleID: bigint,
         moduleURL: URL,
         wasmURL: URL,
@@ -435,7 +447,7 @@ export class ChobitWorker{
         const ret = new Worker(moduleURL, {type: "module"});
 
         ret.onmessage = (evt) => {
-            const msg = this._msgBuffer.decodeSendMsg(
+            const msg = this.#msgBuffer.decodeSendMsg(
                 evt.data as unknown as ArrayBuffer
             );
 
@@ -444,7 +456,7 @@ export class ChobitWorker{
             }
         };
 
-        const msg = this._msgBuffer.encodeInitMsg(
+        const msg = this.#msgBuffer.encodeInitMsg(
             moduleID,
             new TextEncoder().encode(wasmURL.href)
         );
@@ -461,15 +473,15 @@ export class ChobitWorker{
      * @param data Data.
      */
     postData(from: bigint, data: Uint8Array) {
-        const msg = this._msgBuffer.encodeRecvMsg(from, data);
-        this._worker.postMessage(msg);
+        const msg = this.#msgBuffer.encodeRecvMsg(from, data);
+        this.#worker.postMessage(msg);
     }
 
     /**
      * Terminates worker.
      */
     terminate() {
-        this._worker.terminate();
+        this.#worker.terminate();
     }
 }
 
@@ -477,11 +489,11 @@ export class ChobitWorker{
  * ChobitWorker's communication terminal.
  */
 export class ChobitBase {
-    private _moduleID: bigint;
+    #moduleID: bigint;
 
-    private _workers: ChobitWorker[];
+    #workers: ChobitWorker[];
 
-    private _onRecv: (from: bigint, data: Uint8Array) => void;
+    #onRecv: (from: bigint, data: Uint8Array) => void;
 
     /**
      * Constructor.
@@ -489,11 +501,11 @@ export class ChobitBase {
      * @param onRecv Called when a worker sends message to ID 0.
      */
     constructor(onRecv: (from: bigint, data: Uint8Array) => void) {
-        this._moduleID = 0n;
+        this.#moduleID = 0n;
 
-        this._workers = [];
+        this.#workers = [];
 
-        this._onRecv = onRecv;
+        this.#onRecv = onRecv;
     }
 
     /**
@@ -501,7 +513,7 @@ export class ChobitBase {
      *
      * @return Module ID.
      */
-    get moduleID(): bigint {return this._moduleID;}
+    get moduleID(): bigint {return this.#moduleID;}
 
     /**
      * Adds ChobitWorker.
@@ -517,23 +529,23 @@ export class ChobitBase {
         moduleURL: URL,
         wasmURL: URL
     ) {
-        this._workers.push(new ChobitWorker(
+        this.#workers.push(new ChobitWorker(
             msgBufferSize,
             moduleID,
             moduleURL,
             wasmURL,
-            this._genSendMsgHandler(moduleID)
+            this.#genSendMsgHandler(moduleID)
         ));
     }
 
-    private _genSendMsgHandler(
+    #genSendMsgHandler(
         moduleID: bigint
     ): (to: bigint, data: Uint8Array) => void {
         return (to, data) => {
-            if (to == this._moduleID) {
-                this._onRecv(moduleID, data);
+            if (to == this.#moduleID) {
+                this.#onRecv(moduleID, data);
             } else {
-                for (const worker of this._workers) {
+                for (const worker of this.#workers) {
                     if (worker.moduleID == to) {
                         worker.postData(moduleID, data);
 
@@ -552,7 +564,7 @@ export class ChobitBase {
      * @param data Data.
      */
     postData(moduleID: bigint, from: bigint, data: Uint8Array) {
-        for (const worker of this._workers) {
+        for (const worker of this.#workers) {
             if (worker.moduleID == moduleID) {
                 worker.postData(from, data);
             }
@@ -565,7 +577,7 @@ export class ChobitBase {
      * @param moduleID Module ID of the worker.
      */
     terminate(moduleID: bigint) {
-        this._workers = this._workers.filter((worker) => {
+        this.#workers = this.#workers.filter((worker) => {
             if (worker.moduleID == moduleID) {
                 worker.terminate();
                 return false;
@@ -580,5 +592,5 @@ export class ChobitBase {
      *
      * @return Number of workers.
      */
-    numWorkers(): number {return this._workers.length;}
+    numWorkers(): number {return this.#workers.length;}
 }

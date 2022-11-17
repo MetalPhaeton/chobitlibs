@@ -18,7 +18,7 @@ const SEXPR_HEADER_LEN: number = 4 as const;
  * ChobitSexpr for Typescript.
  */
 export class ChobitSexpr {
-    private _body: Uint8Array;
+    #body: Uint8Array;
 
     /**
      * Constructor.
@@ -26,7 +26,7 @@ export class ChobitSexpr {
      * @param body Body of ChobitSexpr.
      */
     constructor(body: Uint8Array) {
-        this._body = body;
+        this.#body = body;
     }
 
     /**
@@ -75,8 +75,8 @@ export class ChobitSexpr {
      * @return Cons.
      */
     static genCons(car: ChobitSexpr, cdr: ChobitSexpr): ChobitSexpr {
-        const carLength = car._body.length;
-        const cdrLength = cdr._body.length;
+        const carLength = car.#body.length;
+        const cdrLength = cdr.#body.length;
 
         const sexpr = new Uint8Array(carLength + cdrLength + SEXPR_HEADER_LEN);
         const header = ChobitSexpr.genConsHeader(carLength);
@@ -84,26 +84,26 @@ export class ChobitSexpr {
         const view = new DataView(sexpr.buffer);
         view.setUint32(sexpr.byteOffset, header, true);
 
-        sexpr.set(car._body, SEXPR_HEADER_LEN);
-        sexpr.set(cdr._body, carLength + SEXPR_HEADER_LEN);
+        sexpr.set(car.#body, SEXPR_HEADER_LEN);
+        sexpr.set(cdr.#body, carLength + SEXPR_HEADER_LEN);
 
         return new ChobitSexpr(sexpr);
     }
 
-    private _header(): number | null {
-        if (this._body.length < SEXPR_HEADER_LEN) {return null;}
+    #header(): number | null {
+        if (this.#body.length < SEXPR_HEADER_LEN) {return null;}
 
-        return new DataView(this._body.buffer).getUint32(
-            this._body.byteOffset,
+        return new DataView(this.#body.buffer).getUint32(
+            this.#body.byteOffset,
             true
         );
     }
 
-    private static _flag(header: number): number {
+    static #flag(header: number): number {
         return header & 0x80000000;
     }
 
-    private static _size(header: number): number {
+    static #size(header: number): number {
         return header & 0x7fffffff;
     }
 
@@ -113,9 +113,9 @@ export class ChobitSexpr {
      * @return If this sexpr is atom, true.
      */
     isAtom(): boolean {
-        const header = this._header();
+        const header = this.#header();
         if (header) {
-            return ChobitSexpr._flag(header) == 0;
+            return ChobitSexpr.#flag(header) == 0;
         }
 
         return false;
@@ -127,9 +127,9 @@ export class ChobitSexpr {
      * @return If this sexpr is cons, true.
      */
     isCons(): boolean {
-        const header = this._header();
+        const header = this.#header();
         if (header) {
-            return ChobitSexpr._flag(header) != 0;
+            return ChobitSexpr.#flag(header) != 0;
         }
 
         return false;
@@ -141,17 +141,17 @@ export class ChobitSexpr {
      * @return If this sexpr is atom, returns payload. Otherwise, null.
      */
     atom(): Uint8Array | null {
-        const header = this._header();
+        const header = this.#header();
 
         if (header) {
-            if (ChobitSexpr._flag(header) != 0) {return null;}
+            if (ChobitSexpr.#flag(header) != 0) {return null;}
 
-            const size = ChobitSexpr._size(header);
-            if ((SEXPR_HEADER_LEN + size) > this._body.length) {return null;}
+            const size = ChobitSexpr.#size(header);
+            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
 
             return new Uint8Array(
-                this._body.buffer,
-                this._body.byteOffset + SEXPR_HEADER_LEN,
+                this.#body.buffer,
+                this.#body.byteOffset + SEXPR_HEADER_LEN,
                 size
             );
         } else {
@@ -165,17 +165,17 @@ export class ChobitSexpr {
      * @return If this sexpr is cons, returns car. Otherwise, null.
      */
     car(): ChobitSexpr | null {
-        const header = this._header();
+        const header = this.#header();
 
         if (header) {
-            if (ChobitSexpr._flag(header) == 0) {return null;}
+            if (ChobitSexpr.#flag(header) == 0) {return null;}
 
-            const size = ChobitSexpr._size(header);
-            if ((SEXPR_HEADER_LEN + size) > this._body.length) {return null;}
+            const size = ChobitSexpr.#size(header);
+            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
 
             return new ChobitSexpr(new Uint8Array(
-                this._body.buffer,
-                this._body.byteOffset + SEXPR_HEADER_LEN,
+                this.#body.buffer,
+                this.#body.byteOffset + SEXPR_HEADER_LEN,
                 size
             ));
         } else {
@@ -189,17 +189,17 @@ export class ChobitSexpr {
      * @return If this sexpr is cons, returns cdr. Otherwise, returns null.
      */
     cdr(): ChobitSexpr | null {
-        const header = this._header();
+        const header = this.#header();
 
         if (header) {
-            if (ChobitSexpr._flag(header) == 0) {return null;}
+            if (ChobitSexpr.#flag(header) == 0) {return null;}
 
-            const size = ChobitSexpr._size(header);
-            if ((SEXPR_HEADER_LEN + size) > this._body.length) {return null;}
+            const size = ChobitSexpr.#size(header);
+            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
 
             return new ChobitSexpr(new Uint8Array(
-                this._body.buffer,
-                this._body.byteOffset + SEXPR_HEADER_LEN + size,
+                this.#body.buffer,
+                this.#body.byteOffset + SEXPR_HEADER_LEN + size,
             ));
         } else {
             return null;
@@ -547,7 +547,7 @@ export class ChobitSexpr {
         return null;
     }
 
-    private static _genNumberSexpr(length: number): ChobitSexpr {
+    static #genNumberSexpr(length: number): ChobitSexpr {
         const body = new Uint8Array(length + SEXPR_HEADER_LEN);
         new DataView(body.buffer).setUint32(0, length, true);
         return new ChobitSexpr(body);
@@ -560,7 +560,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genI8(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(1);
+        const ret = ChobitSexpr.#genNumberSexpr(1);
         ret.writeI8(value);
         return ret;
     }
@@ -572,7 +572,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genU8(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(1);
+        const ret = ChobitSexpr.#genNumberSexpr(1);
         ret.writeU8(value);
         return ret;
     }
@@ -584,7 +584,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genI16(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(2);
+        const ret = ChobitSexpr.#genNumberSexpr(2);
         ret.writeI16(value);
         return ret;
     }
@@ -596,7 +596,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genU16(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(2);
+        const ret = ChobitSexpr.#genNumberSexpr(2);
         ret.writeU16(value);
         return ret;
     }
@@ -608,7 +608,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genI32(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(4);
+        const ret = ChobitSexpr.#genNumberSexpr(4);
         ret.writeI32(value);
         return ret;
     }
@@ -620,7 +620,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genU32(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(4);
+        const ret = ChobitSexpr.#genNumberSexpr(4);
         ret.writeU32(value);
         return ret;
     }
@@ -632,7 +632,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genI64(value: bigint): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(8);
+        const ret = ChobitSexpr.#genNumberSexpr(8);
         ret.writeI64(value);
         return ret;
     }
@@ -644,7 +644,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genU64(value: bigint): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(8);
+        const ret = ChobitSexpr.#genNumberSexpr(8);
         ret.writeU64(value);
         return ret;
     }
@@ -656,7 +656,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genF32(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(4);
+        const ret = ChobitSexpr.#genNumberSexpr(4);
         ret.writeF32(value);
         return ret;
     }
@@ -668,7 +668,7 @@ export class ChobitSexpr {
      * @return Atom.
      */
     static genF64(value: number): ChobitSexpr {
-        const ret = ChobitSexpr._genNumberSexpr(8);
+        const ret = ChobitSexpr.#genNumberSexpr(8);
         ret.writeF64(value);
         return ret;
     }
@@ -682,8 +682,8 @@ export class ChobitSexpr {
     static genString(value: string): ChobitSexpr {
         const bytes = new TextEncoder().encode(value);
 
-        const ret = ChobitSexpr._genNumberSexpr(bytes.length);
-        ret._body.set(bytes, SEXPR_HEADER_LEN);
+        const ret = ChobitSexpr.#genNumberSexpr(bytes.length);
+        ret.#body.set(bytes, SEXPR_HEADER_LEN);
         return ret;
     }
 }
