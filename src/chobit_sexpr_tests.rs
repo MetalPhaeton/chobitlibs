@@ -326,3 +326,76 @@ fn chobit_sexpr_convert_test() {
     let result: &str = buf.as_sexpr().try_into().unwrap();
     assert_eq!(result, val);
 }
+
+#[test]
+fn chobit_read_write_test() {
+    macro_rules! chobit_read_write_test_core {
+        ($read_func:ident, $write_func:ident, $type:ty, $value:expr) => {{
+            let value = $value as $type;
+            let mut sexpr = ChobitSexprBuf::from(value);
+
+            assert_eq!(sexpr.as_sexpr().$read_func().unwrap(), value);
+
+            sexpr.as_mut_sexpr().$write_func(value + (1 as $type)).unwrap();
+            assert_eq!(
+                sexpr.as_sexpr().$read_func().unwrap(),
+                value + (1 as $type)
+            );
+        }};
+    }
+
+    for i in 0..100usize {
+        chobit_read_write_test_core!(read_i8, write_i8, i8, i);
+        chobit_read_write_test_core!(read_u8, write_u8, u8, i);
+        chobit_read_write_test_core!(read_i16, write_i16, i16, i);
+        chobit_read_write_test_core!(read_u16, write_u16, u16, i);
+        chobit_read_write_test_core!(read_i32, write_i32, i32, i);
+        chobit_read_write_test_core!(read_u32, write_u32, u32, i);
+        chobit_read_write_test_core!(read_i64, write_i64, i64, i);
+        chobit_read_write_test_core!(read_u64, write_u64, u64, i);
+        chobit_read_write_test_core!(read_i128, write_i128, i128, i);
+        chobit_read_write_test_core!(read_u128, write_u128, u128, i);
+        chobit_read_write_test_core!(read_f32, write_f32, f32, i);
+        chobit_read_write_test_core!(read_f64, write_f64, f64, i);
+    }
+}
+
+#[test]
+fn chobit_sexpr_iter_test() {
+    let value_1: i32 = 100;
+    let value_2: i32 = 200;
+    let value_3: i32 = 300;
+
+    let base = ChobitSexprBuf::new().build_list().push_item(
+        ChobitSexprBuf::from(value_1).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_2).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_3).as_sexpr()
+    ).finish();
+
+    let add_value: i32 = 10;
+
+    let mut buffer = ChobitSexprBuf::new().build_list();
+
+    let mut tmp = ChobitSexprBuf::from(0i32);
+
+    for sexpr in base.iter() {
+        let value: i32 = sexpr.try_into().unwrap();
+        tmp.write_i32(value + add_value).unwrap();
+
+        buffer = buffer.push_item(&tmp);
+    }
+
+    let buffer = buffer.finish();
+
+    let check = ChobitSexprBuf::new().build_list().push_item(
+        ChobitSexprBuf::from(value_1 + add_value).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_2 + add_value).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_3 + add_value).as_sexpr()
+    ).finish();
+
+    assert_eq!(buffer.as_bytes(), check.as_bytes());
+}

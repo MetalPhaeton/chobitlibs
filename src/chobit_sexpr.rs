@@ -494,6 +494,73 @@ pub struct ChobitSexpr {
     body: [u8]
 }
 
+macro_rules! gen_read_doc {
+    ($type:ty) => {
+        concat!(
+            "Reads `",
+            stringify!($type), 
+r#"` value.
+
+* _Return_ : If the sexpr is atom and the size equals `size_of::<"#,
+            stringify!($type), 
+r#">()` , returns value. Otherwise, `None`"#
+        )
+    };
+}
+
+macro_rules! gen_write_doc {
+    ($type:ty) => {
+        concat!(
+            "Writes `",
+            stringify!($type), 
+r#"` value.
+
+* `value` : Value.
+* _Return_ : If the sexpr is atom and the size equals `size_of::<"#,
+            stringify!($type), 
+r#">()` , returns `Some(())` . Otherwise, `None`"#
+        )
+    };
+}
+
+macro_rules! def_read_write {
+    (
+        $read_func_name: ident,
+        $write_func_name:ident,
+        $type:ty
+    ) => {
+        #[doc = gen_read_doc!($type)]
+        #[inline]
+        pub fn $read_func_name(&self) -> Option<$type> {
+            let atom = self.atom()?;
+
+            if atom.len() == size_of::<$type>() {
+                unsafe {
+                    Some(<$type>::from_le(*(atom.as_ptr() as *const $type)))
+                }
+            } else {
+                None
+            }
+        }
+
+        #[doc = gen_write_doc!($type)]
+        #[inline]
+        pub fn $write_func_name(&mut self, value: $type) -> Option<()> {
+            let atom = self.atom_mut()?;
+
+            if atom.len() == size_of::<$type>() {
+                unsafe {
+                    *(atom.as_mut_ptr() as *mut $type) = value.to_le();
+                }
+
+                Some(())
+            } else {
+                None
+            }
+        }
+    };
+}
+
 impl ChobitSexpr {
     /// Creates immutable ChobitSexpr.
     ///
@@ -634,6 +701,125 @@ impl ChobitSexpr {
             )
         }))
     }
+
+    def_read_write!(read_i8, write_i8, i8);
+    def_read_write!(read_u8, write_u8, u8);
+    def_read_write!(read_i16, write_i16, i16);
+    def_read_write!(read_u16, write_u16, u16);
+    def_read_write!(read_i32, write_i32, i32);
+    def_read_write!(read_u32, write_u32, u32);
+    def_read_write!(read_i64, write_i64, i64);
+    def_read_write!(read_u64, write_u64, u64);
+    def_read_write!(read_i128, write_i128, i128);
+    def_read_write!(read_u128, write_u128, u128);
+
+    #[doc = gen_read_doc!(f32)]
+    #[inline]
+    pub fn read_f32(&self) -> Option<f32> {
+        let atom = self.atom()?;
+
+        if atom.len() == size_of::<f32>() {
+            unsafe {
+                Some(f32::from_bits(
+                    u32::from_le(*(atom.as_ptr() as *const u32))
+                ))
+            }
+        } else {
+            None
+        }
+    }
+
+    #[doc = gen_write_doc!(f32)]
+    #[inline]
+    pub fn write_f32(&mut self, value: f32) -> Option<()> {
+        let atom = self.atom_mut()?;
+
+        if atom.len() == size_of::<f32>() {
+            unsafe {
+                *(atom.as_mut_ptr() as *mut u32) = value.to_bits().to_le();
+            }
+
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    #[doc = gen_read_doc!(f64)]
+    #[inline]
+    pub fn read_f64(&self) -> Option<f64> {
+        let atom = self.atom()?;
+
+        if atom.len() == size_of::<f64>() {
+            unsafe {
+                Some(f64::from_bits(
+                    u64::from_le(*(atom.as_ptr() as *const u64))
+                ))
+            }
+        } else {
+            None
+        }
+    }
+
+    #[doc = gen_write_doc!(f64)]
+    #[inline]
+    pub fn write_f64(&mut self, value: f64) -> Option<()> {
+        let atom = self.atom_mut()?;
+
+        if atom.len() == size_of::<f64>() {
+            unsafe {
+                *(atom.as_mut_ptr() as *mut u64) = value.to_bits().to_le();
+            }
+
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    /// Generates an iterator.
+    ///
+    /// If the sexpr is a list, iterates each car.
+    ///
+    /// * _Return_ : Iterator.
+    ///
+    /// ```
+    /// use chobit::chobit_sexpr::{ChobitSexpr, ChobitSexprBuf};
+    ///
+    /// let buf = ChobitSexprBuf::new().build_list().push_item(
+    ///     &ChobitSexprBuf::from(100i32)
+    /// ).push_item(
+    ///     &ChobitSexprBuf::from(200i32)
+    /// ).push_item(
+    ///     &ChobitSexprBuf::from(300i32)
+    /// ).finish();
+    ///
+    /// let result: Vec<i32> = buf.as_sexpr().iter().map(
+    ///     |elm| elm.read_i32().unwrap()
+    /// ).collect();
+    ///
+    /// assert_eq!(result.as_slice(), [100i32, 200i32, 300i32].as_slice());
+    /// ```
+    #[inline]
+    pub fn iter(&self) -> Iter {
+        Iter {body: self}
+    }
+}
+
+pub struct Iter<'a> {
+    body: &'a ChobitSexpr
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a ChobitSexpr;
+
+    #[inline]
+    fn next(&mut self) -> Option<&'a ChobitSexpr> {
+        let ret = self.body.car()?;
+        self.body = self.body.cdr()?;
+
+        Some(ret)
+    }
 }
 
 impl Deref for ChobitSexpr {
@@ -718,7 +904,7 @@ impl ToOwned for ChobitSexpr {
 }
 
 macro_rules! def_try_from {
-    ($type:ty) => {
+    ($type:ty, $read_func_name:ident) => {
         impl TryFrom<&ChobitSexpr> for $type {
             type Error = ();
 
@@ -726,30 +912,22 @@ macro_rules! def_try_from {
             fn try_from(
                 sexpr: &ChobitSexpr
             ) -> Result<$type, ()> {
-                let slice = sexpr.atom().ok_or_else(|| ())?;
-
-                if slice.len() == size_of::<$type>() {
-                    Ok(unsafe {
-                        <$type>::from_le(*(slice.as_ptr() as *const $type))
-                    })
-                } else {
-                    Err(())
-                }
+                Ok(sexpr.$read_func_name().ok_or_else(|| ())?)
             }
         }
     };
 }
 
-def_try_from!(i8);
-def_try_from!(u8);
-def_try_from!(i16);
-def_try_from!(u16);
-def_try_from!(i32);
-def_try_from!(u32);
-def_try_from!(i64);
-def_try_from!(u64);
-def_try_from!(i128);
-def_try_from!(u128);
+def_try_from!(i8, read_i8);
+def_try_from!(u8, read_u8);
+def_try_from!(i16, read_i16);
+def_try_from!(u16, read_u16);
+def_try_from!(i32, read_i32);
+def_try_from!(u32, read_u32);
+def_try_from!(i64, read_i64);
+def_try_from!(u64, read_u64);
+def_try_from!(i128, read_i128);
+def_try_from!(u128, read_u128);
 
 impl TryFrom<&ChobitSexpr> for f32 {
     type Error = ();
