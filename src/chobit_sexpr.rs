@@ -65,7 +65,7 @@ pub const HEADER_SIZE: usize = size_of::<u32>();
 /// Mask for flag.
 ///
 /// ```
-/// use chobit::chobit_sexpr::*;
+/// use chobitlibs::chobit_sexpr::*;
 ///
 /// let header = SexprHeader::new_atom(10);
 /// assert_eq!(header.to_u32() & FLAG_MASK, ATOM_FLAG);
@@ -78,7 +78,7 @@ pub const FLAG_MASK: u32 = 0b10000000_00000000_00000000_00000000;
 /// Mask for size.
 ///
 /// ```
-/// use chobit::chobit_sexpr::*;
+/// use chobitlibs::chobit_sexpr::*;
 ///
 /// let header = SexprHeader::new_atom(10);
 /// assert_eq!(header.to_u32() & SIZE_MASK, 10);
@@ -241,7 +241,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 ///
-/// use chobit::chobit_sexpr::{SexprHeader, ChobitSexpr};
+/// use chobitlibs::chobit_sexpr::{SexprHeader, ChobitSexpr};
 ///
 /// let payload: [u8; 5] = [1, 2, 3, 4, 5];
 ///
@@ -263,7 +263,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 ///
-/// use chobit::chobit_sexpr::{SexprHeader, ChobitSexpr};
+/// use chobitlibs::chobit_sexpr::{SexprHeader, ChobitSexpr};
 ///
 /// let car_payload: [u8; 5] = [1, 2, 3, 4, 5];
 ///
@@ -318,7 +318,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 ///
-/// use chobit::chobit_sexpr::{SexprHeader, ChobitSexpr};
+/// use chobitlibs::chobit_sexpr::{SexprHeader, ChobitSexpr};
 ///
 /// {
 ///     let value: i8 = 111;
@@ -784,7 +784,7 @@ impl ChobitSexpr {
     /// * _Return_ : Iterator.
     ///
     /// ```
-    /// use chobit::chobit_sexpr::{ChobitSexpr, ChobitSexprBuf};
+    /// use chobitlibs::chobit_sexpr::{ChobitSexpr, ChobitSexprBuf};
     ///
     /// let buf = ChobitSexprBuf::new().build_list().push_item(
     ///     &ChobitSexprBuf::from(100i32)

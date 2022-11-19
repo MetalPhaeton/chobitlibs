@@ -42,7 +42,7 @@ macro_rules! fnv_1a {
 /// * _Return_ : Hash value.
 ///
 /// ```
-/// use chobit::chobit_hash::fnv_1a_32;
+/// use chobitlibs::chobit_hash::fnv_1a_32;
 ///
 /// const TEXT: &str = "Hello Alice! My name is Bob!";
 ///
@@ -59,7 +59,7 @@ pub const fn fnv_1a_32(bytes: &[u8]) -> u32 {
 /// * _Return_ : Hash value.
 ///
 /// ```
-/// use chobit::chobit_hash::fnv_1a_64;
+/// use chobitlibs::chobit_hash::fnv_1a_64;
 ///
 /// const TEXT: &str = "Hello Alice! My name is Bob!";
 ///
@@ -76,7 +76,7 @@ pub const fn fnv_1a_64(bytes: &[u8]) -> u64 {
 /// * _Return_ : Hash value.
 ///
 /// ```
-/// use chobit::chobit_hash::fnv_1a_128;
+/// use chobitlibs::chobit_hash::fnv_1a_128;
 ///
 /// const TEXT: &str = "Hello Alice! My name is Bob!";
 ///

@@ -1,7 +1,7 @@
-Chobit
-======
+ChobitLibs
+==========
 
-Chobit is single file libraries.  
+ChobitLibs is single file libraries.  
 You can put each src file into your project.
 
 All libraries are WTFPL License.

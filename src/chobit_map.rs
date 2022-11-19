@@ -43,7 +43,7 @@ impl<T> ChobitMap<T> {
     /// * _Return_ : Instance.
     ///
     /// ```
-    /// use chobit::chobit_map::ChobitMap;
+    /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let map = ChobitMap::<i32>::new(200);
     /// assert_eq!(map.table_size(), 128);
@@ -140,7 +140,7 @@ impl<T> ChobitMap<T> {
     /// * _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
     ///
     /// ```
-    /// use chobit::chobit_map::ChobitMap;
+    /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
     ///
@@ -174,7 +174,7 @@ impl<T> ChobitMap<T> {
     /// * _Return_ : If `key` exists, returns the mutable value. Otherwise, returns `None`.
     ///
     /// ```
-    /// use chobit::chobit_map::ChobitMap;
+    /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
     ///
@@ -221,7 +221,7 @@ impl<T> ChobitMap<T> {
     /// * _Return_ : If the key is conflicted, returns `None`. Otherwise, returns `Some(())`.
     ///
     /// ```
-    /// use chobit::chobit_map::ChobitMap;
+    /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
     ///
@@ -265,7 +265,7 @@ impl<T> ChobitMap<T> {
     /// * _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
     ///
     /// ```
-    /// use chobit::chobit_map::ChobitMap;
+    /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
     ///
@@ -314,7 +314,7 @@ impl<T> ChobitMap<T> {
     /// * _Return_ : A iterator of `ChobitMap`.
     ///
     /// ```
-    /// use chobit::chobit_map::ChobitMap;
+    /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
     ///

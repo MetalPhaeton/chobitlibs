@@ -14,7 +14,7 @@
 
 #![allow(dead_code)]
 //!```
-//! use chobit::chobit_ai::{
+//! use chobitlibs::chobit_ai::{
 //!     Weights,
 //!     Activation,
 //!     Neuron,
@@ -22,7 +22,7 @@
 //!     ChobitAI
 //! };
 //!
-//! use chobit::chobit_rand::ChobitRand;
+//! use chobitlibs::chobit_rand::ChobitRand;
 //!
 //! //--------------------//
 //! // Data set generator //
@@ -234,8 +234,8 @@ fn sqrt(x: f64) -> f64 {
 /// Weights of a linear function.
 ///
 /// ```
-/// use chobit::chobit_ai::Weights;
-/// use chobit::chobit_rand::ChobitRand;
+/// use chobitlibs::chobit_ai::Weights;
+/// use chobitlibs::chobit_rand::ChobitRand;
 ///
 /// let mut rand = ChobitRand::new("Initialize weights!".as_bytes());
 ///

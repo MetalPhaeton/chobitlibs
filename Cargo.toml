@@ -1,5 +1,5 @@
 [package]
-name = "chobit"
+name = "chobitlibs"
 version = "0.1.0"
 edition = "2021"
 
