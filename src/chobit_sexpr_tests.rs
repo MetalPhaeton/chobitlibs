@@ -380,8 +380,8 @@ fn chobit_sexpr_iter_test() {
 
     let mut tmp = ChobitSexprBuf::from(0i32);
 
-    for sexpr in base.iter() {
-        let value: i32 = sexpr.try_into().unwrap();
+    for elm in base.as_sexpr() {
+        let value: i32 = elm.try_into().unwrap();
         tmp.write_i32(value + add_value).unwrap();
 
         buffer = buffer.push_item(&tmp);

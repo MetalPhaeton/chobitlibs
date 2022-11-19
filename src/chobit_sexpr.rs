@@ -822,6 +822,15 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
+impl<'a> IntoIterator for &'a ChobitSexpr {
+    type Item = Self;
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Iter<'a> {
+        self.iter()
+    }
+}
+
 impl Deref for ChobitSexpr {
     type Target = [u8];
 
