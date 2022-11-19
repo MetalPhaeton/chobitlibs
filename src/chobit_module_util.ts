@@ -19,12 +19,12 @@
  * @return Hash value.
  */
 export function fnv1a64(bytes: Uint8Array): bigint {
-    let ret: bigint = 0xcbf29ce484222325n;
-    const PRIME: bigint = 0x00000100000001b3n as const;
+    let ret: bigint = BigInt(0xcbf29ce484222325);
+    const PRIME: bigint = BigInt(0x00000100000001b3);
 
     bytes.forEach((x) => {
-        ret = (ret ^ BigInt(x)) & 0xffffffffffffffffn;
-        ret = (ret * PRIME) & 0xffffffffffffffffn;
+        ret = (ret ^ BigInt(x)) & BigInt(0xffffffffffffffff);
+        ret = (ret * PRIME) & BigInt(0xffffffffffffffff);
     });
 
     return ret;
@@ -259,7 +259,13 @@ export class ChobitWasm {
         wasmURL: URL,
         sendMsgHandler: (to: bigint, data: Uint8Array) => void
     ): Promise<ChobitWasm> {
-        const chobitWasm = new ChobitWasm(0n, null, null, [0, 0], [0, 0]);
+        const chobitWasm = new ChobitWasm(
+            BigInt(0),
+            null,
+            null,
+            [0, 0],
+            [0, 0]
+        );
 
         return WebAssembly.instantiateStreaming(
             fetch(wasmURL),
@@ -348,7 +354,7 @@ export class ChobitModule {
         this.#global = globalThis as unknown as Worker;
         this.#channel = new MessageChannel();
         this.#firstMessage = true;
-        this.#moduleID = 0n;
+        this.#moduleID = BigInt(0);
 
         this.#global.onmessage = this.#genOnMessage();
         this.#channel.port1.onmessage = (evt: MessageEvent) => {
@@ -501,7 +507,7 @@ export class ChobitBase {
      * @param onRecv Called when a worker sends message to ID 0.
      */
     constructor(onRecv: (from: bigint, data: Uint8Array) => void) {
-        this.#moduleID = 0n;
+        this.#moduleID = BigInt(0);
 
         this.#workers = [];
 
