@@ -19,12 +19,12 @@
  * @return Hash value.
  */
 export function fnv1a64(bytes: Uint8Array): bigint {
-    let ret: bigint = BigInt(0xcbf29ce484222325);
-    const PRIME: bigint = BigInt(0x00000100000001b3);
+    let ret: bigint = BigInt("0xcbf29ce484222325");
+    const PRIME: bigint = BigInt("0x00000100000001b3");
 
     bytes.forEach((x) => {
-        ret = (ret ^ BigInt(x)) & BigInt(0xffffffffffffffff);
-        ret = (ret * PRIME) & BigInt(0xffffffffffffffff);
+        ret = (ret ^ BigInt(x)) & BigInt("0xffffffffffffffff");
+        ret = (ret * PRIME) & BigInt("0xffffffffffffffff");
     });
 
     return ret;

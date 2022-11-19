@@ -131,19 +131,19 @@ function chobitSexprTest4() {
     }
 
     {
-        const value = 0x1111111111111111n;
+        const value = BigInt("0x1111111111111111");
         const atom = ChobitSexpr.genI64(value);
         console.assert(atom.readI64() == value);
-        atom.writeI64(value + 1n);
-        console.assert(atom.readI64() == (value + 1n));
+        atom.writeI64(value + BigInt(1));
+        console.assert(atom.readI64() == (value + BigInt(1)));
     }
 
     {
-        const value = 0x1111111111111111n;
+        const value = BigInt("0x1111111111111111");
         const atom = ChobitSexpr.genU64(value);
         console.assert(atom.readU64() == value);
-        atom.writeU64(value + 1n);
-        console.assert(atom.readU64() == (value + 1n));
+        atom.writeU64(value + BigInt(1));
+        console.assert(atom.readU64() == (value + BigInt(1)));
     }
 
     {

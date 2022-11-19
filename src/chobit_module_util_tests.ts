@@ -37,7 +37,7 @@ function test1() {
 
     console.log("----------------------------------------");
 
-    const init = msgBuffer1.encodeInitMsg(100n, data);
+    const init = msgBuffer1.encodeInitMsg(BigInt(100), data);
     if (init) {
         test1Core(msgBuffer2, init);
     } else {
@@ -46,7 +46,7 @@ function test1() {
 
     console.log("----------------------------------------");
 
-    const recv = msgBuffer1.encodeRecvMsg(100n, data);
+    const recv = msgBuffer1.encodeRecvMsg(BigInt(100), data);
     if (recv) {
         test1Core(msgBuffer2, recv);
     } else {
@@ -55,7 +55,7 @@ function test1() {
 
     console.log("----------------------------------------");
 
-    const send = msgBuffer1.encodeSendMsg(100n, data);
+    const send = msgBuffer1.encodeSendMsg(BigInt(100), data);
     if (send) {
         test1Core(msgBuffer2, send);
     } else {
@@ -65,7 +65,7 @@ function test1() {
 
 async function test2() {
     await ChobitWasm.instantiate(
-        100n,
+        BigInt(100),
         new URL("../tests/test_wasm.wasm", import.meta.url),
         (to, data) => {
             console.log("send to: " + to);
@@ -73,7 +73,7 @@ async function test2() {
         }
     ).then((chobitWasm) => {
         chobitWasm.postData(
-            777n,
+            BigInt(777),
             new TextEncoder().encode("Hello from test2!")
         );
     });
@@ -82,7 +82,7 @@ async function test2() {
 function test3() {
     const worker = new ChobitWorker(
         1024,
-        111n,
+        BigInt(111),
         new URL("./chobit_module_util_tests_2.ts", import.meta.url),
         new URL("../tests/test_wasm.wasm", import.meta.url),
         (to, data) => {
@@ -93,7 +93,10 @@ function test3() {
         }
     );
 
-    worker.postData(1000n, new TextEncoder().encode("Hello from test3!"));
+    worker.postData(
+        BigInt(1000),
+        new TextEncoder().encode("Hello from test3!")
+    );
 }
 
 function test4() {
@@ -101,31 +104,35 @@ function test4() {
         console.log("ChobitBase receive from " + from);
         console.log("data: " + new TextDecoder().decode(data));
 
-        base.terminate(10n);
+        base.terminate(BigInt(100));
         console.assert(base.numWorkers() == 2);
 
-        base.terminate(2n);
+        base.terminate(BigInt(2));
         console.assert(base.numWorkers() == 1);
 
-        base.terminate(1n);
+        base.terminate(BigInt(1));
         console.assert(base.numWorkers() == 0);
     });
 
     base.addWorker(
         1024,
-        2n,
+        BigInt(2),
         new URL("./chobit_module_util_tests_2.ts", import.meta.url),
         new URL("../tests/test_wasm.wasm", import.meta.url),
     );
 
     base.addWorker(
         1024,
-        1n,
+        BigInt(1),
         new URL("./chobit_module_util_tests_2.ts", import.meta.url),
         new URL("../tests/test_wasm.wasm", import.meta.url),
     );
 
-    base.postData(2n, 99n, new TextEncoder().encode("Let's Go!"));
+    base.postData(
+        BigInt(2),
+        BigInt(99),
+        new TextEncoder().encode("Let's Go!")
+    );
 }
 
 test1();
