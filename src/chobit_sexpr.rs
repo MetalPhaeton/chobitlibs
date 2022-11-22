@@ -297,11 +297,11 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 /// let cdr = ChobitSexpr::new(&cdr_body);
 ///
 /// let mut body = Vec::<u8>::new();
-/// let header = SexprHeader::new_cons(car.len());
+/// let header = SexprHeader::new_cons(car.as_bytes().len());
 ///
 /// body.extend_from_slice(&header.to_u32().to_le_bytes());
-/// body.extend_from_slice(car);
-/// body.extend_from_slice(cdr);
+/// body.extend_from_slice(car.as_bytes());
+/// body.extend_from_slice(cdr.as_bytes());
 ///
 /// let sexpr = ChobitSexpr::new(&body);
 ///
@@ -831,15 +831,6 @@ impl<'a> IntoIterator for &'a ChobitSexpr {
     }
 }
 
-impl Deref for ChobitSexpr {
-    type Target = [u8];
-
-    #[inline]
-    fn deref(&self) -> &[u8] {
-        &self.body
-    }
-}
-
 impl AsRef<ChobitSexpr> for ChobitSexpr {
     #[inline]
     fn as_ref(&self) -> &ChobitSexpr {
@@ -901,14 +892,14 @@ impl ToOwned for ChobitSexpr {
 
     fn to_owned(&self) -> ChobitSexprBuf<Completed> {
         ChobitSexprBuf::<Completed> {
-            buffer: self.to_vec(),
+            buffer: self.as_bytes().to_vec(),
 
             _marker: PhantomData::<Completed>
         }
     }
 
     fn clone_into(&self, target: &mut ChobitSexprBuf<Completed>) {
-        target.buffer = self.to_vec();
+        target.buffer = self.as_bytes().to_vec();
     }
 }
 

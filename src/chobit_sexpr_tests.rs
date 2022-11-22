@@ -51,7 +51,7 @@ fn chobit_sexpr_test_2() {
 
     assert!(header.is_atom());
     assert_eq!(header.size(), INDEX_1);
-    assert_eq!(sexpr.len(), INDEX_1 + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), INDEX_1 + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[..INDEX_1]);
 
     let sexpr = buf.as_sexpr().cdr().unwrap();
@@ -59,7 +59,7 @@ fn chobit_sexpr_test_2() {
 
     assert!(header.is_atom());
     assert_eq!(header.size(), INDEX_2 - INDEX_1);
-    assert_eq!(sexpr.len(), INDEX_2 - INDEX_1 + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), INDEX_2 - INDEX_1 + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[INDEX_1..INDEX_2]);
 }
 
@@ -86,7 +86,7 @@ fn chobit_sexpr_test_3() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), INDEX_1);
-    assert_eq!(sexpr.len(), INDEX_1 + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), INDEX_1 + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[..INDEX_1]);
 
     let sexpr = buf.as_sexpr().cdr().unwrap();
@@ -98,14 +98,14 @@ fn chobit_sexpr_test_3() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), (INDEX_2 - INDEX_1));
-    assert_eq!(sexpr.len(), (INDEX_2 - INDEX_1) + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), (INDEX_2 - INDEX_1) + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[INDEX_1..INDEX_2]);
 
     let sexpr = buf.as_sexpr().cdr().unwrap().cdr().unwrap();
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), 0);
-    assert_eq!(sexpr.len(), size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &[]);
 }
 
@@ -135,7 +135,7 @@ fn chobit_sexpr_test_4() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), INDEX_1);
-    assert_eq!(sexpr.len(), INDEX_1 + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), INDEX_1 + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[..INDEX_1]);
 
     let sexpr = buf.as_sexpr().cdr().unwrap();
@@ -147,14 +147,14 @@ fn chobit_sexpr_test_4() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), (INDEX_2 - INDEX_1));
-    assert_eq!(sexpr.len(), (INDEX_2 - INDEX_1) + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), (INDEX_2 - INDEX_1) + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[INDEX_1..INDEX_2]);
 
     let sexpr = buf.as_sexpr().cdr().unwrap().cdr().unwrap();
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), (INDEX_3 - INDEX_2));
-    assert_eq!(sexpr.len(), (INDEX_3 - INDEX_2) + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), (INDEX_3 - INDEX_2) + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[INDEX_2..INDEX_3]);
 }
 
@@ -192,7 +192,7 @@ fn chobit_sexpr_test_5() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), INDEX_1);
-    assert_eq!(sexpr.len(), INDEX_1 + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), INDEX_1 + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[..INDEX_1]);
 
     let sexpr = buf.cdr().unwrap();
@@ -204,7 +204,7 @@ fn chobit_sexpr_test_5() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), (INDEX_2 - INDEX_1));
-    assert_eq!(sexpr.len(), (INDEX_2 - INDEX_1) + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), (INDEX_2 - INDEX_1) + size_of::<u32>());
     assert_ne!(sexpr.atom().unwrap(), &data[INDEX_1..INDEX_2]);
     assert_eq!(sexpr.atom().unwrap(), &new_data);
 
@@ -212,7 +212,7 @@ fn chobit_sexpr_test_5() {
     let header = sexpr.header().unwrap();
     assert!(header.is_atom());
     assert_eq!(header.size(), (INDEX_3 - INDEX_2));
-    assert_eq!(sexpr.len(), (INDEX_3 - INDEX_2) + size_of::<u32>());
+    assert_eq!(sexpr.as_bytes().len(), (INDEX_3 - INDEX_2) + size_of::<u32>());
     assert_eq!(sexpr.atom().unwrap(), &data[INDEX_2..INDEX_3]);
 }
 
@@ -244,7 +244,7 @@ fn chobit_sexpr_error_test_1() {
     assert!(buf.car().is_none());
     assert!(buf.cdr().is_none());
 
-    let mut new_data = buf.to_vec();
+    let mut new_data = buf.as_bytes().to_vec();
     let len = new_data.len();
     new_data.truncate(len - 1);
 
@@ -270,7 +270,7 @@ fn chobit_sexpr_error_test_2() {
             ChobitSexprBuf::new().push_atom(&data[INDEX_1..INDEX_2]).as_sexpr()
         );
 
-    let mut new_data = buf.to_vec();
+    let mut new_data = buf.as_bytes().to_vec();
     new_data.truncate(data[..INDEX_1].len() + (size_of::<u32>() * 2) - 1);
 
     let sexpr = ChobitSexpr::new(&new_data);
