@@ -649,6 +649,7 @@ impl ChobitSexpr {
     /// Gets immutable car of cons.
     ///
     /// * _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
+    #[inline]
     pub fn car(&self) -> Option<&ChobitSexpr> {
         let size = self.cons_size()?;
 
@@ -663,6 +664,7 @@ impl ChobitSexpr {
     /// Gets mutable car of cons.
     ///
     /// * _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
+    #[inline]
     pub fn car_mut(&mut self) -> Option<&mut ChobitSexpr> {
         let size = self.cons_size()?;
 
@@ -677,6 +679,7 @@ impl ChobitSexpr {
     /// Gets immutable cdr of cons.
     ///
     /// * _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
+    #[inline]
     pub fn cdr(&self) -> Option<&ChobitSexpr> {
         let cdr_pos = self.cons_size()? + HEADER_SIZE;
 
@@ -691,6 +694,7 @@ impl ChobitSexpr {
     /// Gets mutable cdr of cons.
     ///
     /// * _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
+    #[inline]
     pub fn cdr_mut(&mut self) -> Option<&mut ChobitSexpr> {
         let cdr_pos = self.cons_size()? + HEADER_SIZE;
 
@@ -700,6 +704,29 @@ impl ChobitSexpr {
                 self.body.len() - cdr_pos
             )
         }))
+    }
+
+    /// Gets immutable car and cdr of cons.
+    ///
+    /// * _Return_ : If it is correct cons, returns its car and cdr. otherwise returns `None`.
+    #[inline]
+    pub fn car_cdr(&self) -> Option<(&ChobitSexpr, &ChobitSexpr)> {
+        let car_size = self.cons_size()? + HEADER_SIZE;
+
+        Some((
+            ChobitSexpr::new(unsafe{
+                from_raw_parts(
+                    self.body.as_ptr().add(HEADER_SIZE),
+                    car_size
+                )
+            }),
+            ChobitSexpr::new(unsafe{
+                from_raw_parts(
+                    self.body.as_ptr().add(car_size),
+                    self.body.len() - car_size
+                )
+            }),
+        ))
     }
 
     def_read_write!(read_i8, write_i8, i8);

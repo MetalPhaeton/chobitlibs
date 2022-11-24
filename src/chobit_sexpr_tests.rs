@@ -399,3 +399,32 @@ fn chobit_sexpr_iter_test() {
 
     assert_eq!(buffer.as_bytes(), check.as_bytes());
 }
+
+#[test]
+fn chobit_sexpr_test_7() {
+    let value_1: i32 = 100;
+    let value_2: i32 = 200;
+    let value_3: i32 = 300;
+
+    let sexpr = ChobitSexprBuf::new().build_list().push_item(
+        ChobitSexprBuf::from(value_1).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_2).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_3).as_sexpr()
+    ).finish();
+
+    let (car, cdr) = sexpr.car_cdr().unwrap();
+    let value: i32 = car.try_into().unwrap();
+    assert_eq!(value, value_1);
+
+    let (car, cdr) = cdr.car_cdr().unwrap();
+    let value: i32 = car.try_into().unwrap();
+    assert_eq!(value, value_2);
+
+    let (car, cdr) = cdr.car_cdr().unwrap();
+    let value: i32 = car.try_into().unwrap();
+    assert_eq!(value, value_3);
+
+    assert_eq!(cdr.atom().unwrap(), &[]);
+}
