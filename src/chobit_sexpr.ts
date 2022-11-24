@@ -735,23 +735,22 @@ export class Iter implements IterableIterator<ChobitSexpr> {
     }
 
     next(): IteratorResult<ChobitSexpr> {
-        const car = this.#sexpr.car();
-        if (car != null) {
-            const cdr = this.#sexpr.cdr();
-            if (cdr != null) {
-                this.#sexpr = cdr;
+        const carCdr = this.#sexpr.carCdr();
+        if (carCdr != null) {
+            const [car, cdr] = carCdr;
 
-                return {
-                    done: false,
-                    value: car
-                };
-            }
+            this.#sexpr = cdr;
+
+            return {
+                done: false,
+                value: car
+            };
+        } else {
+            return {
+                done: true,
+                value: null
+            };
         }
-
-        return {
-            done: true,
-            value: null
-        };
     }
 
     [Symbol.iterator](): IterableIterator<ChobitSexpr> {
