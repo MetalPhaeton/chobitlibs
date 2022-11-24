@@ -362,6 +362,13 @@ export class ChobitModule {
         };
     }
 
+    /**
+     * Gets this own ID.
+     *
+     * @return Module ID. It is 0.
+     */
+    get moduleID(): bigint {return this.#moduleID;}
+
     #genOnMessage(): (evt: MessageEvent) => void {
         return (evt) => {
             if (this.#firstMessage) {
