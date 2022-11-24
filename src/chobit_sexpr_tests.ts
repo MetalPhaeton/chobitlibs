@@ -1,4 +1,4 @@
-import {ChobitSexpr} from "./chobit_sexpr.ts";
+import {ChobitSexpr, Iter} from "./chobit_sexpr.ts";
 
 function chobitSexprTest1() {
     const data = new Uint8Array([1, 2, 3, 4, 5]);
@@ -173,6 +173,32 @@ function chobitSexprTest4() {
     }
 }
 
+function chobitSexprTest5() {
+    const data1 = new Uint8Array([1, 2, 3, 4, 5]);
+    const data2 = new Uint8Array([1, 2, 3, 4, 5, 6, 7]);
+    const data3 = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+    const item1 = ChobitSexpr.genAtom(data1);
+    const item2 = ChobitSexpr.genAtom(data2);
+    const item3 = ChobitSexpr.genAtom(data3);
+    const nil = ChobitSexpr.genAtom(new Uint8Array(0));
+
+    const sexpr = ChobitSexpr.genCons(
+        item1,
+        ChobitSexpr.genCons(
+            item2,
+            ChobitSexpr.genCons(
+                item3,
+                nil
+            )
+        )
+    );
+
+    for (const item of sexpr.iter()) {
+        console.log(item.atom());
+    }
+}
+
 console.log("chobitSexprTest1 ===========================================")
 chobitSexprTest1();
 
@@ -184,4 +210,7 @@ chobitSexprTest3();
 
 console.log("chobitSexprTest4 ===========================================")
 chobitSexprTest4();
+
+console.log("chobitSexprTest5 ===========================================")
+chobitSexprTest5();
 console.log("============================================================")

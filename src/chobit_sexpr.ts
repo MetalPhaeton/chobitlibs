@@ -686,4 +686,45 @@ export class ChobitSexpr {
         ret.#body.set(bytes, SEXPR_HEADER_LEN);
         return ret;
     }
+
+    /**
+     * Generates an iterator for this sexpr.
+     *
+     * @return iterator.
+     */
+    iter(): Iter {
+        return new Iter(this);
+    }
+}
+
+export class Iter implements IterableIterator<ChobitSexpr> {
+    #sexpr: ChobitSexpr;
+
+    constructor(sexpr: ChobitSexpr) {
+        this.#sexpr = sexpr;
+    }
+
+    next(): IteratorResult<ChobitSexpr> {
+        const car = this.#sexpr.car();
+        if (car) {
+            const cdr = this.#sexpr.cdr();
+            if (cdr) {
+                this.#sexpr = cdr;
+
+                return {
+                    done: false,
+                    value: car
+                };
+            }
+        }
+
+        return {
+            done: true,
+            value: null
+        };
+    }
+
+    [Symbol.iterator](): IterableIterator<ChobitSexpr> {
+        return this;
+    }
 }
