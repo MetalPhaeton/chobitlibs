@@ -154,7 +154,7 @@ export class MessageBuffer {
     decodeInitMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this.#decodeMsg(msg);
 
-        if (ret && (ret[0] == this.#initID)) {
+        if ((ret != null) && (ret[0] == this.#initID)) {
             return ret;
         } else {
             return null;
@@ -181,7 +181,7 @@ export class MessageBuffer {
     decodeRecvMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this.#decodeMsg(msg);
 
-        if (ret && (ret[0] == this.#recvID)) {
+        if ((ret != null) && (ret[0] == this.#recvID)) {
             return ret;
         } else {
             return null;
@@ -208,7 +208,7 @@ export class MessageBuffer {
     decodeSendMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
         const ret = this.#decodeMsg(msg);
 
-        if (ret && (ret[0] == this.#sendID)) {
+        if ((ret != null) && (ret[0] == this.#sendID)) {
             return ret;
         } else {
             return null;
@@ -298,7 +298,7 @@ export class ChobitWasm {
                 send: (to: bigint, length: number) => {
                     if (length > this.#outputBufferInfo[1]) {return;}
 
-                    if (this.#exports) {
+                    if (this.#exports != null) {
                         const data = new Uint8Array(
                             this.#exports.memory.buffer,
                             this.#outputBufferInfo[0],
@@ -321,7 +321,7 @@ export class ChobitWasm {
     postData(from: bigint, data: Uint8Array) {
         if (data.length > this.#inputBufferInfo[1]) {return;}
 
-        if (this.#exports) {
+        if (this.#exports != null) {
             const inputBuffer = new Uint8Array(
                 this.#exports.memory.buffer,
                 this.#inputBufferInfo[0],
@@ -376,7 +376,7 @@ export class ChobitModule {
                     evt.data as unknown as ArrayBuffer
                 );
 
-                if (msg) {
+                if (msg != null) {
                     this.#firstMessage = false;
                     this.#moduleID = msg[1];
 
@@ -394,7 +394,7 @@ export class ChobitModule {
                                 evt.data as unknown as ArrayBuffer
                             );
 
-                            if (msg) {
+                            if (msg != null) {
                                 wasm.postData(msg[1], msg[2]);
                             }
                         };
@@ -464,7 +464,7 @@ export class ChobitWorker{
                 evt.data as unknown as ArrayBuffer
             );
 
-            if (msg) {
+            if (msg != null) {
                 sendMsgHandler(msg[1], msg[2]);
             }
         };

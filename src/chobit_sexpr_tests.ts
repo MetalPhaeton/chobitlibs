@@ -199,6 +199,69 @@ function chobitSexprTest5() {
     }
 }
 
+function chobitSexprTest6() {
+    const data1 = new Uint8Array([1, 2, 3, 4, 5]);
+    const data2 = new Uint8Array([1, 2, 3, 4, 5, 6, 7]);
+    const data3 = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+    const item1 = ChobitSexpr.genAtom(data1);
+    const item2 = ChobitSexpr.genAtom(data2);
+    const item3 = ChobitSexpr.genAtom(data3);
+    const nil = ChobitSexpr.genAtom(new Uint8Array([]));
+
+    const sexpr = ChobitSexpr.genCons(
+        item1,
+        ChobitSexpr.genCons(
+            item2,
+            ChobitSexpr.genCons(
+                item3,
+                nil
+            )
+        )
+    );
+
+    const ret1 = sexpr.carCdr();
+    if (ret1) {
+        const [car1, cdr1] = ret1;
+        const atom1 = car1.atom();
+        if (atom1) {
+            console.assert(atom1.length == data1.length);
+            for (let i in atom1) {
+                console.assert(atom1[i] == data1[i]);
+            }
+        }
+
+        const ret2 = cdr1.carCdr();
+        if (ret2) {
+            const [car2, cdr2] = ret2;
+            const atom2 = car2.atom();
+            if (atom2) {
+                console.assert(atom2.length == data2.length);
+                for (let i in atom2) {
+                    console.assert(atom2[i] == data2[i]);
+                }
+            }
+
+            const ret3 = cdr2.carCdr();
+            if (ret3) {
+                const [car3, cdr3] = ret3;
+                const atom3 = car3.atom();
+                if (atom3) {
+                    console.assert(atom3.length == data3.length);
+                    for (let i in atom3) {
+                        console.assert(atom3[i] == data3[i]);
+                    }
+                }
+
+                const atom4 = cdr3.atom();
+                if (atom4) {
+                    console.assert(atom4.length == 0);
+                }
+            }
+        }
+    }
+}
+
 console.log("chobitSexprTest1 ===========================================")
 chobitSexprTest1();
 
@@ -213,4 +276,7 @@ chobitSexprTest4();
 
 console.log("chobitSexprTest5 ===========================================")
 chobitSexprTest5();
+
+console.log("chobitSexprTest6 ===========================================")
+chobitSexprTest6();
 console.log("============================================================")

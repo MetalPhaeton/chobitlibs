@@ -38,7 +38,7 @@ function test1() {
     console.log("----------------------------------------");
 
     const init = msgBuffer1.encodeInitMsg(BigInt(100), data);
-    if (init) {
+    if (init != null) {
         test1Core(msgBuffer2, init);
     } else {
         console.log("init is null");
@@ -47,7 +47,7 @@ function test1() {
     console.log("----------------------------------------");
 
     const recv = msgBuffer1.encodeRecvMsg(BigInt(100), data);
-    if (recv) {
+    if (recv != null) {
         test1Core(msgBuffer2, recv);
     } else {
         console.log("recv is null");
@@ -56,7 +56,7 @@ function test1() {
     console.log("----------------------------------------");
 
     const send = msgBuffer1.encodeSendMsg(BigInt(100), data);
-    if (send) {
+    if (send != null) {
         test1Core(msgBuffer2, send);
     } else {
         console.log("send is null");

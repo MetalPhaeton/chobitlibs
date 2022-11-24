@@ -114,7 +114,7 @@ export class ChobitSexpr {
      */
     isAtom(): boolean {
         const header = this.#header();
-        if (header) {
+        if (header != null) {
             return ChobitSexpr.#flag(header) == 0;
         }
 
@@ -128,7 +128,7 @@ export class ChobitSexpr {
      */
     isCons(): boolean {
         const header = this.#header();
-        if (header) {
+        if (header != null) {
             return ChobitSexpr.#flag(header) != 0;
         }
 
@@ -143,7 +143,7 @@ export class ChobitSexpr {
     atom(): Uint8Array | null {
         const header = this.#header();
 
-        if (header) {
+        if (header != null) {
             if (ChobitSexpr.#flag(header) != 0) {return null;}
 
             const size = ChobitSexpr.#size(header);
@@ -167,7 +167,7 @@ export class ChobitSexpr {
     car(): ChobitSexpr | null {
         const header = this.#header();
 
-        if (header) {
+        if (header != null) {
             if (ChobitSexpr.#flag(header) == 0) {return null;}
 
             const size = ChobitSexpr.#size(header);
@@ -191,7 +191,7 @@ export class ChobitSexpr {
     cdr(): ChobitSexpr | null {
         const header = this.#header();
 
-        if (header) {
+        if (header != null) {
             if (ChobitSexpr.#flag(header) == 0) {return null;}
 
             const size = ChobitSexpr.#size(header);
@@ -201,6 +201,36 @@ export class ChobitSexpr {
                 this.#body.buffer,
                 this.#body.byteOffset + SEXPR_HEADER_LEN + size,
             ));
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Gets car and cdr.
+     *
+     * @return If this sexpr is cons, returns [car, cdr]. Otherwise, returns null.
+     */
+    carCdr(): [ChobitSexpr, ChobitSexpr] | null {
+        const header = this.#header();
+
+        if (header != null) {
+            if (ChobitSexpr.#flag(header) == 0) {return null;}
+
+            const size = ChobitSexpr.#size(header);
+            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
+
+            return [
+                new ChobitSexpr(new Uint8Array(
+                    this.#body.buffer,
+                    this.#body.byteOffset + SEXPR_HEADER_LEN,
+                    size
+                )),
+                new ChobitSexpr(new Uint8Array(
+                    this.#body.buffer,
+                    this.#body.byteOffset + SEXPR_HEADER_LEN + size,
+                ))
+            ];
         } else {
             return null;
         }
@@ -222,7 +252,7 @@ export class ChobitSexpr {
      */
     readI8(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 1) {
                 return new DataView(atom.buffer).getInt8(atom.byteOffset);
             }
@@ -238,7 +268,7 @@ export class ChobitSexpr {
      */
     writeI8(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 1) {
                 return new DataView(atom.buffer)
                     .setInt8(atom.byteOffset, value);
@@ -253,7 +283,7 @@ export class ChobitSexpr {
      */
     readU8(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 1) {
                 return new DataView(atom.buffer).getUint8(atom.byteOffset);
             }
@@ -269,7 +299,7 @@ export class ChobitSexpr {
      */
     writeU8(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 1) {
                 return new DataView(atom.buffer)
                     .setUint8(atom.byteOffset, value);
@@ -284,7 +314,7 @@ export class ChobitSexpr {
      */
     readI16(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 2) {
                 return new DataView(atom.buffer)
                     .getInt16(atom.byteOffset, true);
@@ -301,7 +331,7 @@ export class ChobitSexpr {
      */
     writeI16(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 2) {
                 return new DataView(atom.buffer)
                     .setInt16(atom.byteOffset, value, true);
@@ -316,7 +346,7 @@ export class ChobitSexpr {
      */
     readU16(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 2) {
                 return new DataView(atom.buffer)
                     .getUint16(atom.byteOffset, true);
@@ -333,7 +363,7 @@ export class ChobitSexpr {
      */
     writeU16(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 2) {
                 return new DataView(atom.buffer)
                     .setUint16(atom.byteOffset, value, true);
@@ -348,7 +378,7 @@ export class ChobitSexpr {
      */
     readI32(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 4) {
                 return new DataView(atom.buffer)
                     .getInt32(atom.byteOffset, true);
@@ -365,7 +395,7 @@ export class ChobitSexpr {
      */
     writeI32(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 4) {
                 return new DataView(atom.buffer)
                     .setInt32(atom.byteOffset, value, true);
@@ -380,7 +410,7 @@ export class ChobitSexpr {
      */
     readU32(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 4) {
                 return new DataView(atom.buffer)
                     .getUint32(atom.byteOffset, true);
@@ -397,7 +427,7 @@ export class ChobitSexpr {
      */
     writeU32(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 4) {
                 return new DataView(atom.buffer)
                     .setUint32(atom.byteOffset, value, true);
@@ -412,7 +442,7 @@ export class ChobitSexpr {
      */
     readI64(): bigint | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 8) {
                 return new DataView(atom.buffer)
                     .getBigInt64(atom.byteOffset, true);
@@ -429,7 +459,7 @@ export class ChobitSexpr {
      */
     writeI64(value: bigint) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 8) {
                 return new DataView(atom.buffer)
                     .setBigInt64(atom.byteOffset, value, true);
@@ -444,7 +474,7 @@ export class ChobitSexpr {
      */
     readU64(): bigint | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 8) {
                 return new DataView(atom.buffer)
                     .getBigUint64(atom.byteOffset, true);
@@ -461,7 +491,7 @@ export class ChobitSexpr {
      */
     writeU64(value: bigint) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 8) {
                 return new DataView(atom.buffer)
                     .setBigUint64(atom.byteOffset, value, true);
@@ -476,7 +506,7 @@ export class ChobitSexpr {
      */
     readF32(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 4) {
                 return new DataView(atom.buffer)
                     .getFloat32(atom.byteOffset, true);
@@ -493,7 +523,7 @@ export class ChobitSexpr {
      */
     writeF32(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 4) {
                 return new DataView(atom.buffer)
                     .setFloat32(atom.byteOffset, value, true);
@@ -508,7 +538,7 @@ export class ChobitSexpr {
      */
     readF64(): number | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 8) {
                 return new DataView(atom.buffer)
                     .getFloat64(atom.byteOffset, true);
@@ -525,7 +555,7 @@ export class ChobitSexpr {
      */
     writeF64(value: number) {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             if (atom.length == 8) {
                 return new DataView(atom.buffer)
                     .setFloat64(atom.byteOffset, value, true);
@@ -540,7 +570,7 @@ export class ChobitSexpr {
      */
     readString(): string | null {
         const atom = this.atom();
-        if (atom) {
+        if (atom != null) {
             return new TextDecoder().decode(atom);
         }
 
@@ -706,9 +736,9 @@ export class Iter implements IterableIterator<ChobitSexpr> {
 
     next(): IteratorResult<ChobitSexpr> {
         const car = this.#sexpr.car();
-        if (car) {
+        if (car != null) {
             const cdr = this.#sexpr.cdr();
-            if (cdr) {
+            if (cdr != null) {
                 this.#sexpr = cdr;
 
                 return {
