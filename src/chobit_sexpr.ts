@@ -30,6 +30,13 @@ export class ChobitSexpr {
     }
 
     /**
+     * Gets body.
+     *
+     * @return Body.
+     */
+    get body(): Uint8Array {return this.#body;}
+
+    /**
      * Generates Atom header.
      *
      * @param size A size of payload.
