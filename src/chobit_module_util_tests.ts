@@ -135,6 +135,37 @@ function test4() {
     );
 }
 
+function test5() {
+    const base = new ChobitBase((from, data) => {
+        console.log("ChobitBase receive from " + from);
+        console.log("data: " + new TextDecoder().decode(data));
+    });
+
+    base.addWorker(
+        1024,
+        BigInt(2),
+        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+    );
+
+    base.addWorker(
+        1024,
+        BigInt(1),
+        new URL("./chobit_module_util_tests_2.ts", import.meta.url),
+        new URL("../tests/test_wasm.wasm", import.meta.url),
+    );
+
+    base.broadcastData(
+        BigInt(99),
+        new TextEncoder().encode("Let's broadcast!")
+    );
+
+    setTimeout(() => {
+        base.terminateAll();
+        console.assert(base.numWorkers() == 0);
+    }, 2000);
+}
+
 test1();
 
 test2();
@@ -142,3 +173,5 @@ test2();
 test3();
 
 test4();
+
+test5();

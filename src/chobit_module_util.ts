@@ -585,6 +585,18 @@ export class ChobitBase {
     }
 
     /**
+     * Broadcasts data to all workers.
+     *
+     * @param from Sender ID.
+     * @param data Data.
+     */
+    broadcastData(from: bigint, data: Uint8Array) {
+        for (const worker of this.#workers) {
+            worker.postData(from, data);
+        }
+    }
+
+    /**
      * Terminats a worker.
      *
      * @param moduleID Module ID of the worker.
@@ -598,6 +610,17 @@ export class ChobitBase {
                 return true;
             }
         });
+    }
+
+    /**
+     * Terminats all workers.
+     */
+    terminateAll() {
+        for (const worker of this.#workers) {
+            worker.terminate();
+        }
+
+        this.#workers = [];
     }
 
     /**
