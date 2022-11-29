@@ -428,3 +428,52 @@ fn chobit_sexpr_test_7() {
 
     assert_eq!(cdr.atom().unwrap(), &[]);
 }
+
+#[test]
+fn push_sexpr_test() {
+    let value_1: i32 = 100;
+    let value_2: i32 = 200;
+    let value_3: i32 = 300;
+
+    let sexpr_1 = ChobitSexprBuf::new().build_list().push_item(
+        ChobitSexprBuf::from(value_1).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_2).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_3).as_sexpr()
+    ).finish();
+
+    let sexpr_2 = ChobitSexprBuf::new().push_sexpr(&sexpr_1);
+
+    assert_eq!(sexpr_2.as_sexpr(), sexpr_1.as_sexpr());
+}
+
+#[test]
+fn push_number_test() {
+    macro_rules! push_number_test_core {
+        ($type:ty, $value:expr, $func_name:ident) => {{
+            let value_1: $type = $value as $type;
+
+            let sexpr = ChobitSexprBuf::new().$func_name(value_1);
+
+            let value_2 = <$type>::try_from(sexpr.as_sexpr()).unwrap();
+
+            assert_eq!(value_2, value_1);
+        }};
+    }
+
+    for value in 0..100usize {
+        push_number_test_core!(i8, value, push_i8);
+        push_number_test_core!(u8, value, push_u8);
+        push_number_test_core!(i16, value, push_i16);
+        push_number_test_core!(u16, value, push_u16);
+        push_number_test_core!(i32, value, push_i32);
+        push_number_test_core!(u32, value, push_u32);
+        push_number_test_core!(i64, value, push_i64);
+        push_number_test_core!(u64, value, push_u64);
+        push_number_test_core!(i128, value, push_i128);
+        push_number_test_core!(u128, value, push_u128);
+        push_number_test_core!(f32, value, push_f32);
+        push_number_test_core!(f64, value, push_f64);
+    }
+}

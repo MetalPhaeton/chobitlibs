@@ -1044,6 +1044,29 @@ impl<Mode> ChobitSexprBuf<Mode> where Mode: private::Sealed {
     }
 }
 
+macro_rules! push_number {
+    ($func_name:ident, $type:ty, $doc:expr) => {
+        #[doc = $doc]
+        #[inline]
+        pub fn $func_name(self, value: $type) -> ChobitSexprBuf<Completed> {
+            self.push_atom(&value.to_le_bytes())
+        }
+    };
+}
+
+macro_rules! push_number_doc {
+    ($type:ty) => {
+        concat!(
+r#"Drops and pushes `"#,
+stringify!($type),
+r#"` value and returns completed sexpr.
+
+* `value` : A value.
+* _Return_ : Completed sexpr"#
+        )
+    };
+}
+
 impl ChobitSexprBuf<Empty> {
     /// Creates ChobitSexprBuf. Not allocated on heap memory yet.
     ///
@@ -1111,7 +1134,24 @@ impl ChobitSexprBuf<Empty> {
         }
     }
 
-    /// Drops and push atom and completes.
+    /// Drops and pushes sexpr and completes.
+    ///
+    /// * `sexpr` : Sexpr.
+    /// * _Return_ : Comleted sexpr.
+    #[inline]
+    pub fn push_sexpr(self, sexpr: &ChobitSexpr) -> ChobitSexprBuf<Completed> {
+        let Self {mut buffer, ..} = self;
+
+        buffer.extend_from_slice(sexpr.as_bytes());
+
+        ChobitSexprBuf::<Completed> {
+            buffer: buffer,
+
+            _marker: PhantomData::<Completed>
+        }
+    }
+
+    /// Drops and pushes atom and completes.
     ///
     /// * `value` : Payload of atom.
     /// * _Return_ : Completed sexpr.
@@ -1145,6 +1185,29 @@ impl ChobitSexprBuf<Empty> {
             _marker: PhantomData::<Completed>
         }
     }
+
+    push_number!(push_i8, i8, push_number_doc!(i8));
+    push_number!(push_u8, u8, push_number_doc!(u8));
+    push_number!(push_i16, i16, push_number_doc!(i16));
+    push_number!(push_u16, u16, push_number_doc!(u16));
+    push_number!(push_i32, i32, push_number_doc!(i32));
+    push_number!(push_u32, u32, push_number_doc!(u32));
+    push_number!(push_i64, i64, push_number_doc!(i64));
+    push_number!(push_u64, u64, push_number_doc!(u64));
+    push_number!(push_i128, i128, push_number_doc!(i128));
+    push_number!(push_u128, u128, push_number_doc!(u128));
+
+    #[doc = push_number_doc!(f32)]
+    #[inline]
+    pub fn push_f32(self, value: f32) -> ChobitSexprBuf<Completed> {
+        self.push_u32(value.to_bits())
+    }
+
+    #[doc = push_number_doc!(f64)]
+    #[inline]
+    pub fn push_f64(self, value: f64) -> ChobitSexprBuf<Completed> {
+        self.push_u64(value.to_bits())
+    }
 }
 
 impl ChobitSexprBuf<Completed> {
@@ -1174,7 +1237,7 @@ impl ChobitSexprBuf<Completed> {
 }
 
 impl ChobitSexprBuf<Car> {
-    /// Drops and push car and returns instance to be able to push cdr.
+    /// Drops and pushes car and returns instance to be able to push cdr.
     ///
     /// * `sexpr` : sexpr contained on car.
     /// * _Return_ : ChobitSexprBuf that can push cdr.
@@ -1198,7 +1261,7 @@ impl ChobitSexprBuf<Car> {
 }
 
 impl ChobitSexprBuf<Cdr> {
-    /// Drops and push car and completes.
+    /// Drops and pushes car and completes.
     ///
     /// * `sexpr` : sexpr contained on car.
     /// * _Return_ : Completed sexpr.
@@ -1216,7 +1279,7 @@ impl ChobitSexprBuf<Cdr> {
 }
 
 impl ChobitSexprBuf<List> {
-    /// Drops and push list item and returns instance self.
+    /// Drops and pushes list item and returns instance self.
     ///
     /// * `sexpr` : list item.
     /// * _Return_ : Instance that can push list item.
@@ -1238,7 +1301,7 @@ impl ChobitSexprBuf<List> {
         }
     }
 
-    /// Drops and push nil to cdr and completes.
+    /// Drops and pushes nil to cdr and completes.
     ///
     /// * _Return_ : Complete sexpr.
     pub fn finish(self) -> ChobitSexprBuf<Completed> {
@@ -1253,7 +1316,7 @@ impl ChobitSexprBuf<List> {
         }
     }
 
-    /// Drops and push sexpr to cdr and completes.
+    /// Drops and pushes sexpr to cdr and completes.
     ///
     /// * `sexpr` : Last sexpr.
     /// * _Return_ : Complete sexpr.
