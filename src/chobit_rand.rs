@@ -38,6 +38,21 @@ impl ChobitRand {
         ret
     }
 
+    /// Creates `ChobitRand` with body
+    ///
+    /// * `body` : Body of ChobitRand.
+    /// * _Return_ : Instance.
+    #[inline]
+    pub fn with_body(body: [u64; 4]) -> Self {
+        Self {body: body}
+    }
+
+    /// Gets this body.
+    ///
+    /// * _Return_ : Body.
+    #[inline]
+    pub fn body(&self) -> &[u64] {&self.body}
+
     fn to_64_array(seed: &[u8]) -> [u64; 4] {
         let array = Self::to_u8_array(seed);
 
