@@ -1,7 +1,9 @@
+extern crate chobitlibs;
+
 use std::prelude::rust_2021::*;
 
-use super::chobit_ai::*;
-use super::chobit_rand::*;
+use chobitlibs::chobit_ai::*;
+use chobitlibs::chobit_rand::*;
 
 #[test]
 fn weights_test() {

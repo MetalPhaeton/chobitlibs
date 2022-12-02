@@ -1,4 +1,6 @@
-use crate::chobit_hash::*;
+extern crate chobitlibs;
+
+use chobitlibs::chobit_hash::*;
 
 #[test]
 fn hash_test() {

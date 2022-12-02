@@ -17,3 +17,5 @@ All libraries can be used in `no_std`.
 * `chobit_ai.rs` : Neural network library.
 * `chobit_sexpr.rs` : Structured byte string.
 * `chobit_module.rs` : WASM module library.
+* `chobit_module_util.ts` : Utility for `chobit_module.rs` written in Typescript.
+* `chobit_sexpr.ts` : Structured byte string written in Typescript.

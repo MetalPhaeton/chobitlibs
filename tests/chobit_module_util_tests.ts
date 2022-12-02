@@ -3,7 +3,7 @@ import {
     ChobitWasm,
     ChobitWorker,
     ChobitBase
-} from "./chobit_module_util.ts";
+} from "../src/chobit_module_util.ts";
 
 function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
     console.log("decode***() ----------------------------");
@@ -66,7 +66,7 @@ function test1() {
 async function test2() {
     await ChobitWasm.instantiate(
         BigInt(100),
-        new URL("../tests/test_wasm.wasm", import.meta.url),
+        new URL("./test_wasm.wasm", import.meta.url),
         (to, data) => {
             console.log("send to: " + to);
             console.log("send data: " + new TextDecoder().decode(data));

@@ -1,6 +1,8 @@
+extern crate chobitlibs;
+
 use std::prelude::rust_2021::*;
 
-use crate::chobit_sexpr::*;
+use chobitlibs::chobit_sexpr::*;
 use core::mem::size_of;
 
 fn gen_test_data() -> Vec<u8> {

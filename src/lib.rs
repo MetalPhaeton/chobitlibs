@@ -17,25 +17,15 @@
 #![doc = include_str!("../README.md")]
 
 extern crate alloc;
-#[cfg(test)] extern crate std;
 
 pub mod chobit_map;
-#[cfg(test)] mod chobit_map_tests;
 
 pub mod chobit_hash;
-#[cfg(test)] mod chobit_hash_tests;
 
 pub mod chobit_rand;
-#[cfg(test)] mod chobit_rand_tests;
 
 pub mod chobit_ai;
-#[cfg(test)] mod chobit_ai_tests;
 
 pub mod chobit_sexpr;
-#[cfg(test)] mod chobit_sexpr_tests;
 
 pub mod chobit_module;
-#[cfg(test)] mod chobit_module_tests;
-
-#[cfg(test)]
-mod tests;

@@ -1,4 +1,5 @@
-use crate::chobit_map::*;
+extern crate chobitlibs;
+use chobitlibs::chobit_map::*;
 
 #[test]
 fn chobit_map_test() {

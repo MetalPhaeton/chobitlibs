@@ -1,5 +1,7 @@
-use crate::chobit_module::chobit_module;
-use crate::chobit_module::ChobitModule;
+extern crate chobitlibs;
+
+use chobitlibs::chobit_module::chobit_module;
+use chobitlibs::chobit_module::ChobitModule;
 
 struct TestObject {
     pub value: i32
