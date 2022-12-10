@@ -14,22 +14,17 @@
 
 #![allow(dead_code)]
 //!```
-//! use chobitlibs::chobit_ai::{
-//!     Weights,
-//!     Activation,
-//!     Neuron,
-//!     Layer,
-//!     ChobitAI
-//! };
-//!
-//! use chobitlibs::chobit_rand::ChobitRand;
-//!
+//! extern crate chobitlibs;
+//! 
+//! use chobitlibs::chobit_ai::*;
+//! use chobitlibs::chobit_rand::*;
+//! 
 //! //--------------------//
 //! // Data set generator //
 //! //--------------------//
 //! // Output data generator for data set.
 //! // This is like multiply of 2 complex numbers.
-//! fn gen_output(input: &[f64; 4]) -> [f64; 2] {
+//! fn gen_output(input: &[f32; 4]) -> [f32; 2] {
 //!     [
 //!         (input[0] * input[2]) - (input[1] * input[3]),
 //!         (input[0] * input[3]) + (input[1] * input[2])
@@ -37,21 +32,21 @@
 //! }
 //! 
 //! // Input data generator for data set.
-//! fn gen_input(rand: &mut ChobitRand) -> [f64; 4] {
+//! fn gen_input(rand: &mut ChobitRand) -> [f32; 4] {
 //!     // converter from [0.0, 1.0] to [-1.0, 1.0].
-//!     fn convert(x: f64) -> f64 {(x * 2.0) - 1.0}
+//!     fn convert(x: f32) -> f32 {(x * 2.0) - 1.0}
 //! 
 //!     [
-//!         convert(rand.next_f64()),
-//!         convert(rand.next_f64()),
-//!         convert(rand.next_f64()),
-//!         convert(rand.next_f64())
+//!         convert(rand.next_f64() as f32),
+//!         convert(rand.next_f64() as f32),
+//!         convert(rand.next_f64() as f32),
+//!         convert(rand.next_f64() as f32)
 //!     ]
 //! }
 //! 
 //! // Data set generator.
-//! fn gen_data_set(length: usize) -> Vec<([f64; 4], [f64; 2])> {
-//!     let mut ret = Vec::<([f64; 4], [f64; 2])>::with_capacity(length);
+//! fn gen_data_set(length: usize) -> Vec<([f32; 4], [f32; 2])> {
+//!     let mut ret = Vec::<([f32; 4], [f32; 2])>::with_capacity(length);
 //!     let mut rand = ChobitRand::new("This is a pen!".as_bytes());
 //! 
 //!     for _ in 0..length {
@@ -64,145 +59,148 @@
 //!     ret
 //! }
 //! 
-//! //----------------//
-//! // Ready data set //
-//! //----------------//
-//! // Generates data set.
-//! let length: usize = 128;
-//! let data_set = gen_data_set(length);
+//! #[test]
+//! fn chobit_ai_test_1() {
+//!     //----------------//
+//!     // Ready data set //
+//!     //----------------//
+//!     // Generates data set.
+//!     let length: usize = 128;
+//!     let data_set = gen_data_set(length);
 //! 
-//! // Separates data_set into train_data and test_data.
-//! let length = length / 2;
-//! let train_data = data_set[..length].to_vec();
-//! let test_data = data_set[length..].to_vec();
+//!     // Separates data_set into train_data and test_data.
+//!     let length = length / 2;
+//!     let train_data = data_set[..length].to_vec();
+//!     let test_data = data_set[length..].to_vec();
 //! 
-//! // Separates train_data into 4 batches.
-//! let length = length / 4;
-//! let mut batches = [
-//!     train_data[..length].to_vec(),
-//!     train_data[length..(length * 2)].to_vec(),
-//!     train_data[(length * 2)..(length * 3)].to_vec(),
-//!     train_data[(length * 3)..].to_vec()
-//! ];
+//!     // Separates train_data into 4 batches.
+//!     let length = length / 4;
+//!     let mut batches = [
+//!         train_data[..length].to_vec(),
+//!         train_data[length..(length * 2)].to_vec(),
+//!         train_data[(length * 2)..(length * 3)].to_vec(),
+//!         train_data[(length * 3)..].to_vec()
+//!     ];
 //! 
-//! // Generates random number generator with seed bytes.
-//! let mut rand = ChobitRand::new("Hello! I love to play game!".as_bytes());
+//!     // Generates random number generator with seed bytes.
+//!     let mut rand = ChobitRand::new("Hello! I love to play game!".as_bytes());
 //! 
-//! // this is converter from [0.0, 1.0] into [-1.0, 1.0].
-//! fn convert(x: f64) -> f64 {(x * 2.0) - 1.0}
+//!     // this is converter from [0.0, 1.0] into [-1.0, 1.0].
+//!     fn convert(x: f32) -> f32 {(x * 2.0) - 1.0}
 //! 
-//! //----------//
-//! // Ready AI //
-//! //----------//
-//! // Decides numbers of input nodes, middle layer nodes, output nodes.
-//! const IN: usize = 4;
-//! const MIDDLE: usize = 32;
-//! const OUT: usize = 2;
+//!     //----------//
+//!     // Ready AI //
+//!     //----------//
+//!     // Decides numbers of input nodes, middle layer nodes, output nodes.
+//!     const IN: usize = 4;
+//!     const MIDDLE: usize = 32;
+//!     const OUT: usize = 2;
 //! 
-//! // Gererates weights of output nodes with random numbers.
-//! let out_weights = [0u8; OUT].map(|_| {
-//!     Weights::<MIDDLE>::new(
-//!         [0u8; MIDDLE].map(|_| {
-//!             convert(rand.next_f64())
-//!         }),
-//!         convert(rand.next_f64())  // bias
-//!     )
-//! });
+//!     // Gererates weights of output nodes with random numbers.
+//!     let out_weights = [0u8; OUT].map(|_| {
+//!         Weights::<MIDDLE>::new(
+//!             [0u8; MIDDLE].map(|_| {
+//!                 convert(rand.next_f64() as f32)
+//!             }),
+//!             convert(rand.next_f64() as f32)  // bias
+//!         )
+//!     });
 //! 
-//! // Gererates weights of middle nodes with random numbers.
-//! let middle_weights = [0u8; MIDDLE].map(|_| {
-//!     Weights::<IN>::new(
-//!         [0u8; IN].map(|_| {
-//!             convert(rand.next_f64())
-//!         }),
-//!         convert(rand.next_f64())  // bias
-//!     )
-//! });
+//!     // Gererates weights of middle nodes with random numbers.
+//!     let middle_weights = [0u8; MIDDLE].map(|_| {
+//!         Weights::<IN>::new(
+//!             [0u8; IN].map(|_| {
+//!                 convert(rand.next_f64() as f32)
+//!             }),
+//!             convert(rand.next_f64() as f32)  // bias
+//!         )
+//!     });
 //! 
-//! // Generates output neurons with activate function.
-//! let out_neurons = out_weights.map(|weights| {
-//!     Neuron::<MIDDLE>::new(weights, Activation::Linear)
-//! });
+//!     // Generates output neurons with activate function.
+//!     let out_neurons = out_weights.map(|weights| {
+//!         Neuron::<MIDDLE>::new(weights, Activation::Linear)
+//!     });
 //! 
-//! // Generates middle neurons with activate function.
-//! let middle_neurons = middle_weights.map(|weights| {
-//!     Neuron::<IN>::new(weights, Activation::ReLU)
-//! });
+//!     // Generates middle neurons with activate function.
+//!     let middle_neurons = middle_weights.map(|weights| {
+//!         Neuron::<IN>::new(weights, Activation::ReLU)
+//!     });
 //! 
-//! // Generates output layer.
-//! let output_layer = Layer::<OUT, MIDDLE>::new(out_neurons);
+//!     // Generates output layer.
+//!     let output_layer = Layer::<OUT, MIDDLE>::new(out_neurons);
 //! 
-//! // Generates middle layer.
-//! let middle_layer = Layer::<MIDDLE, IN>::new(middle_neurons);
+//!     // Generates middle layer.
+//!     let middle_layer = Layer::<MIDDLE, IN>::new(middle_neurons);
 //! 
-//! // Generates AI.
-//! let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(output_layer, middle_layer);
+//!     // Generates AI.
+//!     let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(output_layer, middle_layer);
 //! 
-//! //-----------------------//
-//! // Test without learning //
-//! //-----------------------//
-//! // Calculates test inputs.
-//! let mut ai_output = Vec::<[f64; OUT]>::new();
+//!     //-----------------------//
+//!     // Test without learning //
+//!     //-----------------------//
+//!     // Calculates test inputs.
+//!     let mut ai_output = Vec::<[f32; OUT]>::new();
 //! 
-//! test_data.iter().for_each(
-//!     |(input, _)| ai_output.push(ai.calc(input))
-//! );
+//!     test_data.iter().for_each(
+//!         |(input, _)| ai_output.push(ai.calc(input))
+//!     );
 //! 
-//! // Calculates loss.
-//! let mut before_loss: f64 = 0.0;
-//! for i in 0..test_data.len() {
-//!     for j in 0..OUT {
-//!         before_loss += (ai_output[i][j] - test_data[i].1[j]).abs();
-//!     }
-//! }
-//! std::println!("Before learning: {}", before_loss);
-//! 
-//! //----------//
-//! // Learning //
-//! //----------//
-//! // Decides epoch and learning rate.
-//! const EPOCH: usize = 100;
-//! const RATE: f64 = 0.001;
-//! 
-//! // Learns.
-//! for _ in 0..EPOCH {
-//!     // Gets one batch.
-//!     for batch in &mut batches {
-//!         // Shuffle the batch.
-//!         rand.shuffle(batch);
-//! 
-//!         // Learns each data.
-//!         for data in batch {
-//!             // Studies gradients. (not update weights yet.)
-//!             ai.study(&data.1, &data.0);
+//!     // Calculates loss.
+//!     let mut before_loss: f32 = 0.0;
+//!     for i in 0..test_data.len() {
+//!         for j in 0..OUT {
+//!             before_loss += (ai_output[i][j] - test_data[i].1[j]).abs();
 //!         }
-//! 
-//!         // Updates weights with gradients.
-//!         ai.update(RATE);
 //!     }
-//! }
+//!     std::println!("Before learning: {}", before_loss);
 //! 
-//! //---------------------//
-//! // Test after learning //
-//! //---------------------//
-//! // Calculates test inputs.
-//! let mut ai_output = Vec::<[f64; OUT]>::new();
+//!     //----------//
+//!     // Learning //
+//!     //----------//
+//!     // Decides epoch and learning rate.
+//!     const EPOCH: usize = 100;
+//!     const RATE: f32 = 0.001;
 //! 
-//! test_data.iter().for_each(
-//!     |(input, _)| ai_output.push(ai.calc(input))
-//! );
+//!     // Learns.
+//!     for _ in 0..EPOCH {
+//!         // Gets one batch.
+//!         for batch in &mut batches {
+//!             // Shuffle the batch.
+//!             rand.shuffle(batch);
 //! 
-//! // Calculates loss.
-//! let mut after_loss: f64 = 0.0;
-//! for i in 0..test_data.len() {
-//!     for j in 0..OUT {
-//!         after_loss += (ai_output[i][j] - test_data[i].1[j]).abs();
+//!             // Learns each data.
+//!             for data in batch {
+//!                 // Studies gradients. (not update weights yet.)
+//!                 ai.study(&data.1, &data.0);
+//!             }
+//! 
+//!             // Updates weights with gradients.
+//!             ai.update(RATE);
+//!         }
 //!     }
-//! }
-//! std::println!("After learning: {}", after_loss);
 //! 
-//! // Wishes to pass the following assertion...
-//! assert!(after_loss < before_loss);
+//!     //---------------------//
+//!     // Test after learning //
+//!     //---------------------//
+//!     // Calculates test inputs.
+//!     let mut ai_output = Vec::<[f32; OUT]>::new();
+//! 
+//!     test_data.iter().for_each(
+//!         |(input, _)| ai_output.push(ai.calc(input))
+//!     );
+//! 
+//!     // Calculates loss.
+//!     let mut after_loss: f32 = 0.0;
+//!     for i in 0..test_data.len() {
+//!         for j in 0..OUT {
+//!             after_loss += (ai_output[i][j] - test_data[i].1[j]).abs();
+//!         }
+//!     }
+//!     std::println!("After learning: {}", after_loss);
+//! 
+//!     // Wishes to pass the following assertion...
+//!     assert!(after_loss < before_loss);
+//! }
 //!```
 
 use core::{
@@ -222,11 +220,11 @@ use core::{
 };
 
 #[inline]
-fn sqrt(x: f64) -> f64 {
-    const MAGIC_64: u64 = 0x5fe6eb50c7b537aa;
+fn sqrt(x: f32) -> f32 {
+    const MAGIC_32: u32 = 0x5f3759df;
 
     let a = x * 0.5;
-    let y = f64::from_bits(MAGIC_64 - (x.to_bits() >> 1));
+    let y = f32::from_bits(MAGIC_32 - (x.to_bits() >> 1));
 
     y * (1.5 - (a * y * y))
 }
@@ -242,13 +240,13 @@ fn sqrt(x: f64) -> f64 {
 /// const N: usize = 10;
 ///
 /// let weights_1 = Weights::<N>::new(
-///     [0u8; N].map(|_| rand.next_f64() * 10.0),
-///     rand.next_f64() * 10.0
+///     [0u8; N].map(|_| (rand.next_f64() * 10.0) as f32),
+///     (rand.next_f64() * 10.0) as f32
 /// );
 ///
 /// let weights_2 = Weights::<N>::new(
-///     [0u8; N].map(|_| rand.next_f64() * 10.0),
-///     rand.next_f64() * 10.0
+///     [0u8; N].map(|_| (rand.next_f64() * 10.0) as f32),
+///     (rand.next_f64() * 10.0) as f32
 /// );
 ///
 /// let weights_3 = Weights::<N>::default();  // All elements is 0.0.
@@ -266,37 +264,37 @@ fn sqrt(x: f64) -> f64 {
 /// weights_3 %= 2.0;
 ///
 /// // Inner product.
-/// let val: f64 = weights_1 * weights_2;
+/// let val: f32 = weights_1 * weights_2;
 ///
 /// // Linear function.
-/// let vector: [f64; N] = [0u8; N].map(|_| rand.next_f64());
-/// let val: f64 = weights_1 * vector;
+/// let vector: [f32; N] = [0u8; N].map(|_| rand.next_f64() as f32);
+/// let val: f32 = weights_1 * vector;
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Weights<const N: usize> {
-    w: [f64; N],
-    b: f64
+    w: [f32; N],
+    b: f32
 }
 
 impl<const N: usize> Weights<N> {
     #[inline]
-    pub fn new(w: [f64; N], b: f64) -> Self {
+    pub fn new(w: [f32; N], b: f32) -> Self {
         Self {w: w, b: b}
     }
 
     #[inline]
-    pub fn w(&self) -> &[f64; N] {&self.w}
+    pub fn w(&self) -> &[f32; N] {&self.w}
 
     #[inline]
-    pub fn b(&self) -> f64 {self.b}
+    pub fn b(&self) -> f32 {self.b}
 }
 
 impl<const N: usize> Default for Weights<N> {
     #[inline]
     fn default() -> Self {
         Self {
-            w: [f64::default(); N],
-            b: f64::default()
+            w: [f32::default(); N],
+            b: f32::default()
         }
     }
 }
@@ -361,11 +359,11 @@ impl<const N: usize> SubAssign<Self> for Weights<N> {
     }
 }
 
-impl<const N: usize> Mul<f64> for Weights<N> {
+impl<const N: usize> Mul<f32> for Weights<N> {
     type Output = Self;
 
     #[inline]
-    fn mul(self, other: f64) -> Self {
+    fn mul(self, other: f32) -> Self {
         let mut ret = self.clone();
 
         op_body_2!(ret, other, *=);
@@ -374,18 +372,18 @@ impl<const N: usize> Mul<f64> for Weights<N> {
     }
 }
 
-impl<const N: usize> MulAssign<f64> for Weights<N> {
+impl<const N: usize> MulAssign<f32> for Weights<N> {
     #[inline]
-    fn mul_assign(&mut self, other: f64) {
+    fn mul_assign(&mut self, other: f32) {
         op_body_2!(self, other, *=)
     }
 }
 
-impl<const N: usize> Div<f64> for Weights<N> {
+impl<const N: usize> Div<f32> for Weights<N> {
     type Output = Self;
 
     #[inline]
-    fn div(self, other: f64) -> Self {
+    fn div(self, other: f32) -> Self {
         let mut ret = self.clone();
 
         op_body_2!(ret, other, /=);
@@ -394,18 +392,18 @@ impl<const N: usize> Div<f64> for Weights<N> {
     }
 }
 
-impl<const N: usize> DivAssign<f64> for Weights<N> {
+impl<const N: usize> DivAssign<f32> for Weights<N> {
     #[inline]
-    fn div_assign(&mut self, other: f64) {
+    fn div_assign(&mut self, other: f32) {
         op_body_2!(self, other, /=)
     }
 }
 
-impl<const N: usize> Rem<f64> for Weights<N> {
+impl<const N: usize> Rem<f32> for Weights<N> {
     type Output = Self;
 
     #[inline]
-    fn rem(self, other: f64) -> Self {
+    fn rem(self, other: f32) -> Self {
         let mut ret = self.clone();
 
         op_body_2!(ret, other, %=);
@@ -414,18 +412,18 @@ impl<const N: usize> Rem<f64> for Weights<N> {
     }
 }
 
-impl<const N: usize> RemAssign<f64> for Weights<N> {
+impl<const N: usize> RemAssign<f32> for Weights<N> {
     #[inline]
-    fn rem_assign(&mut self, other: f64) {
+    fn rem_assign(&mut self, other: f32) {
         op_body_2!(self, other, %=)
     }
 }
 
 impl<const N: usize> Mul<Self> for Weights<N> {
-    type Output = f64;
+    type Output = f32;
 
     #[inline]
-    fn mul(self, other: Self) -> f64 {
+    fn mul(self, other: Self) -> f32 {
         let mut ret = self.b * other.b;
 
         for i in 0..N {
@@ -436,11 +434,11 @@ impl<const N: usize> Mul<Self> for Weights<N> {
     }
 }
 
-impl<const N: usize> Mul<[f64; N]> for Weights<N> {
-    type Output = f64;
+impl<const N: usize> Mul<[f32; N]> for Weights<N> {
+    type Output = f32;
 
     #[inline]
-    fn mul(self, other: [f64; N]) -> f64 {
+    fn mul(self, other: [f32; N]) -> f32 {
         let mut ret = self.b;
 
         for i in 0..N {
@@ -472,7 +470,7 @@ impl Activation {
     /// * `x` : Input number.
     /// * _Return_ : Output number.
     #[inline]
-    pub fn activate(&self, x: f64) -> f64 {
+    pub fn activate(&self, x: f32) -> f32 {
         match self {
             Self::Linear => x,
             Self::ReLU => x.max(0.0),
@@ -485,7 +483,7 @@ impl Activation {
     /// * `x` : Input number.
     /// * _Return_ : Differential coefficient.
     #[inline]
-    pub fn d_activate(&self, x: f64) -> f64 {
+    pub fn d_activate(&self, x: f32) -> f32 {
         match self {
             Self::Linear => 1.0,
 
@@ -496,17 +494,17 @@ impl Activation {
     }
 
     #[inline]
-    fn softsign_deno(x: f64) -> f64 {
+    fn softsign_deno(x: f32) -> f32 {
         1.0 + x.max(-x)
     }
 
     #[inline]
-    fn softsign(x: f64) -> f64 {
+    fn softsign(x: f32) -> f32 {
         x / Self::softsign_deno(x)
     }
 
     #[inline]
-    fn d_softsign(x: f64) -> f64 {
+    fn d_softsign(x: f32) -> f32 {
         let deno = Self::softsign_deno(x);
         (deno * deno).recip()
     }
@@ -519,9 +517,9 @@ pub struct Neuron<const N: usize> {
     activation: Activation,
 
     total_grad: Weights<N>,
-    study_count: f64,
+    study_count: f32,
     mome_1: Weights<N>,
-    mome_2: f64
+    mome_2: f32
 }
 
 impl<const N: usize> Neuron<N> {
@@ -556,9 +554,9 @@ impl<const N: usize> Neuron<N> {
         weights: Weights<N>,
         activation: Activation,
         total_grad: Weights<N>,
-        study_count: f64,
+        study_count: f32,
         mome_1: Weights<N>,
-        mome_2: f64
+        mome_2: f32
     ) -> Self {
         Self {
             weights: weights,
@@ -593,7 +591,7 @@ impl<const N: usize> Neuron<N> {
     ///
     /// * _Return_ : A count.
     #[inline]
-    pub fn study_count(&self) -> f64 {self.study_count}
+    pub fn study_count(&self) -> f32 {self.study_count}
 
     /// Gets 1st momentum for Adam.
     ///
@@ -606,14 +604,14 @@ impl<const N: usize> Neuron<N> {
     ///
     /// * _Return_ : 2nd momentum.
     #[inline]
-    pub fn mome_2(&self) -> f64 {self.mome_2}
+    pub fn mome_2(&self) -> f32 {self.mome_2}
 
     /// Calculates input by linear function and activation function.
     ///
     /// * `input` : Input vector.
     /// * _Return_ : Output number.
     #[inline]
-    pub fn calc(&self, input: &[f64; N]) -> f64 {
+    pub fn calc(&self, input: &[f32; N]) -> f32 {
         self.activation.activate(self.weights * *input)
     }
 
@@ -640,7 +638,7 @@ impl<const N: usize> Neuron<N> {
     /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
     /// Next_Neuron ---/     \--> Sibling_Neuron ---/     \--> Previous_Neuron
     /// ```
-    pub fn study(&mut self, feedback: f64, input: &[f64; N]) -> [f64; N] {
+    pub fn study(&mut self, feedback: f32, input: &[f32; N]) -> [f32; N] {
         let (grad_w, grad_i) = self.grad(feedback, input);
 
         self.total_grad += grad_w;
@@ -650,7 +648,7 @@ impl<const N: usize> Neuron<N> {
     }
 
     #[inline]
-    fn grad(&self, feedback: f64, input: &[f64; N]) -> (Weights<N>, [f64; N]) {
+    fn grad(&self, feedback: f32, input: &[f32; N]) -> (Weights<N>, [f32; N]) {
         let factor =
             feedback * self.activation.d_activate(self.weights * *input);
 
@@ -665,7 +663,7 @@ impl<const N: usize> Neuron<N> {
     /// Updates Weights to use studied gradients.
     ///
     /// * `rate` : Learning rate.
-    pub fn update(&mut self, rate: f64) {
+    pub fn update(&mut self, rate: f32) {
         let grad = self.total_grad / self.study_count;
 
         self.mome_1 = self.next_mome_1(&grad);
@@ -682,39 +680,39 @@ impl<const N: usize> Neuron<N> {
 
     #[inline]
     fn next_mome_1(&self, grad: &Weights<N>) -> Weights<N> {
-        const BETA: f64 = 0.9;
-        const BETA_INV: f64 = 1.0 - BETA;
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
 
         (self.mome_1 * BETA) + (*grad * BETA_INV)
     }
 
     #[inline]
-    fn next_mome_2(&self, grad: &Weights<N>) -> f64 {
-        const BETA: f64 = 0.999;
-        const BETA_INV: f64 = 1.0 - BETA;
+    fn next_mome_2(&self, grad: &Weights<N>) -> f32 {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
 
         (self.mome_2 * BETA) + ((*grad * *grad) * BETA_INV)
     }
 
     #[inline]
     fn mome_1_hat(mome_1: &Weights<N>) -> Weights<N> {
-        const BETA: f64 = 0.9;
-        const BETA_INV: f64 = 1.0 - BETA;
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
 
         *mome_1 / BETA_INV
     }
 
     #[inline]
-    fn mome_2_hat(mome_2: f64) -> f64 {
-        const BETA: f64 = 0.999;
-        const BETA_INV: f64 = 1.0 - BETA;
+    fn mome_2_hat(mome_2: f32) -> f32 {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
 
         mome_2 / BETA_INV
     }
 
     #[inline]
-    fn d_weights(mome_1: &Weights<N>, mome_2: f64, rate: f64) -> Weights<N> {
-        const EPSILION: f64 = 1.0e-8;
+    fn d_weights(mome_1: &Weights<N>, mome_2: f32, rate: f32) -> Weights<N> {
+        const EPSILION: f32 = 1.0e-8;
 
         (*mome_1 / (sqrt(mome_2) + EPSILION)) * rate
     }
@@ -750,8 +748,8 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     /// * `input` : Input vector.
     /// * _Return_ : Output vector.
     #[inline]
-    pub fn calc(&self, input: &[f64; IN]) -> [f64; OUT] {
-        let mut ret = [0.0f64; OUT];
+    pub fn calc(&self, input: &[f32; IN]) -> [f32; OUT] {
+        let mut ret = [0.0f32; OUT];
 
         for i in 0..OUT {
             ret[i] = self.neurons[i].calc(input);
@@ -769,10 +767,10 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     /// * _Return_ : Feedback to previous layer. See [Neuron::study] for details.
     pub fn study(
         &mut self,
-        feedback: &[f64; OUT],
-        input: &[f64; IN]
-    ) -> [f64; IN] {
-        let mut ret = [0.0f64; IN];
+        feedback: &[f32; OUT],
+        input: &[f32; IN]
+    ) -> [f32; IN] {
+        let mut ret = [0.0f32; IN];
 
         for i in 0..OUT {
             let feedback_next = self.neurons[i].study(feedback[i], input);
@@ -789,7 +787,7 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     ///
     /// * `rate` : Learning rate.
     #[inline]
-    pub fn update( &mut self, rate: f64) {
+    pub fn update( &mut self, rate: f32) {
         self.neurons.iter_mut().for_each(|neuron| neuron.update(rate));
     }
 }
@@ -842,7 +840,7 @@ impl<
     /// * `input` : Input vector;
     /// * _Return_ : Output vector;
     #[inline]
-    pub fn calc(&self, input: &[f64; IN]) -> [f64; OUT] {
+    pub fn calc(&self, input: &[f32; IN]) -> [f32; OUT] {
         self.output_layer.calc(&self.middle_layer.calc(input))
     }
 
@@ -852,11 +850,11 @@ impl<
     ///
     /// * `train_out` : Output of training data.
     /// * `train_in` : Input of training data.
-    pub fn study(&mut self, train_out: &[f64; OUT], train_in: &[f64; IN]) {
+    pub fn study(&mut self, train_out: &[f32; OUT], train_in: &[f32; IN]) {
         let middle_value = self.middle_layer.calc(train_in);
         let out_value = self.output_layer.calc(&middle_value);
 
-        let mut loss = [0.0f64; OUT];
+        let mut loss = [0.0f32; OUT];
         for i in 0..OUT {
             loss[i] = out_value[i] - train_out[i];
         }
@@ -874,7 +872,7 @@ impl<
     ///
     /// * `rate` : Learning rate.
     #[inline]
-    pub fn update(&mut self, rate: f64) {
+    pub fn update(&mut self, rate: f32) {
         self.output_layer.update(rate);
         self.middle_layer.update(rate);
     }

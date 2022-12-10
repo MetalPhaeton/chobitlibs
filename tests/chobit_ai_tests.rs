@@ -51,7 +51,7 @@ fn weights_test() {
     weights_1_c %= 4.0;
     assert_eq!(weights_1_c, check);
 
-    let input: [f64; 5] = [1.1, 2.2, 3.3, 4.4, 5.5];
+    let input: [f32; 5] = [1.1, 2.2, 3.3, 4.4, 5.5];
 
     let check = (1.0 * 1.1)
         + (2.0 * 2.2)
@@ -79,7 +79,7 @@ fn weights_test() {
 //--------------------//
 // Output data generator for data set.
 // This is like multiply of 2 complex numbers.
-fn gen_output(input: &[f64; 4]) -> [f64; 2] {
+fn gen_output(input: &[f32; 4]) -> [f32; 2] {
     [
         (input[0] * input[2]) - (input[1] * input[3]),
         (input[0] * input[3]) + (input[1] * input[2])
@@ -87,21 +87,21 @@ fn gen_output(input: &[f64; 4]) -> [f64; 2] {
 }
 
 // Input data generator for data set.
-fn gen_input(rand: &mut ChobitRand) -> [f64; 4] {
+fn gen_input(rand: &mut ChobitRand) -> [f32; 4] {
     // converter from [0.0, 1.0] to [-1.0, 1.0].
-    fn convert(x: f64) -> f64 {(x * 2.0) - 1.0}
+    fn convert(x: f32) -> f32 {(x * 2.0) - 1.0}
 
     [
-        convert(rand.next_f64()),
-        convert(rand.next_f64()),
-        convert(rand.next_f64()),
-        convert(rand.next_f64())
+        convert(rand.next_f64() as f32),
+        convert(rand.next_f64() as f32),
+        convert(rand.next_f64() as f32),
+        convert(rand.next_f64() as f32)
     ]
 }
 
 // Data set generator.
-fn gen_data_set(length: usize) -> Vec<([f64; 4], [f64; 2])> {
-    let mut ret = Vec::<([f64; 4], [f64; 2])>::with_capacity(length);
+fn gen_data_set(length: usize) -> Vec<([f32; 4], [f32; 2])> {
+    let mut ret = Vec::<([f32; 4], [f32; 2])>::with_capacity(length);
     let mut rand = ChobitRand::new("This is a pen!".as_bytes());
 
     for _ in 0..length {
@@ -141,7 +141,7 @@ fn chobit_ai_test_1() {
     let mut rand = ChobitRand::new("Hello! I love to play game!".as_bytes());
 
     // this is converter from [0.0, 1.0] into [-1.0, 1.0].
-    fn convert(x: f64) -> f64 {(x * 2.0) - 1.0}
+    fn convert(x: f32) -> f32 {(x * 2.0) - 1.0}
 
     //----------//
     // Ready AI //
@@ -155,9 +155,9 @@ fn chobit_ai_test_1() {
     let out_weights = [0u8; OUT].map(|_| {
         Weights::<MIDDLE>::new(
             [0u8; MIDDLE].map(|_| {
-                convert(rand.next_f64())
+                convert(rand.next_f64() as f32)
             }),
-            convert(rand.next_f64())  // bias
+            convert(rand.next_f64() as f32)  // bias
         )
     });
 
@@ -165,9 +165,9 @@ fn chobit_ai_test_1() {
     let middle_weights = [0u8; MIDDLE].map(|_| {
         Weights::<IN>::new(
             [0u8; IN].map(|_| {
-                convert(rand.next_f64())
+                convert(rand.next_f64() as f32)
             }),
-            convert(rand.next_f64())  // bias
+            convert(rand.next_f64() as f32)  // bias
         )
     });
 
@@ -194,14 +194,14 @@ fn chobit_ai_test_1() {
     // Test without learning //
     //-----------------------//
     // Calculates test inputs.
-    let mut ai_output = Vec::<[f64; OUT]>::new();
+    let mut ai_output = Vec::<[f32; OUT]>::new();
 
     test_data.iter().for_each(
         |(input, _)| ai_output.push(ai.calc(input))
     );
 
     // Calculates loss.
-    let mut before_loss: f64 = 0.0;
+    let mut before_loss: f32 = 0.0;
     for i in 0..test_data.len() {
         for j in 0..OUT {
             before_loss += (ai_output[i][j] - test_data[i].1[j]).abs();
@@ -214,7 +214,7 @@ fn chobit_ai_test_1() {
     //----------//
     // Decides epoch and learning rate.
     const EPOCH: usize = 100;
-    const RATE: f64 = 0.001;
+    const RATE: f32 = 0.001;
 
     // Learns.
     for _ in 0..EPOCH {
@@ -238,14 +238,14 @@ fn chobit_ai_test_1() {
     // Test after learning //
     //---------------------//
     // Calculates test inputs.
-    let mut ai_output = Vec::<[f64; OUT]>::new();
+    let mut ai_output = Vec::<[f32; OUT]>::new();
 
     test_data.iter().for_each(
         |(input, _)| ai_output.push(ai.calc(input))
     );
 
     // Calculates loss.
-    let mut after_loss: f64 = 0.0;
+    let mut after_loss: f32 = 0.0;
     for i in 0..test_data.len() {
         for j in 0..OUT {
             after_loss += (ai_output[i][j] - test_data[i].1[j]).abs();
