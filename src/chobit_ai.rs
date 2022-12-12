@@ -461,7 +461,10 @@ pub enum Activation {
     ReLU,
 
     /// SoftSign : `(-inf, +inf) -> (-1.0, +1.0)`
-    SoftSign
+    SoftSign,
+
+    /// Sigmoid : `(-inf, +inf) -> (0.0, +1.0)`
+    Sigmoid
 }
 
 impl Activation {
@@ -474,7 +477,8 @@ impl Activation {
         match self {
             Self::Linear => x,
             Self::ReLU => x.max(0.0),
-            Self::SoftSign => Self::softsign(x)
+            Self::SoftSign => Self::softsign(x),
+            Self::Sigmoid => Self::sigmoid(x)
         }
     }
 
@@ -489,7 +493,9 @@ impl Activation {
 
             Self::ReLU => if x <= 0.0 {0.0} else {1.0},
 
-            Self::SoftSign => Self::d_softsign(x)
+            Self::SoftSign => Self::d_softsign(x),
+
+            Self::Sigmoid => Self::d_sigmoid(x)
         }
     }
 
@@ -507,6 +513,16 @@ impl Activation {
     fn d_softsign(x: f32) -> f32 {
         let deno = Self::softsign_deno(x);
         (deno * deno).recip()
+    }
+
+    #[inline]
+    fn sigmoid(x: f32) -> f32 {
+        (Self::softsign(x) + 1.0) * 0.5
+    }
+
+    #[inline]
+    fn d_sigmoid(x: f32) -> f32 {
+        Self::d_softsign(x) * 0.5
     }
 }
 
