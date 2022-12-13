@@ -893,3 +893,486 @@ impl<
         self.middle_layer.update(rate);
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GRUBlock<const N: usize> {
+    z_weights: (Weights<N>, f32),
+    r_weights: (Weights<N>, f32),
+    h_weights: (Weights<N>, f32),
+
+    z_total_grad: (Weights<N>, f32),
+    r_total_grad: (Weights<N>, f32),
+    h_total_grad: (Weights<N>, f32),
+
+    study_count: f32,
+
+    z_mome_1: (Weights<N>, f32),
+    r_mome_1: (Weights<N>, f32),
+    h_mome_1: (Weights<N>, f32),
+
+    z_mome_2: f32,
+    r_mome_2: f32,
+    h_mome_2: f32
+}
+
+impl<const N: usize> GRUBlock<N> {
+    #[inline]
+    pub fn new(
+        z_weights: (Weights<N>, f32),
+        r_weights: (Weights<N>, f32),
+        h_weights: (Weights<N>, f32)
+    ) -> Self {
+        Self {
+            z_weights: z_weights,
+            r_weights: r_weights,
+            h_weights: h_weights,
+
+            z_total_grad: (Weights::<N>::default(), 0.0),
+            r_total_grad: (Weights::<N>::default(), 0.0),
+            h_total_grad: (Weights::<N>::default(), 0.0),
+
+            study_count: 0.0,
+
+            z_mome_1: (Weights::<N>::default(), 0.0),
+            r_mome_1: (Weights::<N>::default(), 0.0),
+            h_mome_1: (Weights::<N>::default(), 0.0),
+
+            z_mome_2: 0.0,
+            r_mome_2: 0.0,
+            h_mome_2: 0.0
+        }
+    }
+
+    #[inline]
+    pub fn with_study_data(
+        z_weights: (Weights<N>, f32),
+        r_weights: (Weights<N>, f32),
+        h_weights: (Weights<N>, f32),
+        z_total_grad: (Weights<N>, f32),
+        r_total_grad: (Weights<N>, f32),
+        h_total_grad: (Weights<N>, f32),
+        study_count: f32,
+        z_mome_1: (Weights<N>, f32),
+        r_mome_1: (Weights<N>, f32),
+        h_mome_1: (Weights<N>, f32),
+        z_mome_2: f32,
+        r_mome_2: f32,
+        h_mome_2: f32
+    ) -> Self {
+        Self {
+            z_weights: z_weights,
+            r_weights: r_weights,
+            h_weights: h_weights,
+            z_total_grad: z_total_grad,
+            r_total_grad: r_total_grad,
+            h_total_grad: h_total_grad,
+            study_count: study_count,
+            z_mome_1: z_mome_1,
+            r_mome_1: r_mome_1,
+            h_mome_1: h_mome_1,
+            z_mome_2: z_mome_2,
+            r_mome_2: r_mome_2,
+            h_mome_2: h_mome_2
+        }
+    }
+
+    #[inline]
+    pub fn z_weights(&self) -> &(Weights<N>, f32) {&self.z_weights}
+
+    #[inline]
+    pub fn r_weights(&self) -> &(Weights<N>, f32) {&self.r_weights}
+
+    #[inline]
+    pub fn h_weights(&self) -> &(Weights<N>, f32) {&self.h_weights}
+
+    #[inline]
+    pub fn z_total_grad(&self) -> &(Weights<N>, f32) {&self.z_total_grad}
+
+    #[inline]
+    pub fn r_total_grad(&self) -> &(Weights<N>, f32) {&self.r_total_grad}
+
+    #[inline]
+    pub fn h_total_grad(&self) -> &(Weights<N>, f32) {&self.h_total_grad}
+
+    #[inline]
+    pub fn study_count(&self) -> f32 {self.study_count}
+
+    #[inline]
+    pub fn z_mome_1(&self) -> &(Weights<N>, f32) {&self.z_mome_1}
+
+    #[inline]
+    pub fn r_mome_1(&self) -> &(Weights<N>, f32) {&self.r_mome_1}
+
+    #[inline]
+    pub fn h_mome_1(&self) -> &(Weights<N>, f32) {&self.h_mome_1}
+
+    #[inline]
+    pub fn z_mome_2(&self) -> f32 {self.z_mome_2}
+
+    #[inline]
+    pub fn r_mome_2(&self) -> f32 {self.r_mome_2}
+
+    #[inline]
+    pub fn h_mome_2(&self) -> f32 {self.h_mome_2}
+
+    #[inline]
+    pub fn calc(&self, input: &[f32; N], prev_output: f32) -> f32 {
+        let z_output = Activation::Sigmoid.activate(
+            self.calc_z(input, prev_output)
+        );
+
+        let r_output = Activation::Sigmoid.activate(
+            self.calc_r(input, prev_output)
+        );
+
+        let h_output = Activation::SoftSign.activate(
+            self.calc_h(input, prev_output * r_output)
+        );
+
+        let z_inv_output = 1.0 - z_output;
+
+        (h_output * z_output) + (prev_output * z_inv_output)
+    }
+
+    #[inline]
+    fn calc_z(&self, input: &[f32; N], prev_output: f32) -> f32 {
+        (self.z_weights.0 * *input) + (self.z_weights.1 * prev_output)
+    }
+
+    #[inline]
+    fn calc_r(&self, input: &[f32; N], prev_output: f32) -> f32 {
+        (self.r_weights.0 * *input) + (self.r_weights.1 * prev_output)
+    }
+
+    #[inline]
+    fn calc_h(&self, input: &[f32; N], prev_output: f32) -> f32 {
+        (self.h_weights.0 * *input) + (self.h_weights.1 * prev_output)
+    }
+
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.z_total_grad = (Weights::<N>::default(), 0.0);
+        self.r_total_grad = (Weights::<N>::default(), 0.0);
+        self.h_total_grad = (Weights::<N>::default(), 0.0);
+
+        self.study_count = 0.0;
+
+        self.z_mome_1 = (Weights::<N>::default(), 0.0);
+        self.r_mome_1 = (Weights::<N>::default(), 0.0);
+        self.h_mome_1 = (Weights::<N>::default(), 0.0);
+
+        self.z_mome_2 = 0.0;
+        self.r_mome_2 = 0.0;
+        self.h_mome_2 = 0.0;
+    }
+
+    pub fn study(
+        &mut self,
+        feedback: f32,
+        input: &[f32; N],
+        prev_output: f32
+    ) -> ([f32; N], f32) {
+        let z = self.calc_z(input, prev_output);
+        let r = self.calc_r(input, prev_output);
+        let h = self.calc_h(
+            input,
+            prev_output * Activation::Sigmoid.activate(r)
+        );
+
+        let z_inv_output = 1.0 - Activation::Sigmoid.activate(z);
+
+        let d_sig_z = Activation::Sigmoid.d_activate(z);
+        let d_sig_r = Activation::Sigmoid.d_activate(r);
+        let d_tanh = Activation::SoftSign.d_activate(h);
+
+        let sig_z = Activation::Sigmoid.activate(z);
+        let sig_r = Activation::Sigmoid.activate(r);
+        let tanh = Activation::SoftSign.activate(h);
+
+        self.study_z_weights(
+            feedback,
+            input,
+            prev_output,
+            tanh,
+            d_sig_z
+        );
+
+        self.study_r_weights(
+            feedback,
+            input,
+            prev_output,
+            sig_z,
+            d_tanh,
+            self.h_weights.1,
+            d_sig_r
+        );
+
+        self.study_h_weights(
+            feedback,
+            input,
+            prev_output,
+            sig_z,
+            d_tanh,
+            sig_r
+        );
+
+        (
+            self.gen_feed_back_for_input(
+                feedback,
+                prev_output,
+                d_sig_z,
+                tanh,
+                sig_z,
+                d_tanh,
+                d_sig_r
+            ),
+            self.gen_feed_back_for_prev_output(
+                feedback,
+                prev_output,
+                z_inv_output,
+                d_sig_z,
+                tanh,
+                sig_z,
+                d_tanh,
+                sig_r,
+                d_sig_r
+            )
+        )
+    }
+
+    fn study_z_weights(
+        &mut self,
+        feedback: f32,
+        input: &[f32; N],
+        prev_output: f32,
+        tanh: f32,
+        d_sig_z: f32
+    ) {
+        let factor = feedback * (tanh - prev_output) * d_sig_z;
+
+        let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
+        grad_w *= factor;
+
+        let grad_h = factor * prev_output;
+
+        self.z_total_grad.0 += grad_w;
+        self.z_total_grad.1 += grad_h;
+    }
+
+    fn study_r_weights(
+        &mut self,
+        feedback: f32,
+        input: &[f32; N],
+        prev_output: f32,
+        sig_z: f32,
+        d_tanh: f32,
+        v_h: f32,
+        d_sig_r: f32
+    ) {
+        let factor = feedback * sig_z * d_tanh * v_h * d_sig_r;
+
+        let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
+        grad_w *= factor;
+
+        let grad_h = factor * prev_output;
+
+        self.r_total_grad.0 += grad_w;
+        self.r_total_grad.1 += grad_h;
+    }
+
+    fn study_h_weights(
+        &mut self,
+        feedback: f32,
+        input: &[f32; N],
+        prev_output: f32,
+        sig_z: f32,
+        d_tanh: f32,
+        sig_r: f32
+    ) {
+        let factor = feedback * sig_z * d_tanh;
+
+        let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
+        grad_w *= factor;
+
+        let grad_h = factor * prev_output * sig_r;
+
+        self.h_total_grad.0 += grad_w;
+        self.h_total_grad.1 += grad_h;
+    }
+
+    fn gen_feed_back_for_input(
+        &self,
+        feedback: f32,
+        prev_output: f32,
+        d_sig_z: f32,
+        tanh: f32,
+        sig_z: f32,
+        d_tanh: f32,
+        d_sig_r: f32
+    ) -> [f32; N] {
+        let mut ret: [f32; N] = [0.0; N];
+
+        let v_h = self.h_weights.1;
+
+        for i in 0..N {
+            let w_z = self.z_weights.0.w[i];
+            let w_r = self.r_weights.0.w[i];
+            let w_h = self.h_weights.0.w[i];
+
+            let grad_3 = d_tanh * (w_h + (v_h * prev_output * d_sig_r * w_r));
+            let grad_2 = (tanh * d_sig_z * w_z) + (sig_z * grad_3);
+            let grad_1 = -prev_output * d_sig_z * w_z;
+            let grad = feedback * (grad_1 + grad_2);
+
+            ret[i] = grad;
+        }
+
+        ret
+    }
+
+    fn gen_feed_back_for_prev_output(
+        &self,
+        feedback: f32,
+        prev_output: f32,
+        z_inv_output: f32,
+        d_sig_z: f32,
+        tanh: f32,
+        sig_z: f32,
+        d_tanh: f32,
+        sig_r: f32,
+        d_sig_r: f32
+    ) -> f32 {
+        let v_z = self.z_weights.1;
+        let v_r = self.r_weights.1;
+        let v_h = self.h_weights.1;
+
+        let grad_3 = sig_r + (prev_output * d_sig_r * v_r);
+        let grad_2 = (tanh * d_sig_z * v_z) + (sig_z * d_tanh * v_h * grad_3);
+        let grad_1 = z_inv_output - (prev_output * d_sig_z * v_z);
+
+        feedback * (grad_1 + grad_2)
+    }
+
+    pub fn update(&mut self, rate: f32) {
+        let z_grad_w = self.z_total_grad.0 / self.study_count;
+        let z_grad_h = self.z_total_grad.1 / self.study_count;
+
+        let r_grad_w = self.r_total_grad.0 / self.study_count;
+        let r_grad_h = self.r_total_grad.1 / self.study_count;
+
+        let h_grad_w = self.h_total_grad.0 / self.study_count;
+        let h_grad_h = self.h_total_grad.1 / self.study_count;
+
+        self.z_mome_1 =
+            Self::next_mome_1(&self.z_mome_1, &z_grad_w, z_grad_h);
+        self.z_mome_2 =
+            Self::next_mome_2(self.z_mome_2, &z_grad_w, z_grad_h);
+
+        self.r_mome_1 =
+            Self::next_mome_1(&self.r_mome_1, &r_grad_w, r_grad_h);
+        self.r_mome_2 =
+            Self::next_mome_2(self.r_mome_2, &r_grad_w, r_grad_h);
+
+        self.h_mome_1 =
+            Self::next_mome_1(&self.h_mome_1, &h_grad_w, h_grad_h);
+        self.h_mome_2 =
+            Self::next_mome_2(self.h_mome_2, &h_grad_w, h_grad_h);
+
+        let z_mome_1 = Self::mome_1_hat(&self.z_mome_1);
+        let z_mome_2 = Self::mome_2_hat(self.z_mome_2);
+
+        let r_mome_1 = Self::mome_1_hat(&self.r_mome_1);
+        let r_mome_2 = Self::mome_2_hat(self.r_mome_2);
+
+        let h_mome_1 = Self::mome_1_hat(&self.h_mome_1);
+        let h_mome_2 = Self::mome_2_hat(self.h_mome_2);
+
+        let z_d_weight = Self::d_weights(&z_mome_1, z_mome_2, rate);
+        let r_d_weight = Self::d_weights(&r_mome_1, r_mome_2, rate);
+        let h_d_weight = Self::d_weights(&h_mome_1, h_mome_2, rate);
+
+        self.z_weights.0 -= z_d_weight.0;
+        self.z_weights.1 -= z_d_weight.1;
+
+        self.r_weights.0 -= r_d_weight.0;
+        self.r_weights.1 -= r_d_weight.1;
+
+        self.h_weights.0 -= h_d_weight.0;
+        self.h_weights.1 -= h_d_weight.1;
+
+        self.z_total_grad = (Weights::<N>::default(), 0.0);
+        self.r_total_grad = (Weights::<N>::default(), 0.0);
+        self.h_total_grad = (Weights::<N>::default(), 0.0);
+
+        self.study_count = 0.0;
+    }
+
+    #[inline]
+    fn next_mome_1(
+        mome_1: &(Weights<N>, f32),
+        grad_w: &Weights<N>,
+        grad_h: f32
+    ) -> (Weights<N>, f32) {
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        (
+            (mome_1.0 * BETA) + (*grad_w * BETA_INV),
+            (mome_1.1 * BETA) + (grad_h * BETA_INV)
+        )
+    }
+
+    #[inline]
+    fn next_mome_2(
+        mome_2: f32,
+        grad_w: &Weights<N>,
+        grad_h: f32
+    ) -> f32 {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        (mome_2 * BETA)
+            + (((*grad_w * *grad_w) + (grad_h * grad_h)) * BETA_INV)
+    }
+
+    #[inline]
+    fn mome_1_hat(mome_1: &(Weights<N>, f32)) -> (Weights<N>, f32) {
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        (mome_1.0 / BETA_INV, mome_1.1 / BETA_INV)
+    }
+
+    #[inline]
+    fn mome_2_hat(mome_2: f32) -> f32 {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        mome_2 / BETA_INV
+    }
+
+    #[inline]
+    fn d_weights(
+        mome_1: &(Weights<N>, f32),
+        mome_2: f32,
+        rate: f32
+    ) -> (Weights<N>, f32) {
+        const EPSILION: f32 = 1.0e-8;
+
+        let factor = sqrt(mome_2) + EPSILION;
+
+        (
+            (mome_1.0 / factor) * rate,
+            (mome_1.1 / factor) * rate
+        )
+    }
+}
+
+//#[derive(Debug, Clone, PartialEq)]
+//pub struct GRULayer<const OUT: usize, const IN: usize> {
+//    block: [GRUBlock<IN>; OUT]
+//}
+//
+//impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN> {
+//    #[inline]
+//}
