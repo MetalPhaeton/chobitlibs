@@ -803,7 +803,7 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     ///
     /// * `rate` : Learning rate.
     #[inline]
-    pub fn update( &mut self, rate: f32) {
+    pub fn update(&mut self, rate: f32) {
         self.neurons.iter_mut().for_each(|neuron| neuron.update(rate));
     }
 }
@@ -895,7 +895,7 @@ impl<
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GRUBlock<const N: usize> {
+pub struct GRUNeuron<const N: usize> {
     z_weights: (Weights<N>, f32),
     r_weights: (Weights<N>, f32),
     h_weights: (Weights<N>, f32),
@@ -915,7 +915,7 @@ pub struct GRUBlock<const N: usize> {
     h_mome_2: f32
 }
 
-impl<const N: usize> GRUBlock<N> {
+impl<const N: usize> GRUNeuron<N> {
     #[inline]
     pub fn new(
         z_weights: (Weights<N>, f32),
@@ -1016,37 +1016,37 @@ impl<const N: usize> GRUBlock<N> {
     pub fn h_mome_2(&self) -> f32 {self.h_mome_2}
 
     #[inline]
-    pub fn calc(&self, input: &[f32; N], prev_output: f32) -> f32 {
+    pub fn calc(&self, input: &[f32; N], state: f32) -> f32 {
         let z_output = Activation::Sigmoid.activate(
-            self.calc_z(input, prev_output)
+            self.calc_z(input, state)
         );
 
         let r_output = Activation::Sigmoid.activate(
-            self.calc_r(input, prev_output)
+            self.calc_r(input, state)
         );
 
         let h_output = Activation::SoftSign.activate(
-            self.calc_h(input, prev_output * r_output)
+            self.calc_h(input, state * r_output)
         );
 
         let z_inv_output = 1.0 - z_output;
 
-        (h_output * z_output) + (prev_output * z_inv_output)
+        (h_output * z_output) + (state * z_inv_output)
     }
 
     #[inline]
-    fn calc_z(&self, input: &[f32; N], prev_output: f32) -> f32 {
-        (self.z_weights.0 * *input) + (self.z_weights.1 * prev_output)
+    fn calc_z(&self, input: &[f32; N], state: f32) -> f32 {
+        (self.z_weights.0 * *input) + (self.z_weights.1 * state)
     }
 
     #[inline]
-    fn calc_r(&self, input: &[f32; N], prev_output: f32) -> f32 {
-        (self.r_weights.0 * *input) + (self.r_weights.1 * prev_output)
+    fn calc_r(&self, input: &[f32; N], state: f32) -> f32 {
+        (self.r_weights.0 * *input) + (self.r_weights.1 * state)
     }
 
     #[inline]
-    fn calc_h(&self, input: &[f32; N], prev_output: f32) -> f32 {
-        (self.h_weights.0 * *input) + (self.h_weights.1 * prev_output)
+    fn calc_h(&self, input: &[f32; N], state: f32) -> f32 {
+        (self.h_weights.0 * *input) + (self.h_weights.1 * state)
     }
 
     #[inline]
@@ -1070,13 +1070,13 @@ impl<const N: usize> GRUBlock<N> {
         &mut self,
         feedback: f32,
         input: &[f32; N],
-        prev_output: f32
+        state: f32
     ) -> ([f32; N], f32) {
-        let z = self.calc_z(input, prev_output);
-        let r = self.calc_r(input, prev_output);
+        let z = self.calc_z(input, state);
+        let r = self.calc_r(input, state);
         let h = self.calc_h(
             input,
-            prev_output * Activation::Sigmoid.activate(r)
+            state * Activation::Sigmoid.activate(r)
         );
 
         let z_inv_output = 1.0 - Activation::Sigmoid.activate(z);
@@ -1092,7 +1092,7 @@ impl<const N: usize> GRUBlock<N> {
         self.study_z_weights(
             feedback,
             input,
-            prev_output,
+            state,
             tanh,
             d_sig_z
         );
@@ -1100,7 +1100,7 @@ impl<const N: usize> GRUBlock<N> {
         self.study_r_weights(
             feedback,
             input,
-            prev_output,
+            state,
             sig_z,
             d_tanh,
             self.h_weights.1,
@@ -1110,25 +1110,25 @@ impl<const N: usize> GRUBlock<N> {
         self.study_h_weights(
             feedback,
             input,
-            prev_output,
+            state,
             sig_z,
             d_tanh,
             sig_r
         );
 
         (
-            self.gen_feed_back_for_input(
+            self.gen_feedback_for_input(
                 feedback,
-                prev_output,
+                state,
                 d_sig_z,
                 tanh,
                 sig_z,
                 d_tanh,
                 d_sig_r
             ),
-            self.gen_feed_back_for_prev_output(
+            self.gen_feedback_for_state(
                 feedback,
-                prev_output,
+                state,
                 z_inv_output,
                 d_sig_z,
                 tanh,
@@ -1144,16 +1144,16 @@ impl<const N: usize> GRUBlock<N> {
         &mut self,
         feedback: f32,
         input: &[f32; N],
-        prev_output: f32,
+        state: f32,
         tanh: f32,
         d_sig_z: f32
     ) {
-        let factor = feedback * (tanh - prev_output) * d_sig_z;
+        let factor = feedback * (tanh - state) * d_sig_z;
 
         let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
         grad_w *= factor;
 
-        let grad_h = factor * prev_output;
+        let grad_h = factor * state;
 
         self.z_total_grad.0 += grad_w;
         self.z_total_grad.1 += grad_h;
@@ -1163,7 +1163,7 @@ impl<const N: usize> GRUBlock<N> {
         &mut self,
         feedback: f32,
         input: &[f32; N],
-        prev_output: f32,
+        state: f32,
         sig_z: f32,
         d_tanh: f32,
         v_h: f32,
@@ -1174,7 +1174,7 @@ impl<const N: usize> GRUBlock<N> {
         let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
         grad_w *= factor;
 
-        let grad_h = factor * prev_output;
+        let grad_h = factor * state;
 
         self.r_total_grad.0 += grad_w;
         self.r_total_grad.1 += grad_h;
@@ -1184,7 +1184,7 @@ impl<const N: usize> GRUBlock<N> {
         &mut self,
         feedback: f32,
         input: &[f32; N],
-        prev_output: f32,
+        state: f32,
         sig_z: f32,
         d_tanh: f32,
         sig_r: f32
@@ -1194,16 +1194,16 @@ impl<const N: usize> GRUBlock<N> {
         let mut grad_w = Weights::<N>::new(input.clone(), 1.0);
         grad_w *= factor;
 
-        let grad_h = factor * prev_output * sig_r;
+        let grad_h = factor * state * sig_r;
 
         self.h_total_grad.0 += grad_w;
         self.h_total_grad.1 += grad_h;
     }
 
-    fn gen_feed_back_for_input(
+    fn gen_feedback_for_input(
         &self,
         feedback: f32,
-        prev_output: f32,
+        state: f32,
         d_sig_z: f32,
         tanh: f32,
         sig_z: f32,
@@ -1219,9 +1219,9 @@ impl<const N: usize> GRUBlock<N> {
             let w_r = self.r_weights.0.w[i];
             let w_h = self.h_weights.0.w[i];
 
-            let grad_3 = d_tanh * (w_h + (v_h * prev_output * d_sig_r * w_r));
+            let grad_3 = d_tanh * (w_h + (v_h * state * d_sig_r * w_r));
             let grad_2 = (tanh * d_sig_z * w_z) + (sig_z * grad_3);
-            let grad_1 = -prev_output * d_sig_z * w_z;
+            let grad_1 = -state * d_sig_z * w_z;
             let grad = feedback * (grad_1 + grad_2);
 
             ret[i] = grad;
@@ -1230,10 +1230,10 @@ impl<const N: usize> GRUBlock<N> {
         ret
     }
 
-    fn gen_feed_back_for_prev_output(
+    fn gen_feedback_for_state(
         &self,
         feedback: f32,
-        prev_output: f32,
+        state: f32,
         z_inv_output: f32,
         d_sig_z: f32,
         tanh: f32,
@@ -1246,9 +1246,9 @@ impl<const N: usize> GRUBlock<N> {
         let v_r = self.r_weights.1;
         let v_h = self.h_weights.1;
 
-        let grad_3 = sig_r + (prev_output * d_sig_r * v_r);
+        let grad_3 = sig_r + (state * d_sig_r * v_r);
         let grad_2 = (tanh * d_sig_z * v_z) + (sig_z * d_tanh * v_h * grad_3);
-        let grad_1 = z_inv_output - (prev_output * d_sig_z * v_z);
+        let grad_1 = z_inv_output - (state * d_sig_z * v_z);
 
         feedback * (grad_1 + grad_2)
     }
@@ -1368,11 +1368,158 @@ impl<const N: usize> GRUBlock<N> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct GRULayer<const OUT: usize, const IN: usize> {
+    neurons: [GRUNeuron<IN>; OUT],
+    mixer: Layer<OUT, OUT>
+}
+
+impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN> {
+    #[inline]
+    pub fn new(
+        neurons: [GRUNeuron<IN>; OUT],
+        mixer_weights: [Weights<OUT>; OUT]
+    ) -> Self {
+        Self {
+            neurons: neurons,
+            mixer: Layer::<OUT, OUT>::new(mixer_weights.map(
+                |weights| Neuron::<OUT>::new(weights, Activation::SoftSign)
+            ))
+        }
+    }
+
+    #[inline]
+    pub fn neurons(&self) -> &[GRUNeuron<IN>; OUT] {&self.neurons}
+
+    #[inline]
+    pub fn mixer(&self) -> &Layer<OUT, OUT> {&self.mixer}
+
+    #[inline]
+    fn calc_gru(&self, input: &[f32; IN], state: &[f32; OUT]) -> [f32; OUT] {
+        let mut ret = [0.0f32; OUT];
+
+        for i in 0..OUT {
+            ret[i] = self.neurons[i].calc(input, state[i]);
+        }
+
+        ret
+    }
+
+    #[inline]
+    pub fn calc(&self, input: &[f32; IN], state: &[f32; OUT]) -> [f32; OUT] {
+        self.mixer.calc(&self.calc_gru(input, state))
+    }
+
+    pub fn study(
+        &mut self,
+        feedback: &[f32; OUT],
+        input: &[f32; IN],
+        state: &[f32; OUT]
+    ) -> ([f32; IN], [f32; OUT]) {
+        let feedback =
+            self.mixer.study(feedback, &self.calc_gru(input, state));
+
+        let mut ret_1 = [0.0f32; IN];
+        let mut ret_2 = [0.0f32; OUT];
+
+        for i in 0..OUT {
+            let feedback_next = self.neurons[i].study(
+                feedback[i],
+                input,
+                state[i]
+            );
+
+            for j in 0..IN {
+                ret_1[j] += feedback_next.0[j];
+            }
+
+            ret_2[i] = feedback_next.1;
+        }
+
+        (ret_1, ret_2)
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.neurons.iter_mut().for_each(|block| block.update(rate));
+        self.mixer.update(rate);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitEncoder<const OUT: usize, const IN: usize> {
+    layer: GRULayer<OUT, IN>
+}
+
+impl<const OUT: usize, const IN: usize> ChobitEncoder<OUT, IN> {
+    #[inline]
+    pub fn new(layer: GRULayer<OUT, IN>) -> Self {
+        Self {
+            layer: layer
+        }
+    }
+
+    #[inline]
+    pub fn layer(&self) -> &GRULayer<OUT, IN> {&self.layer}
+
+    #[inline]
+    pub fn calc<'a>(
+        &self,
+        inputs: &mut impl Iterator<Item = &'a [f32; IN]>,
+        initial_state: &[f32; OUT]
+    ) -> [f32; OUT]{
+        let mut state = *initial_state;
+
+        inputs.for_each(|input| {
+            state = self.layer.calc(input, &state);
+        });
+
+        state
+    }
+
+    pub fn study<'a>(
+        &mut self,
+        feedback: &[f32; OUT],
+        train_out: &[f32; OUT],
+        train_in: &mut impl Iterator<Item = &'a [f32; IN]>,
+        initial_state: &[f32; OUT]
+    ) -> Option<([f32; IN], [f32; OUT])> {
+        let input = train_in.next()?;
+
+        let state = self.layer.calc(input, initial_state);
+
+        match self.study(feedback, train_out, train_in, &state) {
+            Some((mut feedback_for_input, feedback_for_state)) => {
+                let (
+                    feedback_for_input_2,
+                    feedback_for_state_2  // for previous.
+                ) = self.layer.study(
+                    &feedback_for_state,
+                    input,
+                    initial_state
+                );
+
+                for i in 0..IN {
+                    feedback_for_input[i] += feedback_for_input_2[i];
+                }
+
+                Some((feedback_for_input, feedback_for_state_2))
+            },
+
+            // Last input
+            None => Some(self.layer.study(feedback, input, initial_state))
+        }
+    }
+
+    pub fn update(&mut self, rate: f32) {
+        self.layer.update(rate);
+    }
+}
+
 //#[derive(Debug, Clone, PartialEq)]
-//pub struct GRULayer<const OUT: usize, const IN: usize> {
-//    block: [GRUBlock<IN>; OUT]
-//}
+//pub struct ChobitDecorder<const OUT: usize, const IN: usize> {
+//    gru_layer: GRULayer<OUT, IN>,
+//    output_layer: Layer<OUT, OUT>,
 //
-//impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN> {
-//    #[inline]
+//    input: [f32; IN]
 //}
