@@ -1477,10 +1477,9 @@ impl<const OUT: usize, const IN: usize> ChobitEncoder<OUT, IN> {
         state
     }
 
-    pub fn study<'a>(
+    pub fn study_from_decorder<'a>(
         &mut self,
         feedback: &[f32; OUT],
-        train_out: &[f32; OUT],
         train_in: &mut impl Iterator<Item = &'a [f32; IN]>,
         initial_state: &[f32; OUT]
     ) -> Option<([f32; IN], [f32; OUT])> {
@@ -1488,7 +1487,7 @@ impl<const OUT: usize, const IN: usize> ChobitEncoder<OUT, IN> {
 
         let state = self.layer.calc(input, initial_state);
 
-        match self.study(feedback, train_out, train_in, &state) {
+        match self.study_from_decorder(feedback, train_in, &state) {
             Some((mut feedback_for_input, feedback_for_state)) => {
                 let (
                     feedback_for_input_2,
@@ -1511,15 +1510,167 @@ impl<const OUT: usize, const IN: usize> ChobitEncoder<OUT, IN> {
         }
     }
 
+    pub fn study<'a>(
+        &mut self,
+        train_out: &[f32; OUT],
+        train_in: &mut impl Iterator<Item = &'a [f32; IN]>,
+        initial_state: &[f32; OUT]
+    ) -> Option<([f32; IN], [f32; OUT])> {
+        let input = train_in.next()?;
+
+        let state = self.layer.calc(input, initial_state);
+
+        match self.study(train_out, train_in, &state) {
+            Some((mut feedback_for_input, feedback_for_state)) => {
+                let (
+                    feedback_for_input_2,
+                    feedback_for_state_2  // for previous.
+                ) = self.layer.study(
+                    &feedback_for_state,
+                    input,
+                    initial_state
+                );
+
+                for i in 0..IN {
+                    feedback_for_input[i] += feedback_for_input_2[i];
+                }
+
+                Some((feedback_for_input, feedback_for_state_2))
+            },
+
+            // Last input
+            None => {
+                let mut loss = [0.0f32; OUT];
+
+                for i in 0..OUT {
+                    loss[i] += state[i] - train_out[i];
+                }
+
+                Some(self.layer.study(&loss, input, initial_state))
+            }
+        }
+    }
+
     pub fn update(&mut self, rate: f32) {
         self.layer.update(rate);
     }
 }
 
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitDecorder<const OUT: usize, const IN: usize> {
-//    gru_layer: GRULayer<OUT, IN>,
-//    output_layer: Layer<OUT, OUT>,
-//
-//    input: [f32; IN]
-//}
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitDecoder<const OUT: usize, const IN: usize> {
+    gru_layer: GRULayer<OUT, IN>,
+    output_layer: Layer<OUT, OUT>
+}
+
+pub struct ChobitDecoderIter<'a, const OUT: usize, const IN: usize> {
+    decoder: &'a ChobitDecoder<OUT, IN>,
+    input: &'a [f32; IN],
+
+    state: [f32; OUT]
+}
+
+impl<const OUT: usize, const IN: usize> ChobitDecoder<OUT, IN> {
+    pub fn new(
+        gru_layer: GRULayer<OUT, IN>,
+        output_layer: Layer<OUT, OUT>
+    ) -> Self {
+        Self {
+            gru_layer: gru_layer,
+            output_layer: output_layer
+        }
+    }
+
+    #[inline]
+    pub fn gru_layer(&self) -> &GRULayer<OUT, IN> {&self.gru_layer}
+
+    #[inline]
+    pub fn output_layer(&self) -> &Layer<OUT, OUT> {&self.output_layer}
+
+    #[inline]
+    pub fn start_calc<'a>(
+        &'a self,
+        input: &'a [f32; IN]
+    ) -> ChobitDecoderIter<'a, OUT, IN> {
+        ChobitDecoderIter::<OUT, IN> {
+            decoder: self,
+            input: input,
+            state: [0.0; OUT]
+        }
+    }
+
+    #[inline]
+    pub fn study<'a>(
+        &mut self,
+        train_out: &mut impl Iterator<Item = &'a [f32; OUT]>,
+        train_in: &[f32; IN]
+    ) -> Option<[f32; IN]> {
+        self.study_core(train_out, train_in, &[0.0; OUT])
+    }
+
+    fn study_core<'a>(
+        &mut self,
+        train_out: &mut impl Iterator<Item = &'a [f32; OUT]>,
+        train_in: &[f32; IN],
+        initial_state: &[f32; OUT]
+    ) -> Option<[f32; IN]> {
+        let t_output = train_out.next()?;
+
+        let state = self.gru_layer.calc(train_in, initial_state);
+        let output_value = self.output_layer.calc(&state);
+
+        let mut loss = [0.0f32; OUT];
+
+        for i in 0..OUT {
+            loss[i] = output_value[i] - t_output[i];
+        }
+
+        match self.study_core(train_out, train_in, &state) {
+            Some(mut feedback_for_input) => {
+                let feedback = self.output_layer.study(&loss, &state);
+
+                let (feedback_for_input_2, _) =
+                    self.gru_layer.study(&feedback, train_in, initial_state);
+
+                for i in 0..IN {
+                    feedback_for_input[i] += feedback_for_input_2[i];
+                }
+
+                Some(feedback_for_input)
+            },
+
+            // Last input
+            None => {
+                let feedback = self.output_layer.study(&loss, &state);
+
+                let (feedback_for_input, _) =
+                    self.gru_layer.study(&feedback, train_in, initial_state);
+
+                Some(feedback_for_input)
+            }
+        }
+    }
+
+    pub fn update(&mut self, rate: f32) {
+        self.gru_layer.update(rate);
+        self.output_layer.update(rate);
+    }
+}
+
+impl<'a, const OUT: usize, const IN: usize> ChobitDecoderIter<'a, OUT, IN> {
+    #[inline]
+    pub fn calc_next(&mut self) -> [f32; OUT] {
+        self.state = self.decoder.gru_layer.calc(&self.input, &self.state);
+        self.decoder.output_layer.calc(&self.state)
+    }
+}
+
+impl<
+    'a,
+    const OUT: usize,
+    const IN: usize
+> Iterator for ChobitDecoderIter<'a, OUT, IN> {
+    type Item = [f32; OUT];
+
+    #[inline]
+    fn next(&mut self) -> Option<[f32; OUT]> {Some(self.calc_next())}
+}
