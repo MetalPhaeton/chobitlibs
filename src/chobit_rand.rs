@@ -112,7 +112,7 @@ impl ChobitRand {
         ret
     }
 
-    /// Generates a random `f64`.
+    /// Generates a random `f64`. That range is `[0.0, 1.0]`.
     ///
     /// * _Return_ : A random number.
     ///

@@ -216,7 +216,8 @@ use core::{
         DivAssign,
         Rem,
         RemAssign
-    }
+    },
+    mem::size_of
 };
 
 #[inline]
@@ -227,6 +228,83 @@ fn sqrt(x: f32) -> f32 {
     let y = f32::from_bits(MAGIC_32 - (x.to_bits() >> 1));
 
     y * (1.5 - (a * y * y))
+}
+
+macro_rules! to_label_body {
+    ($type:ty, $x:expr) => {{
+        const FLAG: $type = (1 as $type).rotate_right(1);
+        let mut ret: $type = 0;
+
+        for bit in $x {
+            ret >>= 1;
+
+            ret |= if *bit >= 0.0 {
+                FLAG
+            } else {
+                0
+            };
+        }
+
+        ret
+    }};
+}
+
+macro_rules! from_label_body {
+    ($type:ty, $label:expr) => {{
+        const MASK: $type = 0x01;
+
+        [0.0f32; size_of::<$type>() * 8].map(|_| {
+            let ret = if ($label & MASK) == 1 {
+                1.0
+            } else {
+                -1.0
+            };
+
+            $label >>= 1;
+
+            ret
+        })
+    }};
+}
+
+pub fn to_u8_label(x: &[f32; size_of::<u8>() * 8]) -> u8 {
+    to_label_body!(u8, x)
+}
+
+pub fn from_u8_label(mut label: u8) -> [f32; size_of::<u8>() * 8] {
+    from_label_body!(u8, label)
+}
+
+pub fn to_u16_label(x: &[f32; size_of::<u16>() * 8]) -> u16 {
+    to_label_body!(u16, x)
+}
+
+pub fn from_u16_label(mut label: u16) -> [f32; size_of::<u16>() * 8] {
+    from_label_body!(u16, label)
+}
+
+pub fn to_u32_label(x: &[f32; size_of::<u32>() * 8]) -> u32 {
+    to_label_body!(u32, x)
+}
+
+pub fn from_u32_label(mut label: u32) -> [f32; size_of::<u32>() * 8] {
+    from_label_body!(u32, label)
+}
+
+pub fn to_u64_label(x: &[f32; size_of::<u64>() * 8]) -> u64 {
+    to_label_body!(u64, x)
+}
+
+pub fn from_u64_label(mut label: u64) -> [f32; size_of::<u64>() * 8] {
+    from_label_body!(u64, label)
+}
+
+pub fn to_u128_label(x: &[f32; size_of::<u128>() * 8]) -> u128 {
+    to_label_body!(u128, x)
+}
+
+pub fn from_u128_label(mut label: u128) -> [f32; size_of::<u128>() * 8] {
+    from_label_body!(u128, label)
 }
 
 /// Weights of a linear function.
@@ -1072,6 +1150,7 @@ impl<const N: usize> GRUNeuron<N> {
         input: &[f32; N],
         state: f32
     ) -> ([f32; N], f32) {
+
         let z = self.calc_z(input, state);
         let r = self.calc_r(input, state);
         let h = self.calc_h(
@@ -1088,6 +1167,10 @@ impl<const N: usize> GRUNeuron<N> {
         let sig_z = Activation::Sigmoid.activate(z);
         let sig_r = Activation::Sigmoid.activate(r);
         let tanh = Activation::SoftSign.activate(h);
+
+        assert!(!self.z_weights.1.is_nan());
+        assert!(!self.r_weights.1.is_nan());
+        assert!(!self.h_weights.1.is_nan());
 
         self.study_z_weights(
             feedback,
@@ -1116,28 +1199,31 @@ impl<const N: usize> GRUNeuron<N> {
             sig_r
         );
 
-        (
-            self.gen_feedback_for_input(
-                feedback,
-                state,
-                d_sig_z,
-                tanh,
-                sig_z,
-                d_tanh,
-                d_sig_r
-            ),
-            self.gen_feedback_for_state(
-                feedback,
-                state,
-                z_inv_output,
-                d_sig_z,
-                tanh,
-                sig_z,
-                d_tanh,
-                sig_r,
-                d_sig_r
-            )
-        )
+        let feedback_for_input = self.gen_feedback_for_input(
+            feedback,
+            state,
+            d_sig_z,
+            tanh,
+            sig_z,
+            d_tanh,
+            d_sig_r
+        );
+
+        let feedback_for_state = self.gen_feedback_for_state(
+            feedback,
+            state,
+            z_inv_output,
+            d_sig_z,
+            tanh,
+            sig_z,
+            d_tanh,
+            sig_r,
+            d_sig_r
+        );
+
+        self.study_count += 1.0;
+
+        (feedback_for_input, feedback_for_state)
     }
 
     fn study_z_weights(
@@ -1254,6 +1340,8 @@ impl<const N: usize> GRUNeuron<N> {
     }
 
     pub fn update(&mut self, rate: f32) {
+        if self.study_count < 0.5 {return;}
+
         let z_grad_w = self.z_total_grad.0 / self.study_count;
         let z_grad_h = self.z_total_grad.1 / self.study_count;
 
@@ -1528,7 +1616,7 @@ impl<const OUT: usize, const IN: usize> ChobitEncoder<OUT, IN> {
                 let mut loss = [0.0f32; OUT];
 
                 for i in 0..OUT {
-                    loss[i] += state[i] - train_out[i];
+                    loss[i] = state[i] - train_out[i];
                 }
 
                 let (_, feedback_next) =
@@ -1552,7 +1640,7 @@ pub struct ChobitDecoder<const OUT: usize, const IN: usize> {
 
 pub struct ChobitDecoderIter<'a, const OUT: usize, const IN: usize> {
     decoder: &'a ChobitDecoder<OUT, IN>,
-    input: &'a [f32; IN],
+    input: [f32; IN],
 
     state: [f32; OUT]
 }
@@ -1577,7 +1665,7 @@ impl<const OUT: usize, const IN: usize> ChobitDecoder<OUT, IN> {
     #[inline]
     pub fn start_calc<'a>(
         &'a self,
-        input: &'a [f32; IN]
+        input: [f32; IN]
     ) -> ChobitDecoderIter<'a, OUT, IN> {
         ChobitDecoderIter::<OUT, IN> {
             decoder: self,
@@ -1667,4 +1755,73 @@ impl<
 
     #[inline]
     fn next(&mut self) -> Option<[f32; OUT]> {Some(self.calc_next())}
+}
+
+pub struct ChobitSeqAI<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> {
+    decoder: ChobitDecoder<OUT, MIDDLE>,
+    encoder: ChobitEncoder<MIDDLE, IN>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitSeqAI<OUT, MIDDLE, IN> {
+    #[inline]
+    pub fn new(
+        decoder: ChobitDecoder<OUT, MIDDLE>,
+        encoder: ChobitEncoder<MIDDLE, IN>
+    ) -> Self {
+        Self {
+            decoder: decoder,
+            encoder: encoder
+        }
+    }
+
+    #[inline]
+    pub fn decoder(&self) -> &ChobitDecoder<OUT, MIDDLE> {&self.decoder}
+
+    #[inline]
+    pub fn encoder(&self) -> &ChobitEncoder<MIDDLE, IN> {&self.encoder}
+
+    #[inline]
+    pub fn start_calc<'a>(
+        &self,
+        inputs: &mut impl Iterator<Item = &'a [f32; IN]>,
+        initial_state: &[f32; MIDDLE]
+    ) -> ChobitDecoderIter<OUT, MIDDLE> {
+        self.decoder.start_calc(self.encoder.calc(inputs, initial_state))
+    }
+
+    pub fn study<'a>(
+        &mut self,
+        train_out: &mut impl Iterator<Item = &'a [f32; OUT]>,
+        train_in: &mut (impl Iterator<Item = &'a [f32; IN]> + Clone),
+        initial_state: &[f32; MIDDLE]
+    ) {
+        let mut train_in_clone = train_in.clone();
+
+        let middle_value = self.encoder.calc(train_in, initial_state);
+
+        match self.decoder.study(train_out, &middle_value) {
+            Some(feedback) => {
+                let _ = self.encoder.study_from_decorder(
+                    &feedback,
+                    &mut train_in_clone,
+                    initial_state
+                );
+            },
+
+            None => {}
+        }
+    }
+
+    pub fn update(&mut self, rate: f32) {
+        self.decoder.update(rate);
+        self.encoder.update(rate);
+    }
 }

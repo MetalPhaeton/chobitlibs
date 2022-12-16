@@ -6,6 +6,40 @@ use chobitlibs::chobit_ai::*;
 use chobitlibs::chobit_rand::*;
 
 #[test]
+fn to_from_label_test() {
+    const COUNT: usize = 100;
+
+    let mut rng = ChobitRand::new("to_from_label_test".as_bytes());
+
+    macro_rules! to_from_label_test_core {
+        ($type:ty, $rng:expr, $to_func:ident, $from_func:ident) => {{
+            let label = rng.next_u64() as $type;
+
+            let label_2 = $to_func(&$from_func(label));
+
+            assert_eq!(label, label_2, "{:0128b} \n {:0128b}", label, label_2);
+        }};
+
+        (u128, $rng:expr, $to_func:ident, $from_func:ident) => {{
+            let label =
+                ((rng.next_u64() as u128) << 64) | (rng.next_u64() as u128);
+
+            let label_2 = $to_func(&$from_func(label));
+
+            assert_eq!(label, label_2, "{:0128b} \n {:0128b}", label, label_2);
+        }};
+    }
+
+    for _ in 0..COUNT {
+        to_from_label_test_core!(u8, rng, to_u8_label, from_u8_label);
+        to_from_label_test_core!(u16, rng, to_u16_label, from_u16_label);
+        to_from_label_test_core!(u32, rng, to_u32_label, from_u32_label);
+        to_from_label_test_core!(u64, rng, to_u64_label, from_u64_label);
+        to_from_label_test_core!(u128, rng, to_u128_label, from_u128_label);
+    }
+}
+
+#[test]
 fn weights_test() {
     let weights_1 = Weights::<5>::new(
         [1.0, 2.0, 3.0, 4.0, 5.0],
