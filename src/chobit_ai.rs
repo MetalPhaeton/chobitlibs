@@ -1665,11 +1665,11 @@ impl<const OUT: usize, const IN: usize> ChobitDecoder<OUT, IN> {
     #[inline]
     pub fn start_calc<'a>(
         &'a self,
-        input: [f32; IN]
+        input: &[f32; IN]
     ) -> ChobitDecoderIter<'a, OUT, IN> {
         ChobitDecoderIter::<OUT, IN> {
             decoder: self,
-            input: input,
+            input: *input,
             state: [0.0; OUT]
         }
     }
@@ -1794,7 +1794,7 @@ impl<
         inputs: &mut impl Iterator<Item = &'a [f32; IN]>,
         initial_state: &[f32; MIDDLE]
     ) -> ChobitDecoderIter<OUT, MIDDLE> {
-        self.decoder.start_calc(self.encoder.calc(inputs, initial_state))
+        self.decoder.start_calc(&self.encoder.calc(inputs, initial_state))
     }
 
     pub fn study<'a>(
