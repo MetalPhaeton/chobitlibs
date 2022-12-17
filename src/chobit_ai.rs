@@ -315,181 +315,216 @@ impl<const N: usize> Mul<&MathVec<N>> for &MathVec<N> {
     }
 }
 
-///// Weights of a linear function.
-//#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-//pub struct Weights<const N: usize> {
-//    w: [f32; N],
-//    b: f32
-//}
-//
-//impl<const N: usize> Weights<N> {
-//    #[inline]
-//    pub fn new(w: &[f32; N], b: f32) -> Self {
-//        Self {w: *w, b: b}
-//    }
-//
-//    #[inline]
-//    pub fn w(&self) -> &[f32; N] {&self.w}
-//
-//    #[inline]
-//    pub fn b(&self) -> f32 {self.b}
-//
-//    #[inline]
-//    pub fn clear(&mut self) {
-//        self.w = [f32::default(); N];
-//        self.b = f32::default();
-//    }
-//}
-//
-//impl<const N: usize> Default for Weights<N> {
-//    #[inline]
-//    fn default() -> Self {
-//        Self {
-//            w: [f32::default(); N],
-//            b: f32::default()
-//        }
-//    }
-//}
-//
-//macro_rules! pointwise_op {
-//    ($self:expr, $other:expr, $ops:tt) => {{
-//        for i in 0..N {
-//            $self.w[i] $ops $other.w[i];
-//        }
-//
-//        $self.b $ops $other.b;
-//    }};
-//}
-//
-//macro_rules! scalar_op {
-//    ($self:expr, $other:expr, $ops:tt) => {{
-//        for i in 0..N {
-//            $self.w[i] $ops $other;
-//        }
-//
-//        $self.b $ops $other;
-//    }};
-//}
-//
-//impl<const N: usize> Add<Self> for Weights<N> {
-//    type Output = Self;
-//
-//    #[inline]
-//    fn add(mut self, other: Self) -> Self {
-//        pointwise_op!(self, other, +=);
-//
-//        self
-//    }
-//}
-//
-//impl<const N: usize> AddAssign<Self> for Weights<N> {
-//    #[inline]
-//    fn add_assign(&mut self, other: Self) {
-//        pointwise_op!(self, other, +=);
-//    }
-//}
-//
-//impl<const N: usize> Sub<Self> for Weights<N> {
-//    type Output = Self;
-//
-//    #[inline]
-//    fn sub(mut self, other: Self) -> Self {
-//        pointwise_op!(self, other, -=);
-//
-//        self
-//    }
-//}
-//
-//impl<const N: usize> SubAssign<Self> for Weights<N> {
-//    #[inline]
-//    fn sub_assign(&mut self, other: Self) {
-//        pointwise_op!(self, other, -=);
-//    }
-//}
-//
-//impl<const N: usize> Mul<f32> for Weights<N> {
-//    type Output = Self;
-//
-//    #[inline]
-//    fn mul(mut self, other: f32) -> Self {
-//        scalar_op!(self, other, *=);
-//
-//        self
-//    }
-//}
-//
-//impl<const N: usize> MulAssign<f32> for Weights<N> {
-//    #[inline]
-//    fn mul_assign(&mut self, other: f32) {
-//        scalar_op!(self, other, *=)
-//    }
-//}
-//
-//impl<const N: usize> Div<f32> for Weights<N> {
-//    type Output = Self;
-//
-//    #[inline]
-//    fn div(mut self, other: f32) -> Self {
-//        scalar_op!(self, other, /=);
-//
-//        self
-//    }
-//}
-//
-//impl<const N: usize> DivAssign<f32> for Weights<N> {
-//    #[inline]
-//    fn div_assign(&mut self, other: f32) {
-//        scalar_op!(self, other, /=)
-//    }
-//}
-//
-//impl<const N: usize> Rem<f32> for Weights<N> {
-//    type Output = Self;
-//
-//    #[inline]
-//    fn rem(mut self, other: f32) -> Self {
-//        scalar_op!(self, other, %=);
-//
-//        self
-//    }
-//}
-//
-//impl<const N: usize> RemAssign<f32> for Weights<N> {
-//    #[inline]
-//    fn rem_assign(&mut self, other: f32) {
-//        scalar_op!(self, other, %=)
-//    }
-//}
-//
-//impl<const N: usize> Mul<Self> for Weights<N> {
-//    type Output = f32;
-//
-//    #[inline]
-//    fn mul(self, other: Self) -> f32 {
-//        let mut ret = self.b * other.b;
-//
-//        for i in 0..N {
-//            ret += self.w[i] * other.w[i]
-//        }
-//
-//        ret
-//    }
-//}
-//
-//impl<const N: usize> Mul<[f32; N]> for Weights<N> {
-//    type Output = f32;
-//
-//    #[inline]
-//    fn mul(self, other: [f32; N]) -> f32 {
-//        let mut ret = self.b;
-//
-//        for i in 0..N {
-//            ret += self.w[i] * other[i]
-//        }
-//
-//        ret
-//    }
-//}
+/// Weights of a linear function.
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Weights<const N: usize> {
+    w: MathVec<N>,
+    b: f32
+}
+
+impl<const N: usize> Weights<N> {
+    #[inline]
+    pub fn new(w: MathVec<N>, b: f32) -> Self {
+        Self {w: w, b: b}
+    }
+
+    #[inline]
+    pub fn w(&self) -> &MathVec<N> {&self.w}
+
+    #[inline]
+    pub fn b(&self) -> f32 {self.b}
+
+    #[inline]
+    pub fn w_mut(&mut self) -> &mut MathVec<N> {&mut self.w}
+
+    #[inline]
+    pub fn b_mut(&mut self) -> &mut f32 {&mut self.b}
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.w.clear();
+        self.b = f32::default();
+    }
+
+    #[inline]
+    pub fn pointwise_mul(&self, other: &Self) -> Self {
+        Weights::<N> {
+            w: self.w.pointwise_mul(&other.w),
+            b: self.b * other.b
+        }
+    }
+
+    #[inline]
+    pub fn pointwise_mul_assign(&mut self, other: &Self) {
+        self.w.pointwise_mul_assign(&other.w);
+        self.b *= other.b;
+    }
+
+    #[inline]
+    pub fn pointwise_div(&self, other: &Self) -> Self {
+        Weights::<N> {
+            w: self.w.pointwise_div(&other.w),
+            b: self.b / other.b
+        }
+    }
+
+    #[inline]
+    pub fn pointwise_div_assign(&mut self, other: &Self) {
+        self.w.pointwise_div_assign(&other.w);
+        self.b /= other.b;
+    }
+
+    #[inline]
+    pub fn pointwise_rem(&self, other: &Self) -> Self {
+        Weights::<N> {
+            w: self.w.pointwise_rem(&other.w),
+            b: self.b % other.b
+        }
+    }
+
+    #[inline]
+    pub fn pointwise_rem_assign(&mut self, other: &Self) {
+        self.w.pointwise_rem_assign(&other.w);
+        self.b %= other.b;
+    }
+}
+
+impl<const N: usize> Default for Weights<N> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            w: MathVec::default(),
+            b: f32::default()
+        }
+    }
+}
+
+impl<const N: usize> Add<&Weights<N>> for &Weights<N> {
+    type Output = Weights<N>;
+
+    #[inline]
+    fn add(self, other: &Weights<N>) -> Weights<N> {
+        Weights::<N> {
+            w: &self.w + &other.w,
+            b: self.b + other.b
+        }
+    }
+}
+
+impl<const N: usize> AddAssign<&Weights<N>> for Weights<N> {
+    #[inline]
+    fn add_assign(&mut self, other: &Weights<N>) {
+        self.w += &other.w;
+        self.b += other.b;
+    }
+}
+
+impl<const N: usize> Sub<&Weights<N>> for &Weights<N> {
+    type Output = Weights<N>;
+
+    #[inline]
+    fn sub(self, other: &Weights<N>) -> Weights<N> {
+        Weights::<N> {
+            w: &self.w - &other.w,
+            b: self.b - other.b
+        }
+    }
+}
+
+impl<const N: usize> SubAssign<&Weights<N>> for Weights<N> {
+    #[inline]
+    fn sub_assign(&mut self, other: &Weights<N>) {
+        self.w -= &other.w;
+        self.b -= other.b;
+    }
+}
+
+impl<const N: usize> Mul<f32> for &Weights<N> {
+    type Output = Weights<N>;
+
+    #[inline]
+    fn mul(self, other: f32) -> Weights<N> {
+        Weights::<N> {
+            w: &self.w * other,
+            b: self.b * other
+        }
+    }
+}
+
+impl<const N: usize> MulAssign<f32> for Weights<N> {
+    #[inline]
+    fn mul_assign(&mut self, other: f32) {
+        self.w *= other;
+        self.b *= other;
+    }
+}
+
+impl<const N: usize> Div<f32> for &Weights<N> {
+    type Output = Weights<N>;
+
+    #[inline]
+    fn div(self, other: f32) -> Weights<N> {
+        Weights::<N> {
+            w: &self.w / other,
+            b: self.b / other
+        }
+    }
+}
+
+impl<const N: usize> DivAssign<f32> for Weights<N> {
+    #[inline]
+    fn div_assign(&mut self, other: f32) {
+        self.w /= other;
+        self.b /= other;
+    }
+}
+
+impl<const N: usize> Rem<f32> for &Weights<N> {
+    type Output = Weights<N>;
+
+    #[inline]
+    fn rem(self, other: f32) -> Weights<N> {
+        Weights::<N> {
+            w: &self.w % other,
+            b: self.b % other
+        }
+    }
+}
+
+impl<const N: usize> RemAssign<f32> for Weights<N> {
+    #[inline]
+    fn rem_assign(&mut self, other: f32) {
+        self.w %= other;
+        self.b %= other;
+    }
+}
+
+impl<const N: usize> Mul<&Weights<N>> for &Weights<N> {
+    type Output = f32;
+
+    #[inline]
+    fn mul(self, other: &Weights<N>) -> f32 {
+        (&self.w * &other.w) + (self.b * other.b)
+    }
+}
+
+impl<const N: usize> Mul<&MathVec<N>> for &Weights<N> {
+    type Output = f32;
+
+    #[inline]
+    fn mul(self, other: &MathVec<N>) -> f32 {
+        (&self.w * other) + self.b
+    }
+}
+
+impl<const N: usize> Mul<&Weights<N>> for &MathVec<N> {
+    type Output = f32;
+
+    #[inline]
+    fn mul(self, other: &Weights<N>) -> f32 {
+        other * self
+    }
+}
 //
 ///// Activation function for Neuron.
 /////
