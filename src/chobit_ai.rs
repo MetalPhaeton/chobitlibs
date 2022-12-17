@@ -28,7 +28,9 @@ use core::{
         Div,
         DivAssign,
         Rem,
-        RemAssign
+        RemAssign,
+        Deref,
+        DerefMut
     },
     mem::size_of
 };
@@ -147,7 +149,7 @@ impl<const N: usize> MathVec<N> {
     pub fn as_slice(&self) -> &[f32] {&*self.body}
 
     #[inline]
-    pub fn as_slice_mut(&mut self) -> &mut [f32] {&mut *self.body}
+    pub fn as_mut_slice(&mut self) -> &mut [f32] {&mut *self.body}
 
     #[inline]
     pub fn clear(&mut self) {self.body.fill(f32::default());}
@@ -192,6 +194,11 @@ impl<const N: usize> MathVec<N> {
     #[inline]
     pub fn pointwise_rem_assign(&mut self, other: &Self) {
         pointwise_op!(self, other, %=);
+    }
+
+    #[inline]
+    pub fn copy_from(&mut self, other: &Self) {
+        self.body.copy_from_slice(&*other.body);
     }
 }
 
@@ -315,6 +322,22 @@ impl<const N: usize> Mul<&MathVec<N>> for &MathVec<N> {
     }
 }
 
+impl<const N: usize> Deref for MathVec<N> {
+    type Target = [f32];
+
+    #[inline]
+    fn deref(&self) -> &[f32] {
+        &*self.body
+    }
+}
+
+impl<const N: usize> DerefMut for MathVec<N> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut [f32] {
+        &mut *self.body
+    }
+}
+
 /// Weights of a linear function.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Weights<const N: usize> {
@@ -386,6 +409,12 @@ impl<const N: usize> Weights<N> {
     pub fn pointwise_rem_assign(&mut self, other: &Self) {
         self.w.pointwise_rem_assign(&other.w);
         self.b %= other.b;
+    }
+
+    #[inline]
+    pub fn copy_from(&mut self, other: &Self) {
+        self.w.copy_from(&other.w);
+        self.b = other.b;
     }
 }
 
@@ -525,293 +554,302 @@ impl<const N: usize> Mul<&Weights<N>> for &MathVec<N> {
         other * self
     }
 }
-//
-///// Activation function for Neuron.
-/////
-///// See [Neuron] for details.
-//#[derive(Debug, Clone, Copy, PartialEq)]
-//pub enum Activation {
-//    /// No activation function.
-//    Linear,
-//
-//    /// ReLU : `(-inf, +inf) -> [0.0, +inf)`
-//    ReLU,
-//
-//    /// SoftSign : `(-inf, +inf) -> (-1.0, +1.0)`
-//    SoftSign,
-//
-//    /// Sigmoid : `(-inf, +inf) -> (0.0, +1.0)`
-//    Sigmoid
-//}
-//
-//impl Activation {
-//    /// Calculates activation function.
-//    ///
-//    /// * `x` : Input number.
-//    /// * _Return_ : Output number.
-//    #[inline]
-//    pub fn activate(&self, x: f32) -> f32 {
-//        match self {
-//            Self::Linear => x,
-//            Self::ReLU => x.max(0.0),
-//            Self::SoftSign => Self::softsign(x),
-//            Self::Sigmoid => Self::sigmoid(x)
-//        }
-//    }
-//
-//    /// Calculates its derivative function.
-//    ///
-//    /// * `x` : Input number.
-//    /// * _Return_ : Differential coefficient.
-//    #[inline]
-//    pub fn d_activate(&self, x: f32) -> f32 {
-//        match self {
-//            Self::Linear => 1.0,
-//
-//            Self::ReLU => if x <= 0.0 {0.0} else {1.0},
-//
-//            Self::SoftSign => Self::d_softsign(x),
-//
-//            Self::Sigmoid => Self::d_sigmoid(x)
-//        }
-//    }
-//
-//    #[inline]
-//    fn softsign_deno(x: f32) -> f32 {
-//        1.0 + x.max(-x)
-//    }
-//
-//    #[inline]
-//    fn softsign(x: f32) -> f32 {
-//        x / Self::softsign_deno(x)
-//    }
-//
-//    #[inline]
-//    fn d_softsign(x: f32) -> f32 {
-//        let deno = Self::softsign_deno(x);
-//        (deno * deno).recip()
-//    }
-//
-//    #[inline]
-//    fn sigmoid(x: f32) -> f32 {
-//        (Self::softsign(x) + 1.0) * 0.5
-//    }
-//
-//    #[inline]
-//    fn d_sigmoid(x: f32) -> f32 {
-//        Self::d_softsign(x) * 0.5
-//    }
-//}
-//
-///// Neuron that is a part of AI.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct Neuron<const N: usize> {
-//    weights: Box<Weights<N>>,
-//    activation: Activation,
-//
-//    total_grad: Box<Weights<N>>,
-//    study_count: f32,
-//    mome_1: Box<Weights<N>>,
-//    mome_2: f32
-//}
-//
-//impl<const N: usize> Neuron<N> {
-//    /// Creates Neuron.
-//    ///
-//    /// * `weights` : Initial weights.
-//    /// * `activation` : Activation function.
-//    /// * _Return_ : Instance.
-//    #[inline]
-//    pub fn new(weights: Weights<N>, activation: Activation) -> Self {
-//        Self {
-//            weights: Box::new(weights),
-//            activation: activation,
-//
-//            total_grad: Box::new(Weights::<N>::default()),
-//            study_count: 0.0,
-//            mome_1: Box::new(Weights::<N>::default()),
-//            mome_2: 0.0
-//        }
-//    }
-//
-//    /// Creates Neuron with study data.
-//    ///
-//    /// If you have been unfinished machine learning,
-//    /// you can continue it with this constructor.
-//    ///
-//    /// * `weights` : Initial weights.
-//    /// * `activation` : Activation function.
-//    /// * _Return_ : Instance.
-//    #[inline]
-//    pub fn with_study_data(
-//        weights: Weights<N>,
-//        activation: Activation,
-//        total_grad: Weights<N>,
-//        study_count: f32,
-//        mome_1: Weights<N>,
-//        mome_2: f32
-//    ) -> Self {
-//        Self {
-//            weights: Box::new(weights),
-//            activation: activation,
-//
-//            total_grad: Box::new(total_grad),
-//            study_count: study_count,
-//            mome_1: Box::new(mome_1),
-//            mome_2: mome_2
-//        }
-//    }
-//
-//    /// Gets Weights.
-//    ///
-//    /// * _Return_ : Weights.
-//    #[inline]
-//    pub fn weights(&self) -> &Weights<N> {&*self.weights}
-//
-//    /// Gets activation function.
-//    ///
-//    /// * _Return_ : Activation function.
-//    #[inline]
-//    pub fn activation(&self) -> Activation {self.activation}
-//
-//    /// Gets total gradients.
-//    ///
-//    /// * _Return_ : Total gradients.
-//    #[inline]
-//    pub fn total_grad(&self) -> &Weights<N> {&*self.total_grad}
-//
-//    /// Gets a count how many times it have been studying.
-//    ///
-//    /// * _Return_ : A count.
-//    #[inline]
-//    pub fn study_count(&self) -> f32 {self.study_count}
-//
-//    /// Gets 1st momentum for Adam.
-//    ///
-//    /// * _Return_ : 1st momentum.
-//    #[inline]
-//    pub fn mome_1(&self) -> &Weights<N> {&*self.mome_1}
-//
-//
-//    /// Gets 2nd momentum for Adam.
-//    ///
-//    /// * _Return_ : 2nd momentum.
-//    #[inline]
-//    pub fn mome_2(&self) -> f32 {self.mome_2}
-//
-//    /// Calculates input by linear function and activation function.
-//    ///
-//    /// * `input` : Input vector.
-//    /// * _Return_ : Output number.
-//    #[inline]
-//    pub fn calc(&self, input: &[f32; N]) -> f32 {
-//        self.activation.activate(*self.weights * *input)
-//    }
-//
-//    /// Forgets data of gradients and momenta.
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.total_grad.clear();
-//        self.study_count = 0.0;
-//        self.mome_1.clear();
-//        self.mome_2 = 0.0;
-//    }
-//
-//    /// Studies gradients by Backpropagation.
-//    /// But not updates weights yet.
-//    ///
-//    /// * `feedback` : Gradient of loss function that is propagated back from next layer.
-//    /// * `input` : Input vector.
-//    /// * _Return_ : Gradient of loss function that should propagate to previous layer.
-//    ///
-//    /// ```text
-//    ///               feedback                      Return
-//    /// Next_Neuron ------------> This_Neuron    ------------> Previous_Neuron
-//    /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
-//    /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
-//    /// Next_Neuron ---/     \--> Sibling_Neuron ---/     \--> Previous_Neuron
-//    /// ```
-//    pub fn study(&mut self, feedback: f32, input: &[f32; N]) -> [f32; N] {
-//        let (grad_w, grad_i) = self.grad(feedback, input);
-//
-//        *self.total_grad += grad_w;
-//        self.study_count += 1.0;
-//
-//        grad_i
-//    }
-//
-//    #[inline]
-//    fn grad(&self, feedback: f32, input: &[f32; N]) -> (Weights<N>, [f32; N]) {
-//        let factor =
-//            feedback * self.activation.d_activate(*self.weights * *input);
-//
-//        let mut grad_w = Weights::<N>::new(input, 1.0);
-//        grad_w *= factor;
-//
-//        let grad_i = *(*self.weights * factor).w();
-//
-//        (grad_w, grad_i)
-//    }
-//
-//    /// Updates Weights to use studied gradients.
-//    ///
-//    /// * `rate` : Learning rate.
-//    pub fn update(&mut self, rate: f32) {
-//        let grad = *self.total_grad / self.study_count;
-//
-//        self.next_mome_1(&grad);
-//        self.next_mome_2(&grad);
-//
-//        let mome_1 = self.mome_1_hat();
-//        let mome_2 = self.mome_2_hat();
-//
-//        *self.weights -= Self::d_weights(&mome_1, mome_2, rate);
-//
-//        self.total_grad.clear();
-//        self.study_count = 0.0;
-//    }
-//
-//    #[inline]
-//    fn next_mome_1(&mut self, grad: &Weights<N>) {
-//        const BETA: f32 = 0.9;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        *self.mome_1 *= BETA;
-//        *self.mome_1 += *grad * BETA_INV;
-//    }
-//
-//    #[inline]
-//    fn next_mome_2(&mut self, grad: &Weights<N>) {
-//        const BETA: f32 = 0.999;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        self.mome_2 *= BETA;
-//        self.mome_2 += (*grad * *grad) * BETA_INV;
-//    }
-//
-//    #[inline]
-//    fn mome_1_hat(&self) -> Weights<N> {
-//        const BETA: f32 = 0.9;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        *self.mome_1 / BETA_INV
-//    }
-//
-//    #[inline]
-//    fn mome_2_hat(&self) -> f32 {
-//        const BETA: f32 = 0.999;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        self.mome_2 / BETA_INV
-//    }
-//
-//    #[inline]
-//    fn d_weights(mome_1: &Weights<N>, mome_2: f32, rate: f32) -> Weights<N> {
-//        const EPSILION: f32 = 1.0e-8;
-//
-//        (*mome_1 / (sqrt(mome_2) + EPSILION)) * rate
-//    }
-//}
+
+/// Activation function for Neuron.
+///
+/// See [Neuron] for details.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Activation {
+    /// No activation function.
+    Linear,
+
+    /// ReLU : `(-inf, +inf) -> [0.0, +inf)`
+    ReLU,
+
+    /// SoftSign : `(-inf, +inf) -> (-1.0, +1.0)`
+    SoftSign,
+
+    /// Sigmoid : `(-inf, +inf) -> (0.0, +1.0)`
+    Sigmoid
+}
+
+impl Activation {
+    /// Calculates activation function.
+    ///
+    /// * `x` : Input number.
+    /// * _Return_ : Output number.
+    #[inline]
+    pub fn activate(&self, x: f32) -> f32 {
+        match self {
+            Self::Linear => x,
+            Self::ReLU => x.max(0.0),
+            Self::SoftSign => Self::softsign(x),
+            Self::Sigmoid => Self::sigmoid(x)
+        }
+    }
+
+    /// Calculates its derivative function.
+    ///
+    /// * `x` : Input number.
+    /// * _Return_ : Differential coefficient.
+    #[inline]
+    pub fn d_activate(&self, x: f32) -> f32 {
+        match self {
+            Self::Linear => 1.0,
+
+            Self::ReLU => if x <= 0.0 {0.0} else {1.0},
+
+            Self::SoftSign => Self::d_softsign(x),
+
+            Self::Sigmoid => Self::d_sigmoid(x)
+        }
+    }
+
+    #[inline]
+    fn softsign_deno(x: f32) -> f32 {
+        1.0 + x.max(-x)
+    }
+
+    #[inline]
+    fn softsign(x: f32) -> f32 {
+        x / Self::softsign_deno(x)
+    }
+
+    #[inline]
+    fn d_softsign(x: f32) -> f32 {
+        let deno = Self::softsign_deno(x);
+        (deno * deno).recip()
+    }
+
+    #[inline]
+    fn sigmoid(x: f32) -> f32 {
+        (Self::softsign(x) + 1.0) * 0.5
+    }
+
+    #[inline]
+    fn d_sigmoid(x: f32) -> f32 {
+        Self::d_softsign(x) * 0.5
+    }
+}
+
+/// Neuron that is a part of AI.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Neuron<const N: usize> {
+    weights: Weights<N>,
+    activation: Activation,
+
+    total_grad: Weights<N>,
+    study_count: f32,
+    mome_1: Weights<N>,
+    mome_2: f32,
+
+    tmp_weights_1: Weights<N>,
+    tmp_weights_2: Weights<N>,
+    tmp_vec: MathVec<N>
+}
+
+impl<const N: usize> Neuron<N> {
+    /// Creates Neuron.
+    ///
+    /// * `weights` : Initial weights.
+    /// * `activation` : Activation function.
+    /// * _Return_ : Instance.
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            weights: Weights::<N>::default(),
+            activation: activation,
+
+            total_grad: Weights::<N>::default(),
+            study_count: 0.0,
+            mome_1: Weights::<N>::default(),
+            mome_2: 0.0,
+
+            tmp_weights_1: Weights::<N>::default(),
+            tmp_weights_2: Weights::<N>::default(),
+            tmp_vec: MathVec::<N>::default()
+        }
+    }
+
+    /// Gets Weights.
+    ///
+    /// * _Return_ : Weights.
+    #[inline]
+    pub fn weights(&self) -> &Weights<N> {&self.weights}
+
+    #[inline]
+    pub fn weights_mut(&mut self) -> &mut Weights<N> {&mut self.weights}
+
+    /// Gets activation function.
+    ///
+    /// * _Return_ : Activation function.
+    #[inline]
+    pub fn activation(&self) -> Activation {self.activation}
+
+    #[inline]
+    pub fn activation_mut (&mut self) -> &mut Activation {&mut self.activation}
+
+    /// Gets total gradients.
+    ///
+    /// * _Return_ : Total gradients.
+    #[inline]
+    pub fn total_grad(&self) -> &Weights<N> {&self.total_grad}
+
+    #[inline]
+    pub fn total_grad_mut(&mut self) -> &mut Weights<N> {&mut self.total_grad}
+
+    /// Gets a count how many times it have been studying.
+    ///
+    /// * _Return_ : A count.
+    #[inline]
+    pub fn study_count(&self) -> f32 {self.study_count}
+
+    #[inline]
+    pub fn set_study_count(&mut self, count: f32) {
+        self.study_count = count.max(0.0) as usize as f32;
+    }
+
+    /// Gets 1st momentum for Adam.
+    ///
+    /// * _Return_ : 1st momentum.
+    #[inline]
+    pub fn mome_1(&self) -> &Weights<N> {&self.mome_1}
+
+    #[inline]
+    pub fn mome_1_mut(&mut self) -> &mut Weights<N> {&mut self.mome_1}
+
+    /// Gets 2nd momentum for Adam.
+    ///
+    /// * _Return_ : 2nd momentum.
+    #[inline]
+    pub fn mome_2(&self) -> f32 {self.mome_2}
+
+    #[inline]
+    pub fn set_mome_2(&mut self, mome_2: f32) {
+        self.mome_2 = mome_2.max(-mome_2);
+    }
+
+    /// Calculates input by linear function and activation function.
+    ///
+    /// * `input` : Input vector.
+    /// * _Return_ : Output number.
+    #[inline]
+    pub fn calc(&self, input: &MathVec<N>) -> f32 {
+        self.activation.activate(&self.weights * input)
+    }
+
+    /// Forgets data of gradients and momenta.
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.total_grad.clear();
+        self.study_count = 0.0;
+        self.mome_1.clear();
+        self.mome_2 = 0.0;
+    }
+
+    /// Studies gradients by Backpropagation.
+    /// But not updates weights yet.
+    ///
+    /// * `feedback` : Gradient of loss function that is propagated back from next layer.
+    /// * `input` : Input vector.
+    /// * _Return_ : Gradient of loss function that should propagate to previous layer.
+    ///
+    /// ```text
+    ///               feedback                      Return
+    /// Next_Neuron ------------> This_Neuron    ------------> Previous_Neuron
+    /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
+    /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
+    /// Next_Neuron ---/     \--> Sibling_Neuron ---/     \--> Previous_Neuron
+    /// ```
+    #[inline]
+    pub fn study(&mut self, feedback: f32, input: &MathVec<N>) -> &MathVec<N> {
+        self.calc_grad(feedback, input);
+
+        self.total_grad += &self.tmp_weights_1;
+        self.study_count += 1.0;
+
+        &self.tmp_vec
+    }
+
+    fn calc_grad(&mut self, feedback: f32, input: &MathVec<N>) {
+        let factor =
+            feedback * self.activation.d_activate(&self.weights * input);
+
+        self.tmp_weights_1.w_mut().copy_from(input);
+        *self.tmp_weights_1.w_mut() *= factor;
+        *self.tmp_weights_1.b_mut() = factor;
+
+        self.tmp_vec.copy_from(self.weights.w());
+        self.tmp_vec *= factor;
+    }
+
+    /// Updates Weights to use studied gradients.
+    ///
+    /// * `rate` : Learning rate.
+    pub fn update(&mut self, rate: f32) {
+        self.total_grad /= self.study_count;
+
+        self.next_mome_1();
+        self.next_mome_2();
+
+        self.calc_mome_1_hat();
+        let mome_2 = self.mome_2_hat();
+
+        self.update_weights(mome_2, rate);
+
+        self.total_grad.clear();
+        self.study_count = 0.0;
+    }
+
+    #[inline]
+    fn next_mome_1(&mut self) {
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        self.tmp_weights_1.copy_from(&self.mome_1);
+
+        self.mome_1 *= BETA;
+
+        self.tmp_weights_1.copy_from(&self.total_grad);
+        self.tmp_weights_1 *= BETA_INV;
+
+        self.mome_1 += &self.tmp_weights_1;
+    }
+
+    #[inline]
+    fn next_mome_2(&mut self) {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        self.mome_2 *= BETA;
+        self.mome_2 += (&self.total_grad * &self.total_grad) * BETA_INV;
+    }
+
+    #[inline]
+    fn calc_mome_1_hat(&mut self) {
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        self.tmp_weights_2.copy_from(&self.mome_1);
+        self.tmp_weights_2 /= BETA_INV;
+    }
+
+    #[inline]
+    fn mome_2_hat(&self) -> f32 {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        self.mome_2 / BETA_INV
+    }
+
+    #[inline]
+    fn update_weights(&mut self, mome_2: f32, rate: f32) {
+        self.tmp_weights_2 /= sqrt(mome_2) + f32::EPSILON;
+        self.tmp_weights_2 *= rate;
+
+        self.weights -= &self.tmp_weights_2;
+    }
+}
 //
 ///// Layer of AI.
 /////
