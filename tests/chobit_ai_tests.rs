@@ -43,13 +43,13 @@ fn to_from_label_test() {
 fn math_vec_test_1() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 1.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
 
         let vec_4 = &vec_1 + &vec_2;
         assert_eq!(vec_3, vec_4);
@@ -59,13 +59,13 @@ fn math_vec_test_1() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 1.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let vec_4 = &vec_1 - &vec_2;
         assert_eq!(vec_3, vec_4);
@@ -79,12 +79,12 @@ fn math_vec_test_1() {
 fn math_vec_test_2() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let scalar: f32 = 3.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
 
         let vec_3 = &vec_1 * scalar;
         assert_eq!(vec_3, vec_2);
@@ -94,12 +94,12 @@ fn math_vec_test_2() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
 
         let scalar: f32 = 3.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let vec_3 = &vec_1 / scalar;
         assert_eq!(vec_3, vec_2);
@@ -109,12 +109,12 @@ fn math_vec_test_2() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 12.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0});
 
         let scalar: f32 = 10.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let vec_3 = &vec_1 % scalar;
         assert_eq!(vec_3, vec_2);
@@ -128,10 +128,10 @@ fn math_vec_test_2() {
 fn math_vec_test_3() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
 
         let scalar_1: f32 = 2.0 * 3.0 * 10.0;
 
@@ -144,13 +144,13 @@ fn math_vec_test_3() {
 fn math_vec_test_4() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
 
         let vec_4 = vec_1.pointwise_mul(&vec_2);
         assert_eq!(vec_4, vec_3);
@@ -160,13 +160,13 @@ fn math_vec_test_4() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let vec_4 = vec_1.pointwise_div(&vec_2);
         assert_eq!(vec_4, vec_3);
@@ -176,13 +176,13 @@ fn math_vec_test_4() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 12.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 10.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 10.0});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
 
         let vec_4 = vec_1.pointwise_rem(&vec_2);
         assert_eq!(vec_4, vec_3);
@@ -193,18 +193,32 @@ fn math_vec_test_4() {
 }
 
 #[test]
+fn math_vec_test_5() {
+    {
+        let mut vec_1 = MathVec::<10>::new();
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
+
+        let mut vec_2 = MathVec::<10>::new();
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
+
+        vec_1.copy_from(&vec_2);
+        assert_eq!(vec_1, vec_2);
+    }
+}
+
+#[test]
 fn weights_test_1() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 1.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
         let mut weights_1 = Weights::new(vec_1, 1.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_2 = Weights::new(vec_2, 2.0);
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let weights_3 = Weights::new(vec_3, 3.0);
 
         let weights_4 = &weights_1 + &weights_2;
@@ -215,15 +229,15 @@ fn weights_test_1() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let mut weights_1 = Weights::new(vec_1, 3.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 1.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
         let weights_2 = Weights::new(vec_2, 1.0);
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_3 = Weights::new(vec_3, 2.0);
 
         let weights_4 = &weights_1 - &weights_2;
@@ -238,13 +252,13 @@ fn weights_test_1() {
 fn weights_test_2() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let mut weights_1 = Weights::new(vec_1, 3.0);
 
         let scalar: f32 = 2.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
         let weights_2 = Weights::new(vec_2, 6.0);
 
         let weights_3 = &weights_1 * scalar;
@@ -255,13 +269,13 @@ fn weights_test_2() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
         let mut weights_1 = Weights::new(vec_1, 6.0);
 
         let scalar: f32 = 2.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let weights_2 = Weights::new(vec_2, 3.0);
 
         let weights_3 = &weights_1 / scalar;
@@ -272,13 +286,13 @@ fn weights_test_2() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 12.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0});
         let mut weights_1 = Weights::new(vec_1, 12.0);
 
         let scalar: f32 = 10.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_2 = Weights::new(vec_2, 2.0);
 
         let weights_3 = &weights_1 % scalar;
@@ -293,11 +307,11 @@ fn weights_test_2() {
 fn weights_test_3() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_1 = Weights::new(vec_1, 2.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let weights_2 = Weights::new(vec_2, 3.0);
 
         let scalar_1: f32 = 2.0 * 3.0 * 11.0;
@@ -307,11 +321,11 @@ fn weights_test_3() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_1 = Weights::new(vec_1, 2.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
 
         let scalar_1: f32 = (2.0 * 3.0 * 10.0) + 2.0;
 
@@ -327,15 +341,15 @@ fn weights_test_3() {
 fn weights_test_4() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let mut weights_1 = Weights::new(vec_1, 2.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let weights_2 = Weights::new(vec_2, 3.0);
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
         let weights_3 = Weights::new(vec_3, 6.0);
 
         let weights_4 = weights_1.pointwise_mul(&weights_2);
@@ -346,15 +360,15 @@ fn weights_test_4() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 6.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
         let mut weights_1 = Weights::new(vec_1, 6.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_2 = Weights::new(vec_2, 2.0);
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 3.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
         let weights_3 = Weights::new(vec_3, 3.0);
 
         let weights_4 = weights_1.pointwise_div(&weights_2);
@@ -365,15 +379,15 @@ fn weights_test_4() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_slice_mut().iter_mut().for_each(|x| {*x = 12.0});
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0});
         let mut weights_1 = Weights::new(vec_1, 12.0);
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_slice_mut().iter_mut().for_each(|x| {*x = 10.0});
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 10.0});
         let weights_2 = Weights::new(vec_2, 10.0);
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_slice_mut().iter_mut().for_each(|x| {*x = 2.0});
+        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
         let weights_3 = Weights::new(vec_3, 2.0);
 
         let weights_4 = weights_1.pointwise_rem(&weights_2);
@@ -382,6 +396,109 @@ fn weights_test_4() {
         weights_1.pointwise_rem_assign(&weights_2);
         assert_eq!(weights_1, weights_3);
     }
+}
+
+#[test]
+fn weights_test_5() {
+    {
+        let mut vec_1 = MathVec::<10>::new();
+        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
+        let mut weights_1 = Weights::new(vec_1, 2.0);
+
+        let mut vec_2 = MathVec::<10>::new();
+        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
+        let weights_2 = Weights::new(vec_2, 4.0);
+
+        weights_1.copy_from(&weights_2);
+        assert_eq!(weights_1, weights_2);
+    }
+}
+
+#[inline]
+fn rand_num(rng: &mut ChobitRand) -> f32 {
+    ((rng.next_f64() * 2.0) - 1.0) as f32
+}
+
+fn gen_neuron<const N: usize>(
+    rng: &mut ChobitRand,
+) -> Neuron<N> {
+    let mut ret = Neuron::<N>::new(Activation::SoftSign);
+
+    ret.weights_mut().w_mut().iter_mut().for_each(|w| *w = rand_num(rng));
+    *ret.weights_mut().b_mut() = rand_num(rng);
+
+    ret
+}
+
+fn gen_data_set_1<const N: usize>(
+    rng: &mut ChobitRand,
+    size: usize
+) -> Vec<(MathVec<N>, f32)> {
+    let mut param = MathVec::<N>::new();
+    param.iter_mut().for_each(|x| *x = rand_num(rng));
+
+    let mut ret = Vec::<(MathVec<N>, f32)>::with_capacity(size);
+
+    let activation = Activation::SoftSign;
+
+    for _ in 0..size {
+        let mut v = MathVec::<N>::new();
+        v.iter_mut().for_each(|x| *x = rand_num(rng));
+
+        let ans = activation.activate(&param * &v);
+
+        ret.push((v, ans))
+    }
+
+    ret
+}
+
+#[test]
+fn neuron_test() {
+    const N: usize = 10;
+    const DATA_SET_SIZE: usize = 200;
+
+    let mut rng = ChobitRand::new("neuron_test".as_bytes());
+
+    let mut data_set = gen_data_set_1::<N>(&mut rng, DATA_SET_SIZE);
+
+    let mut neuron = gen_neuron(&mut rng);
+
+    fn print(data_set: &Vec<(MathVec<N>, f32)>, neuron: &Neuron<N>) {
+        let mut total: f32 = 0.0;
+
+        for data in data_set {
+            let output = neuron.calc(&data.0);
+
+            let diff = output - data.1;
+
+            total += diff.max(-diff)
+        }
+
+        println!("loss: {}", total / (data_set.len() as f32));
+        println!("----------");
+    }
+
+    print(&data_set, &neuron);
+
+    const EPOCH: usize = 3000;
+    const RATE: f32 = 0.01;
+
+    for _ in 0..EPOCH {
+        rng.shuffle(&mut data_set);
+
+        for data in &data_set {
+            let output = neuron.calc(&data.0);
+
+            let diff = output - data.1;
+
+            let _ = neuron.study(diff, &data.0);
+        }
+
+        neuron.update(RATE);
+    }
+
+    print(&data_set, &neuron);
 }
 
 ////--------------------//
