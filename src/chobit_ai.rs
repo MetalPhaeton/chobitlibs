@@ -670,9 +670,11 @@ pub struct Neuron<const N: usize> {
     mome_1: Weights<N>,
     mome_2: f32,
 
-    tmp_weights_1: Weights<N>,
-    tmp_weights_2: Weights<N>,
-    tmp_vec: MathVec<N>
+    grad_w: Weights<N>,
+    grad_x: MathVec<N>,
+
+    total_grad_2: Weights<N>,
+    mome_1_hat: Weights<N>
 }
 
 impl<const N: usize> Neuron<N> {
@@ -692,9 +694,11 @@ impl<const N: usize> Neuron<N> {
             mome_1: Weights::<N>::default(),
             mome_2: 0.0,
 
-            tmp_weights_1: Weights::<N>::default(),
-            tmp_weights_2: Weights::<N>::default(),
-            tmp_vec: MathVec::<N>::default()
+            grad_w: Weights::<N>::default(),
+            grad_x: MathVec::<N>::default(),
+
+            total_grad_2: Weights::<N>::default(),
+            mome_1_hat: Weights::<N>::default()
         }
     }
 
@@ -792,22 +796,22 @@ impl<const N: usize> Neuron<N> {
     pub fn study(&mut self, feedback: f32, input: &MathVec<N>) -> &MathVec<N> {
         self.calc_grad(feedback, input);
 
-        self.total_grad += &self.tmp_weights_1;
+        self.total_grad += &self.grad_w;
         self.study_count += 1.0;
 
-        &self.tmp_vec
+        &self.grad_x
     }
 
     fn calc_grad(&mut self, feedback: f32, input: &MathVec<N>) {
         let factor =
             feedback * self.activation.d_activate(&self.weights * input);
 
-        self.tmp_weights_1.w_mut().copy_from(input);
-        *self.tmp_weights_1.w_mut() *= factor;
-        *self.tmp_weights_1.b_mut() = factor;
+        self.grad_w.w_mut().copy_from(input);
+        *self.grad_w.w_mut() *= factor;
+        *self.grad_w.b_mut() = factor;
 
-        self.tmp_vec.copy_from(self.weights.w());
-        self.tmp_vec *= factor;
+        self.grad_x.copy_from(self.weights.w());
+        self.grad_x *= factor;
     }
 
     /// Updates Weights to use studied gradients.
@@ -833,14 +837,14 @@ impl<const N: usize> Neuron<N> {
         const BETA: f32 = 0.9;
         const BETA_INV: f32 = 1.0 - BETA;
 
-        self.tmp_weights_1.copy_from(&self.mome_1);
+        self.total_grad_2.copy_from(&self.mome_1);
 
         self.mome_1 *= BETA;
 
-        self.tmp_weights_1.copy_from(&self.total_grad);
-        self.tmp_weights_1 *= BETA_INV;
+        self.total_grad_2.copy_from(&self.total_grad);
+        self.total_grad_2 *= BETA_INV;
 
-        self.mome_1 += &self.tmp_weights_1;
+        self.mome_1 += &self.total_grad_2;
     }
 
     #[inline]
@@ -857,8 +861,8 @@ impl<const N: usize> Neuron<N> {
         const BETA: f32 = 0.9;
         const BETA_INV: f32 = 1.0 - BETA;
 
-        self.tmp_weights_2.copy_from(&self.mome_1);
-        self.tmp_weights_2 /= BETA_INV;
+        self.mome_1_hat.copy_from(&self.mome_1);
+        self.mome_1_hat /= BETA_INV;
     }
 
     #[inline]
@@ -871,10 +875,10 @@ impl<const N: usize> Neuron<N> {
 
     #[inline]
     fn update_weights(&mut self, mome_2: f32, rate: f32) {
-        self.tmp_weights_2 /= sqrt(mome_2) + f32::EPSILON;
-        self.tmp_weights_2 *= rate;
+        self.mome_1_hat /= sqrt(mome_2) + f32::EPSILON;
+        self.mome_1_hat *= rate;
 
-        self.weights -= &self.tmp_weights_2;
+        self.weights -= &self.mome_1_hat;
     }
 }
 
@@ -886,7 +890,7 @@ impl<const N: usize> Neuron<N> {
 pub struct Layer<const OUT: usize, const IN: usize> {
     neurons: Box<[Neuron<IN>]>,
 
-    tmp_in: MathVec<IN>,
+    feedback_next: MathVec<IN>,
 }
 
 impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
@@ -898,7 +902,7 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
             neurons:
                 vec![Neuron::<IN>::new(acitvation); OUT].into_boxed_slice(),
 
-            tmp_in: MathVec::<IN>::default()
+            feedback_next: MathVec::<IN>::default()
         }
     }
 
@@ -935,15 +939,15 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
         feedback: &MathVec<OUT>,
         input: &MathVec<IN>,
     ) -> &MathVec<IN> {
-        self.tmp_in.clear();
+        self.feedback_next.clear();
 
         for i in 0..OUT {
-            let feedback_next = self.neurons[i].study(feedback[i], input);
+            let feedback_next_2 = self.neurons[i].study(feedback[i], input);
 
-            self.tmp_in += feedback_next;
+            self.feedback_next += feedback_next_2;
         }
 
-        &self.tmp_in
+        &self.feedback_next
     }
 
     /// Updates Weights to use studied gradients.
@@ -967,7 +971,7 @@ pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
 
     tmp_out: MathVec<OUT>,
     tmp_middle: MathVec<MIDDLE>,
-    tmp_in: MathVec<IN>
+    feedback_next: MathVec<IN>
 }
 
 impl<
@@ -984,7 +988,7 @@ impl<
 
             tmp_out: MathVec::<OUT>::new(),
             tmp_middle: MathVec::<MIDDLE>::new(),
-            tmp_in: MathVec::<IN>::new()
+            feedback_next: MathVec::<IN>::new()
         }
     }
 
@@ -1033,7 +1037,7 @@ impl<
     ) -> &MathVec<IN> {
         self.middle_layer.calc(train_in, &mut self.tmp_middle);
 
-        self.tmp_in.copy_from(
+        self.feedback_next.copy_from(
             self.middle_layer.study(
                 self.output_layer.study(
                     feedback,
@@ -1043,7 +1047,7 @@ impl<
             )
         );
 
-        &self.tmp_in
+        &self.feedback_next
     }
 
     pub fn study(
@@ -1056,7 +1060,7 @@ impl<
 
         self.tmp_out -= train_out;
 
-        self.tmp_in.copy_from(
+        self.feedback_next.copy_from(
             self.middle_layer.study(
                 self.output_layer.study(
                     &self.tmp_out,
@@ -1066,7 +1070,7 @@ impl<
             )
         );
 
-        &self.tmp_in
+        &self.feedback_next
     }
 
     /// Updates Weights to use studied gradients.
@@ -1078,860 +1082,3 @@ impl<
         self.middle_layer.update(rate);
     }
 }
-
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct GRUNeuron<const N: usize> {
-//    z_weights: Box<(Weights<N>, f32)>,
-//    r_weights: Box<(Weights<N>, f32)>,
-//    h_weights: Box<(Weights<N>, f32)>,
-//
-//    z_total_grad: Box<(Weights<N>, f32)>,
-//    r_total_grad: Box<(Weights<N>, f32)>,
-//    h_total_grad: Box<(Weights<N>, f32)>,
-//
-//    study_count: f32,
-//
-//    z_mome_1: Box<(Weights<N>, f32)>,
-//    r_mome_1: Box<(Weights<N>, f32)>,
-//    h_mome_1: Box<(Weights<N>, f32)>,
-//
-//    z_mome_2: f32,
-//    r_mome_2: f32,
-//    h_mome_2: f32
-//}
-//
-//impl<const N: usize> GRUNeuron<N> {
-//    #[inline]
-//    pub fn new(
-//        z_weights: (Weights<N>, f32),
-//        r_weights: (Weights<N>, f32),
-//        h_weights: (Weights<N>, f32)
-//    ) -> Self {
-//        Self {
-//            z_weights: Box::new(z_weights),
-//            r_weights: Box::new(r_weights),
-//            h_weights: Box::new(h_weights),
-//
-//            z_total_grad: Box::new((Weights::<N>::default(), 0.0)),
-//            r_total_grad: Box::new((Weights::<N>::default(), 0.0)),
-//            h_total_grad: Box::new((Weights::<N>::default(), 0.0)),
-//
-//            study_count: 0.0,
-//
-//            z_mome_1: Box::new((Weights::<N>::default(), 0.0)),
-//            r_mome_1: Box::new((Weights::<N>::default(), 0.0)),
-//            h_mome_1: Box::new((Weights::<N>::default(), 0.0)),
-//
-//            z_mome_2: 0.0,
-//            r_mome_2: 0.0,
-//            h_mome_2: 0.0
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn with_study_data(
-//        z_weights: (Weights<N>, f32),
-//        r_weights: (Weights<N>, f32),
-//        h_weights: (Weights<N>, f32),
-//        z_total_grad: (Weights<N>, f32),
-//        r_total_grad: (Weights<N>, f32),
-//        h_total_grad: (Weights<N>, f32),
-//        study_count: f32,
-//        z_mome_1: (Weights<N>, f32),
-//        r_mome_1: (Weights<N>, f32),
-//        h_mome_1: (Weights<N>, f32),
-//        z_mome_2: f32,
-//        r_mome_2: f32,
-//        h_mome_2: f32
-//    ) -> Self {
-//        Self {
-//            z_weights: Box::new(z_weights),
-//            r_weights: Box::new(r_weights),
-//            h_weights: Box::new(h_weights),
-//            z_total_grad: Box::new(z_total_grad),
-//            r_total_grad: Box::new(r_total_grad),
-//            h_total_grad: Box::new(h_total_grad),
-//            study_count: study_count,
-//            z_mome_1: Box::new(z_mome_1),
-//            r_mome_1: Box::new(r_mome_1),
-//            h_mome_1: Box::new(h_mome_1),
-//            z_mome_2: z_mome_2,
-//            r_mome_2: r_mome_2,
-//            h_mome_2: h_mome_2
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn z_weights(&self) -> &(Weights<N>, f32) {&*self.z_weights}
-//
-//    #[inline]
-//    pub fn r_weights(&self) -> &(Weights<N>, f32) {&*self.r_weights}
-//
-//    #[inline]
-//    pub fn h_weights(&self) -> &(Weights<N>, f32) {&*self.h_weights}
-//
-//    #[inline]
-//    pub fn z_total_grad(&self) -> &(Weights<N>, f32) {&*self.z_total_grad}
-//
-//    #[inline]
-//    pub fn r_total_grad(&self) -> &(Weights<N>, f32) {&*self.r_total_grad}
-//
-//    #[inline]
-//    pub fn h_total_grad(&self) -> &(Weights<N>, f32) {&*self.h_total_grad}
-//
-//    #[inline]
-//    pub fn study_count(&self) -> f32 {self.study_count}
-//
-//    #[inline]
-//    pub fn z_mome_1(&self) -> &(Weights<N>, f32) {&*self.z_mome_1}
-//
-//    #[inline]
-//    pub fn r_mome_1(&self) -> &(Weights<N>, f32) {&*self.r_mome_1}
-//
-//    #[inline]
-//    pub fn h_mome_1(&self) -> &(Weights<N>, f32) {&*self.h_mome_1}
-//
-//    #[inline]
-//    pub fn z_mome_2(&self) -> f32 {self.z_mome_2}
-//
-//    #[inline]
-//    pub fn r_mome_2(&self) -> f32 {self.r_mome_2}
-//
-//    #[inline]
-//    pub fn h_mome_2(&self) -> f32 {self.h_mome_2}
-//
-//    #[inline]
-//    pub fn calc(&self, input: &[f32; N], state: f32) -> f32 {
-//        let z_output = Activation::Sigmoid.activate(
-//            self.calc_z(input, state)
-//        );
-//
-//        let r_output = Activation::Sigmoid.activate(
-//            self.calc_r(input, state)
-//        );
-//
-//        let h_output = Activation::SoftSign.activate(
-//            self.calc_h(input, state * r_output)
-//        );
-//
-//        let z_inv_output = 1.0 - z_output;
-//
-//        (h_output * z_output) + (state * z_inv_output)
-//    }
-//
-//    #[inline]
-//    fn calc_z(&self, input: &[f32; N], state: f32) -> f32 {
-//        (self.z_weights.0 * *input) + (self.z_weights.1 * state)
-//    }
-//
-//    #[inline]
-//    fn calc_r(&self, input: &[f32; N], state: f32) -> f32 {
-//        (self.r_weights.0 * *input) + (self.r_weights.1 * state)
-//    }
-//
-//    #[inline]
-//    fn calc_h(&self, input: &[f32; N], state: f32) -> f32 {
-//        (self.h_weights.0 * *input) + (self.h_weights.1 * state)
-//    }
-//
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.z_total_grad.0.clear();
-//        self.r_total_grad.0.clear();
-//        self.h_total_grad.0.clear();
-//        self.z_total_grad.1 = 0.0;
-//        self.r_total_grad.1 = 0.0;
-//        self.h_total_grad.1 = 0.0;
-//
-//        self.study_count = 0.0;
-//
-//        self.z_mome_1.0.clear();
-//        self.r_mome_1.0.clear();
-//        self.h_mome_1.0.clear();
-//        self.z_mome_1.1 = 0.0;
-//        self.r_mome_1.1 = 0.0;
-//        self.h_mome_1.1 = 0.0;
-//
-//        self.z_mome_2 = 0.0;
-//        self.r_mome_2 = 0.0;
-//        self.h_mome_2 = 0.0;
-//    }
-//
-//    pub fn study(
-//        &mut self,
-//        feedback: f32,
-//        input: &[f32; N],
-//        state: f32
-//    ) -> ([f32; N], f32) {
-//
-//        let z = self.calc_z(input, state);
-//        let r = self.calc_r(input, state);
-//        let h = self.calc_h(
-//            input,
-//            state * Activation::Sigmoid.activate(r)
-//        );
-//
-//        let z_inv_output = 1.0 - Activation::Sigmoid.activate(z);
-//
-//        let d_sig_z = Activation::Sigmoid.d_activate(z);
-//        let d_sig_r = Activation::Sigmoid.d_activate(r);
-//        let d_tanh = Activation::SoftSign.d_activate(h);
-//
-//        let sig_z = Activation::Sigmoid.activate(z);
-//        let sig_r = Activation::Sigmoid.activate(r);
-//        let tanh = Activation::SoftSign.activate(h);
-//
-//        assert!(!self.z_weights.1.is_nan());
-//        assert!(!self.r_weights.1.is_nan());
-//        assert!(!self.h_weights.1.is_nan());
-//
-//        self.study_z_weights(
-//            feedback,
-//            input,
-//            state,
-//            tanh,
-//            d_sig_z
-//        );
-//
-//        self.study_r_weights(
-//            feedback,
-//            input,
-//            state,
-//            sig_z,
-//            d_tanh,
-//            self.h_weights.1,
-//            d_sig_r
-//        );
-//
-//        self.study_h_weights(
-//            feedback,
-//            input,
-//            state,
-//            sig_z,
-//            d_tanh,
-//            sig_r
-//        );
-//
-//        let feedback_for_input = self.gen_feedback_for_input(
-//            feedback,
-//            state,
-//            d_sig_z,
-//            tanh,
-//            sig_z,
-//            d_tanh,
-//            d_sig_r
-//        );
-//
-//        let feedback_for_state = self.gen_feedback_for_state(
-//            feedback,
-//            state,
-//            z_inv_output,
-//            d_sig_z,
-//            tanh,
-//            sig_z,
-//            d_tanh,
-//            sig_r,
-//            d_sig_r
-//        );
-//
-//        self.study_count += 1.0;
-//
-//        (feedback_for_input, feedback_for_state)
-//    }
-//
-//    fn study_z_weights(
-//        &mut self,
-//        feedback: f32,
-//        input: &[f32; N],
-//        state: f32,
-//        tanh: f32,
-//        d_sig_z: f32
-//    ) {
-//        let factor = feedback * (tanh - state) * d_sig_z;
-//
-//        let mut grad_w = Weights::<N>::new(input, 1.0);
-//        grad_w *= factor;
-//
-//        let grad_h = factor * state;
-//
-//        self.z_total_grad.0 += grad_w;
-//        self.z_total_grad.1 += grad_h;
-//    }
-//
-//    fn study_r_weights(
-//        &mut self,
-//        feedback: f32,
-//        input: &[f32; N],
-//        state: f32,
-//        sig_z: f32,
-//        d_tanh: f32,
-//        v_h: f32,
-//        d_sig_r: f32
-//    ) {
-//        let factor = feedback * sig_z * d_tanh * v_h * d_sig_r;
-//
-//        let mut grad_w = Weights::<N>::new(input, 1.0);
-//        grad_w *= factor;
-//
-//        let grad_h = factor * state;
-//
-//        self.r_total_grad.0 += grad_w;
-//        self.r_total_grad.1 += grad_h;
-//    }
-//
-//    fn study_h_weights(
-//        &mut self,
-//        feedback: f32,
-//        input: &[f32; N],
-//        state: f32,
-//        sig_z: f32,
-//        d_tanh: f32,
-//        sig_r: f32
-//    ) {
-//        let factor = feedback * sig_z * d_tanh;
-//
-//        let mut grad_w = Weights::<N>::new(input, 1.0);
-//        grad_w *= factor;
-//
-//        let grad_h = factor * state * sig_r;
-//
-//        self.h_total_grad.0 += grad_w;
-//        self.h_total_grad.1 += grad_h;
-//    }
-//
-//    fn gen_feedback_for_input(
-//        &self,
-//        feedback: f32,
-//        state: f32,
-//        d_sig_z: f32,
-//        tanh: f32,
-//        sig_z: f32,
-//        d_tanh: f32,
-//        d_sig_r: f32
-//    ) -> [f32; N] {
-//        let mut ret: [f32; N] = [0.0; N];
-//
-//        let v_h = self.h_weights.1;
-//
-//        for i in 0..N {
-//            let w_z = self.z_weights.0.w[i];
-//            let w_r = self.r_weights.0.w[i];
-//            let w_h = self.h_weights.0.w[i];
-//
-//            let grad_3 = d_tanh * (w_h + (v_h * state * d_sig_r * w_r));
-//            let grad_2 = (tanh * d_sig_z * w_z) + (sig_z * grad_3);
-//            let grad_1 = -state * d_sig_z * w_z;
-//            let grad = feedback * (grad_1 + grad_2);
-//
-//            ret[i] = grad;
-//        }
-//
-//        ret
-//    }
-//
-//    fn gen_feedback_for_state(
-//        &self,
-//        feedback: f32,
-//        state: f32,
-//        z_inv_output: f32,
-//        d_sig_z: f32,
-//        tanh: f32,
-//        sig_z: f32,
-//        d_tanh: f32,
-//        sig_r: f32,
-//        d_sig_r: f32
-//    ) -> f32 {
-//        let v_z = self.z_weights.1;
-//        let v_r = self.r_weights.1;
-//        let v_h = self.h_weights.1;
-//
-//        let grad_3 = sig_r + (state * d_sig_r * v_r);
-//        let grad_2 = (tanh * d_sig_z * v_z) + (sig_z * d_tanh * v_h * grad_3);
-//        let grad_1 = z_inv_output - (state * d_sig_z * v_z);
-//
-//        feedback * (grad_1 + grad_2)
-//    }
-//
-//    pub fn update(&mut self, rate: f32) {
-//        if self.study_count < 0.5 {return;}
-//
-//        let z_grad_w = self.z_total_grad.0 / self.study_count;
-//        let z_grad_h = self.z_total_grad.1 / self.study_count;
-//
-//        let r_grad_w = self.r_total_grad.0 / self.study_count;
-//        let r_grad_h = self.r_total_grad.1 / self.study_count;
-//
-//        let h_grad_w = self.h_total_grad.0 / self.study_count;
-//        let h_grad_h = self.h_total_grad.1 / self.study_count;
-//
-//        Self::next_mome_1(&mut *self.z_mome_1, &z_grad_w, z_grad_h);
-//        Self::next_mome_2(&mut self.z_mome_2, &z_grad_w, z_grad_h);
-//
-//        Self::next_mome_1(&mut *self.r_mome_1, &r_grad_w, r_grad_h);
-//        Self::next_mome_2(&mut self.r_mome_2, &r_grad_w, r_grad_h);
-//
-//        Self::next_mome_1(&mut *self.h_mome_1, &h_grad_w, h_grad_h);
-//        Self::next_mome_2(&mut self.h_mome_2, &h_grad_w, h_grad_h);
-//
-//        let z_mome_1 = Self::mome_1_hat(&*self.z_mome_1);
-//        let z_mome_2 = Self::mome_2_hat(self.z_mome_2);
-//
-//        let r_mome_1 = Self::mome_1_hat(&*self.r_mome_1);
-//        let r_mome_2 = Self::mome_2_hat(self.r_mome_2);
-//
-//        let h_mome_1 = Self::mome_1_hat(&*self.h_mome_1);
-//        let h_mome_2 = Self::mome_2_hat(self.h_mome_2);
-//
-//        let z_d_weight = Self::d_weights(&z_mome_1, z_mome_2, rate);
-//        let r_d_weight = Self::d_weights(&r_mome_1, r_mome_2, rate);
-//        let h_d_weight = Self::d_weights(&h_mome_1, h_mome_2, rate);
-//
-//        self.z_weights.0 -= z_d_weight.0;
-//        self.z_weights.1 -= z_d_weight.1;
-//
-//        self.r_weights.0 -= r_d_weight.0;
-//        self.r_weights.1 -= r_d_weight.1;
-//
-//        self.h_weights.0 -= h_d_weight.0;
-//        self.h_weights.1 -= h_d_weight.1;
-//
-//        self.z_total_grad.0.clear();
-//        self.r_total_grad.0.clear();
-//        self.h_total_grad.0.clear();
-//        self.z_total_grad.1 = 0.0;
-//        self.r_total_grad.1 = 0.0;
-//        self.h_total_grad.1 = 0.0;
-//
-//        self.study_count = 0.0;
-//    }
-//
-//    #[inline]
-//    fn next_mome_1(
-//        mome_1: &mut (Weights<N>, f32),
-//        grad_w: &Weights<N>,
-//        grad_h: f32
-//    ) {
-//        const BETA: f32 = 0.9;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        mome_1.0 *= BETA;
-//        mome_1.0 += *grad_w * BETA_INV;
-//        mome_1.1 *= BETA;
-//        mome_1.1 += grad_h * BETA_INV;
-//    }
-//
-//    #[inline]
-//    fn next_mome_2(
-//        mome_2: &mut f32,
-//        grad_w: &Weights<N>,
-//        grad_h: f32
-//    ) {
-//        const BETA: f32 = 0.999;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        *mome_2 *= BETA;
-//        *mome_2 += ((*grad_w * *grad_w) + (grad_h * grad_h)) * BETA_INV;
-//    }
-//
-//    #[inline]
-//    fn mome_1_hat(mome_1: &(Weights<N>, f32)) -> (Weights<N>, f32) {
-//        const BETA: f32 = 0.9;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        (mome_1.0 / BETA_INV, mome_1.1 / BETA_INV)
-//    }
-//
-//    #[inline]
-//    fn mome_2_hat(mome_2: f32) -> f32 {
-//        const BETA: f32 = 0.999;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        mome_2 / BETA_INV
-//    }
-//
-//    #[inline]
-//    fn d_weights(
-//        mome_1: &(Weights<N>, f32),
-//        mome_2: f32,
-//        rate: f32
-//    ) -> (Weights<N>, f32) {
-//        const EPSILION: f32 = 1.0e-8;
-//
-//        let factor = sqrt(mome_2) + EPSILION;
-//
-//        (
-//            (mome_1.0 / factor) * rate,
-//            (mome_1.1 / factor) * rate
-//        )
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct GRULayer<const OUT: usize, const IN: usize> {
-//    neurons: Box<[GRUNeuron<IN>; OUT]>,
-//    mixer: Layer<OUT, OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN> {
-//    #[inline]
-//    pub fn new(
-//        neurons: [GRUNeuron<IN>; OUT],
-//        mixer_weights: [Weights<OUT>; OUT]
-//    ) -> Self {
-//        Self {
-//            neurons: Box::new(neurons),
-//            mixer: Layer::<OUT, OUT>::new(mixer_weights.iter().map(
-//                |weights| Neuron::<OUT>::new(*weights, Activation::SoftSign)
-//            ).collect::<Vec<Neuron<OUT>>>().try_into().unwrap())
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn neurons(&self) -> &[GRUNeuron<IN>; OUT] {&*self.neurons}
-//
-//    #[inline]
-//    pub fn mixer(&self) -> &Layer<OUT, OUT> {&self.mixer}
-//
-//    #[inline]
-//    fn calc_gru(&self, input: &[f32; IN], state: &[f32; OUT]) -> [f32; OUT] {
-//        let mut ret = [0.0f32; OUT];
-//
-//        for i in 0..OUT {
-//            ret[i] = self.neurons[i].calc(input, state[i]);
-//        }
-//
-//        ret
-//    }
-//
-//    #[inline]
-//    pub fn calc(&self, input: &[f32; IN], state: &[f32; OUT]) -> [f32; OUT] {
-//        self.mixer.calc(&self.calc_gru(input, state))
-//    }
-//
-//    pub fn study(
-//        &mut self,
-//        feedback: &[f32; OUT],
-//        input: &[f32; IN],
-//        state: &[f32; OUT]
-//    ) -> ([f32; IN], [f32; OUT]) {
-//        let feedback =
-//            self.mixer.study(feedback, &self.calc_gru(input, state));
-//
-//        let mut ret_1 = [0.0f32; IN];
-//        let mut ret_2 = [0.0f32; OUT];
-//
-//        for i in 0..OUT {
-//            let feedback_next = self.neurons[i].study(
-//                feedback[i],
-//                input,
-//                state[i]
-//            );
-//
-//            for j in 0..IN {
-//                ret_1[j] += feedback_next.0[j];
-//            }
-//
-//            ret_2[i] = feedback_next.1;
-//        }
-//
-//        (ret_1, ret_2)
-//    }
-//
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.neurons.iter_mut().for_each(|block| block.update(rate));
-//        self.mixer.update(rate);
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitEncoder<const OUT: usize, const IN: usize> {
-//    layer: GRULayer<OUT, IN>
-//}
-//
-//impl<const OUT: usize, const IN: usize> ChobitEncoder<OUT, IN> {
-//    #[inline]
-//    pub fn new(layer: GRULayer<OUT, IN>) -> Self {
-//        Self {
-//            layer: layer
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn layer(&self) -> &GRULayer<OUT, IN> {&self.layer}
-//
-//    #[inline]
-//    pub fn calc<'a>(
-//        &self,
-//        inputs: &mut impl Iterator<Item = &'a [f32; IN]>,
-//        initial_state: &[f32; OUT]
-//    ) -> [f32; OUT]{
-//        let mut state = *initial_state;
-//
-//        inputs.for_each(|input| {
-//            state = self.layer.calc(input, &state);
-//        });
-//
-//        state
-//    }
-//
-//    pub fn study_from_decorder<'a>(
-//        &mut self,
-//        feedback: &[f32; OUT],
-//        train_in: &mut impl Iterator<Item = &'a [f32; IN]>,
-//        initial_state: &[f32; OUT]
-//    ) -> Option<[f32; OUT]> {
-//        let input = train_in.next()?;
-//
-//        let state = self.layer.calc(input, initial_state);
-//
-//        match self.study_from_decorder(feedback, train_in, &state) {
-//            Some(feedback) => {
-//                let (_, feedback_next) =
-//                    self.layer.study(&feedback, input, initial_state);
-//
-//                Some(feedback_next)
-//            },
-//
-//            // Last input
-//            None => {
-//                let (_, feedback_next) =
-//                    self.layer.study(feedback, input, initial_state);
-//
-//                Some(feedback_next)
-//            }
-//        }
-//    }
-//
-//    pub fn study<'a>(
-//        &mut self,
-//        train_out: &[f32; OUT],
-//        train_in: &mut impl Iterator<Item = &'a [f32; IN]>,
-//        initial_state: &[f32; OUT]
-//    ) -> Option<[f32; OUT]> {
-//        let input = train_in.next()?;
-//
-//        let state = self.layer.calc(input, initial_state);
-//
-//        match self.study(train_out, train_in, &state) {
-//            Some(feedback) => {
-//                let (_, feedback_next) =
-//                    self.layer.study(&feedback, input, initial_state);
-//
-//                Some(feedback_next)
-//            },
-//
-//            // Last input
-//            None => {
-//                let mut loss = [0.0f32; OUT];
-//
-//                for i in 0..OUT {
-//                    loss[i] = state[i] - train_out[i];
-//                }
-//
-//                let (_, feedback_next) =
-//                    self.layer.study(&loss, input, initial_state);
-//
-//                Some(feedback_next)
-//            }
-//        }
-//    }
-//
-//    pub fn update(&mut self, rate: f32) {
-//        self.layer.update(rate);
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitDecoder<const OUT: usize, const IN: usize> {
-//    gru_layer: GRULayer<OUT, IN>,
-//    output_layer: Layer<OUT, OUT>
-//}
-//
-//pub struct ChobitDecoderIter<'a, const OUT: usize, const IN: usize> {
-//    decoder: &'a ChobitDecoder<OUT, IN>,
-//    input: [f32; IN],
-//
-//    state: [f32; OUT]
-//}
-//
-//impl<const OUT: usize, const IN: usize> ChobitDecoder<OUT, IN> {
-//    pub fn new(
-//        gru_layer: GRULayer<OUT, IN>,
-//        output_layer: Layer<OUT, OUT>
-//    ) -> Self {
-//        Self {
-//            gru_layer: gru_layer,
-//            output_layer: output_layer
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn gru_layer(&self) -> &GRULayer<OUT, IN> {&self.gru_layer}
-//
-//    #[inline]
-//    pub fn output_layer(&self) -> &Layer<OUT, OUT> {&self.output_layer}
-//
-//    #[inline]
-//    pub fn start_calc<'a>(
-//        &'a self,
-//        input: &[f32; IN]
-//    ) -> ChobitDecoderIter<'a, OUT, IN> {
-//        ChobitDecoderIter::<OUT, IN> {
-//            decoder: self,
-//            input: *input,
-//            state: [0.0; OUT]
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn study<'a>(
-//        &mut self,
-//        train_out: &mut impl Iterator<Item = &'a [f32; OUT]>,
-//        train_in: &[f32; IN]
-//    ) -> Option<[f32; IN]> {
-//        let (feedback_next, _) =
-//            self.study_core(train_out, train_in, &[0.0; OUT])?;
-//
-//        Some(feedback_next)
-//    }
-//
-//    fn study_core<'a>(
-//        &mut self,
-//        train_out: &mut impl Iterator<Item = &'a [f32; OUT]>,
-//        train_in: &[f32; IN],
-//        initial_state: &[f32; OUT]
-//    ) -> Option<([f32; IN], [f32; OUT])> {
-//        let t_output = train_out.next()?;
-//
-//        let state = self.gru_layer.calc(train_in, initial_state);
-//        let output_value = self.output_layer.calc(&state);
-//
-//        let mut loss = [0.0f32; OUT];
-//
-//        for i in 0..OUT {
-//            loss[i] = output_value[i] - t_output[i];
-//        }
-//
-//        match self.study_core(train_out, train_in, &state) {
-//            Some((mut feedback_for_input, mut feedback)) => {
-//                let feedback_2 = self.output_layer.study(&loss, &state);
-//                for i in 0..OUT {
-//                    feedback[i] += feedback_2[i];
-//                }
-//
-//                let (feedback_for_input_2, feedback_next) =
-//                    self.gru_layer.study(&feedback, train_in, initial_state);
-//
-//                for i in 0..IN {
-//                    feedback_for_input[i] += feedback_for_input_2[i];
-//                }
-//
-//                Some((feedback_for_input, feedback_next))
-//            },
-//
-//            // Last output
-//            None => {
-//                let feedback = self.output_layer.study(&loss, &state);
-//
-//                let (feedback_for_input, feedback_next) =
-//                    self.gru_layer.study(&feedback, train_in, initial_state);
-//
-//                Some((feedback_for_input, feedback_next))
-//            }
-//        }
-//    }
-//
-//    pub fn update(&mut self, rate: f32) {
-//        self.gru_layer.update(rate);
-//        self.output_layer.update(rate);
-//    }
-//}
-//
-//impl<'a, const OUT: usize, const IN: usize> ChobitDecoderIter<'a, OUT, IN> {
-//    #[inline]
-//    pub fn calc_next(&mut self) -> [f32; OUT] {
-//        self.state = self.decoder.gru_layer.calc(&self.input, &self.state);
-//        self.decoder.output_layer.calc(&self.state)
-//    }
-//}
-//
-//impl<
-//    'a,
-//    const OUT: usize,
-//    const IN: usize
-//> Iterator for ChobitDecoderIter<'a, OUT, IN> {
-//    type Item = [f32; OUT];
-//
-//    #[inline]
-//    fn next(&mut self) -> Option<[f32; OUT]> {Some(self.calc_next())}
-//}
-//
-//pub struct ChobitSeqAI<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> {
-//    decoder: ChobitDecoder<OUT, MIDDLE>,
-//    encoder: ChobitEncoder<MIDDLE, IN>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitSeqAI<OUT, MIDDLE, IN> {
-//    #[inline]
-//    pub fn new(
-//        decoder: ChobitDecoder<OUT, MIDDLE>,
-//        encoder: ChobitEncoder<MIDDLE, IN>
-//    ) -> Self {
-//        Self {
-//            decoder: decoder,
-//            encoder: encoder
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn decoder(&self) -> &ChobitDecoder<OUT, MIDDLE> {&self.decoder}
-//
-//    #[inline]
-//    pub fn encoder(&self) -> &ChobitEncoder<MIDDLE, IN> {&self.encoder}
-//
-//    #[inline]
-//    pub fn start_calc<'a>(
-//        &self,
-//        inputs: &mut impl Iterator<Item = &'a [f32; IN]>,
-//        initial_state: &[f32; MIDDLE]
-//    ) -> ChobitDecoderIter<OUT, MIDDLE> {
-//        self.decoder.start_calc(&self.encoder.calc(inputs, initial_state))
-//    }
-//
-//    pub fn study<'a>(
-//        &mut self,
-//        train_out: &mut impl Iterator<Item = &'a [f32; OUT]>,
-//        train_in: &mut (impl Iterator<Item = &'a [f32; IN]> + Clone),
-//        initial_state: &[f32; MIDDLE]
-//    ) {
-//        let mut train_in_clone = train_in.clone();
-//
-//        let middle_value = self.encoder.calc(train_in, initial_state);
-//
-//        match self.decoder.study(train_out, &middle_value) {
-//            Some(feedback) => {
-//                let _ = self.encoder.study_from_decorder(
-//                    &feedback,
-//                    &mut train_in_clone,
-//                    initial_state
-//                );
-//            },
-//
-//            None => {}
-//        }
-//    }
-//
-//    pub fn update(&mut self, rate: f32) {
-//        self.decoder.update(rate);
-//        self.encoder.update(rate);
-//    }
-//}
