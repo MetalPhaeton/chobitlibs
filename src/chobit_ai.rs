@@ -850,81 +850,84 @@ impl<const N: usize> Neuron<N> {
         self.weights -= &self.tmp_weights_2;
     }
 }
-//
-///// Layer of AI.
-/////
-///// * `OUT` : Dimension of output. It equals a number of Neurons.
-///// * `IN` : Dimension of input. It equals a number of weights per one Neuron.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct Layer<const OUT: usize, const IN: usize> {
-//    neurons: Box<[Neuron<IN>; OUT]>
-//}
-//
-//impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
-//    /// Creates Layer.
-//    ///
-//    /// `neurons` : Array of Neurons.
-//    /// _Return_ : Instance.
-//    #[inline]
-//    pub fn new(neurons: [Neuron<IN>; OUT]) -> Self {
-//        Self {neurons: Box::new(neurons)}
-//    }
-//
-//    /// Gets neurons.
-//    ///
-//    /// _Return_ : neurons.
-//    #[inline]
-//    pub fn neurons(&self) -> &[Neuron<IN>; OUT] {&*self.neurons}
-//
-//    /// Calculates input.
-//    ///
-//    /// * `input` : Input vector.
-//    /// * _Return_ : Output vector.
-//    #[inline]
-//    pub fn calc(&self, input: &[f32; IN]) -> [f32; OUT] {
-//        let mut ret = [0.0f32; OUT];
-//
-//        for i in 0..OUT {
-//            ret[i] = self.neurons[i].calc(input);
-//        }
-//
-//        ret
-//    }
-//
-//    /// Studies gradients.
-//    ///
-//    /// See [Neuron::study] for details.
-//    ///
-//    /// * `feedback` : Feedback from next layer. See [Neuron::study] for details.
-//    /// * `input` : Input vector
-//    /// * _Return_ : Feedback to previous layer. See [Neuron::study] for details.
-//    pub fn study(
-//        &mut self,
-//        feedback: &[f32; OUT],
-//        input: &[f32; IN]
-//    ) -> [f32; IN] {
-//        let mut ret = [0.0f32; IN];
-//
-//        for i in 0..OUT {
-//            let feedback_next = self.neurons[i].study(feedback[i], input);
-//
-//            for j in 0..IN {
-//                ret[j] += feedback_next[j];
-//            }
-//        }
-//
-//        ret
-//    }
-//
-//    /// Updates Weights to use studied gradients.
-//    ///
-//    /// * `rate` : Learning rate.
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.neurons.iter_mut().for_each(|neuron| neuron.update(rate));
-//    }
-//}
-//
+
+/// Layer of AI.
+///
+/// * `OUT` : Dimension of output. It equals a number of Neurons.
+/// * `IN` : Dimension of input. It equals a number of weights per one Neuron.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Layer<const OUT: usize, const IN: usize> {
+    neurons: Box<[Neuron<IN>]>,
+
+    tmp_in: MathVec<IN>,
+}
+
+impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
+    /// Creates Layer.
+    ///
+    #[inline]
+    pub fn new(acitvation: Activation) -> Self {
+        Self {
+            neurons:
+                vec![Neuron::<IN>::new(acitvation); OUT].into_boxed_slice(),
+
+            tmp_in: MathVec::<IN>::default()
+        }
+    }
+
+    /// Gets neurons.
+    ///
+    /// _Return_ : neurons.
+    #[inline]
+    pub fn neurons(&self) -> &[Neuron<IN>] {&*self.neurons}
+
+    #[inline]
+    pub fn neurons_mut(&mut self) -> &mut [Neuron<IN>] {&mut *self.neurons}
+
+    /// Calculates input.
+    ///
+    /// * `input` : Input vector.
+    /// * `output` : Output vector.
+    #[inline]
+    pub fn calc(&self, input: &MathVec<IN>, output: &mut MathVec<OUT>) {
+        for i in 0..OUT {
+            output[i] = self.neurons[i].calc(input);
+        }
+    }
+
+    /// Studies gradients.
+    ///
+    /// See [Neuron::study] for details.
+    ///
+    /// * `feedback` : Feedback from next layer. See [Neuron::study] for details.
+    /// * `input` : Input vector
+    /// * _Return_ : Feedback to previous layer. See [Neuron::study] for details.
+    #[inline]
+    pub fn study(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+    ) -> &MathVec<IN> {
+        self.tmp_in.clear();
+
+        for i in 0..OUT {
+            let feedback_next = self.neurons[i].study(feedback[i], input);
+
+            self.tmp_in += feedback_next;
+        }
+
+        &self.tmp_in
+    }
+
+    /// Updates Weights to use studied gradients.
+    ///
+    /// * `rate` : Learning rate.
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.neurons.iter_mut().for_each(|neuron| neuron.update(rate));
+    }
+}
+
 ///// Neural network.
 /////
 ///// * `OUT` : Dimension of output.

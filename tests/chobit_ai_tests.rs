@@ -433,11 +433,11 @@ fn gen_neuron<const N: usize>(
 fn gen_data_set_1<const N: usize>(
     rng: &mut ChobitRand,
     size: usize
-) -> Vec<(MathVec<N>, f32)> {
+) -> Vec<(f32, MathVec<N>)> {
     let mut param = MathVec::<N>::new();
     param.iter_mut().for_each(|x| *x = rand_num(rng));
 
-    let mut ret = Vec::<(MathVec<N>, f32)>::with_capacity(size);
+    let mut ret = Vec::<(f32, MathVec<N>)>::with_capacity(size);
 
     let activation = Activation::SoftSign;
 
@@ -447,7 +447,7 @@ fn gen_data_set_1<const N: usize>(
 
         let ans = activation.activate(&param * &v);
 
-        ret.push((v, ans))
+        ret.push((ans, v))
     }
 
     ret
@@ -462,15 +462,15 @@ fn neuron_test() {
 
     let mut data_set = gen_data_set_1::<N>(&mut rng, DATA_SET_SIZE);
 
-    let mut neuron = gen_neuron(&mut rng);
+    let mut neuron = gen_neuron::<N>(&mut rng);
 
-    fn print(data_set: &Vec<(MathVec<N>, f32)>, neuron: &Neuron<N>) {
+    fn print(data_set: &Vec<(f32, MathVec<N>)>, neuron: &Neuron<N>) {
         let mut total: f32 = 0.0;
 
         for data in data_set {
-            let output = neuron.calc(&data.0);
+            let output = neuron.calc(&data.1);
 
-            let diff = output - data.1;
+            let diff = output - data.0;
 
             total += diff.max(-diff)
         }
@@ -488,17 +488,131 @@ fn neuron_test() {
         rng.shuffle(&mut data_set);
 
         for data in &data_set {
-            let output = neuron.calc(&data.0);
+            let output = neuron.calc(&data.1);
 
-            let diff = output - data.1;
+            let diff = output - data.0;
 
-            let _ = neuron.study(diff, &data.0);
+            let _ = neuron.study(diff, &data.1);
         }
 
         neuron.update(RATE);
     }
 
     print(&data_set, &neuron);
+}
+
+fn gen_matrix<const OUT: usize, const IN: usize>(
+    rng: &mut ChobitRand,
+) -> Vec<MathVec<IN>> {
+    let mut ret = Vec::<MathVec<IN>>::with_capacity(OUT);
+
+    for _ in 0..OUT {
+        let mut vec = MathVec::<IN>::new();
+        vec.iter_mut().for_each(|x| *x = rand_num(rng));
+
+        ret.push(vec);
+    }
+
+    ret
+}
+
+fn gen_data_set_2<const OUT: usize, const IN: usize>(
+    rng: &mut ChobitRand,
+    size: usize
+) -> Vec<(MathVec<OUT>, MathVec<IN>)> {
+    let mut ret = Vec::<(MathVec<OUT>, MathVec<IN>)>::with_capacity(size);
+
+    let param = gen_matrix::<OUT, IN>(rng);
+
+    let activation = Activation::SoftSign;
+
+    for _ in 0..size {
+        let mut train_in = MathVec::<IN>::new();
+        train_in.iter_mut().for_each(|x| *x = rand_num(rng));
+
+        let mut train_out = MathVec::<OUT>::new();
+
+        for i in 0..OUT {
+            train_out[i] = activation.activate(&param[i] * &train_in);
+        }
+
+        ret.push((train_out, train_in));
+    }
+
+    ret
+}
+
+fn gen_layer<const OUT: usize, const IN: usize>(
+    rng: &mut ChobitRand
+) -> Layer<OUT, IN> {
+    let mut ret = Layer::new(Activation::SoftSign);
+
+    ret.neurons_mut().iter_mut().for_each(
+        |neuron| {
+            neuron.weights_mut().w_mut().iter_mut().for_each(
+                |x| *x = rand_num(rng)
+            );
+
+            *neuron.weights_mut().b_mut() = rand_num(rng);
+        }
+    );
+
+    ret
+}
+
+#[test]
+fn layer_test() {
+    const OUT: usize = 15;
+    const IN: usize = 10;
+    const DATA_SET_SIZE: usize = 50;
+
+    let mut rng = ChobitRand::new("layer_test".as_bytes());
+
+    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
+
+    let mut layer = gen_layer::<OUT, IN>(&mut rng);
+
+    fn print(
+        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
+        layer: &Layer<OUT, IN>
+    ) {
+        let mut total: f32 = 0.0;
+        let mut output = MathVec::<OUT>::new();
+
+        for data in data_set {
+            output.clear();
+            layer.calc(&data.1, &mut output);
+
+            output -= &data.0;
+            output.iter().for_each(|x| total += (*x).max(-(*x)));
+        }
+
+        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
+        println!("----------");
+    }
+
+    print(&data_set, &layer);
+
+    const EPOCH: usize = 5000;
+    const RATE: f32 = 0.01;
+
+    let mut output = MathVec::<OUT>::new();
+    for _ in 0..EPOCH {
+        rng.shuffle(&mut data_set);
+
+        for data in &data_set {
+            output.clear();
+            layer.calc(&data.1, &mut output);
+
+            output -= &data.0;
+
+            let _ = layer.study(&output, &data.1);
+        }
+
+        layer.update(RATE);
+    }
+
+    print(&data_set, &layer);
 }
 
 ////--------------------//
