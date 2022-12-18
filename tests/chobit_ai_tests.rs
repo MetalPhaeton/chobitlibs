@@ -615,6 +615,84 @@ fn layer_test() {
     print(&data_set, &layer);
 }
 
+fn gen_ai<const OUT: usize, const MIDDLE: usize, const IN: usize>(
+    rng: &mut ChobitRand
+) -> ChobitAI<OUT, MIDDLE, IN> {
+    let mut ret = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+
+    {
+        ret.output_layer_mut().neurons_mut().iter_mut().for_each(
+            |neuron| {
+                let weights = neuron.weights_mut();
+                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
+                *weights.b_mut() = rand_num(rng);
+            }
+        );
+    }
+
+    {
+        ret.middle_layer_mut().neurons_mut().iter_mut().for_each(
+            |neuron| {
+                let weights = neuron.weights_mut();
+                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
+                *weights.b_mut() = rand_num(rng);
+            }
+        );
+    }
+
+    ret
+}
+
+#[test]
+fn ai_test() {
+    const OUT: usize = 15;
+    const MIDDLE: usize = 20;
+    const IN: usize = 10;
+    const DATA_SET_SIZE: usize = 50;
+
+    let mut rng = ChobitRand::new("ai_test".as_bytes());
+
+    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
+
+    let mut ai = gen_ai::<OUT, MIDDLE, IN>(&mut rng);
+
+    fn print(
+        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
+        ai: &mut ChobitAI<OUT, MIDDLE, IN>
+    ) {
+        let mut total: f32 = 0.0;
+        let mut output = MathVec::<OUT>::new();
+
+        for data in data_set {
+            output.clear();
+            ai.calc(&data.1, &mut output);
+
+            output -= &data.0;
+            output.iter().for_each(|x| total += (*x).max(-(*x)));
+        }
+
+        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
+        println!("----------");
+    }
+
+    print(&data_set, &mut ai);
+
+    const EPOCH: usize = 2500;
+    const RATE: f32 = 0.02;
+
+    for _ in 0..EPOCH {
+        rng.shuffle(&mut data_set);
+
+        for data in &data_set {
+            let _ = ai.study(&data.0, &data.1);
+        }
+
+        ai.update(RATE);
+    }
+
+    print(&data_set, &mut ai);
+}
+
 ////--------------------//
 //// Data set generator //
 ////--------------------//

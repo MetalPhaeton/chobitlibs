@@ -928,92 +928,130 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     }
 }
 
-///// Neural network.
-/////
-///// * `OUT` : Dimension of output.
-///// * `MIDDLE` : Dimension of middle layer.
-///// * `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-//    output_layer: Layer<OUT, MIDDLE>,
-//    middle_layer: Layer<MIDDLE, IN>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitAI<OUT, MIDDLE, IN> {
-//    /// Creates ChobitAI.
-//    ///
-//    /// * `output_layer` : Output layer.
-//    /// * `middle_layer` : Middle Layer.
-//    #[inline]
-//    pub fn new(
-//        output_layer: Layer<OUT, MIDDLE>,
-//        middle_layer: Layer<MIDDLE, IN>
-//    ) -> Self {
-//        Self {
-//            output_layer: output_layer,
-//            middle_layer: middle_layer,
-//        }
-//    }
-//
-//    /// Gets Output Layer
-//    ///
-//    /// * _Return_ : Output layer.
-//    #[inline]
-//    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
-//
-//    /// Gets Middle Layer
-//    ///
-//    /// * _Return_ : Middle layer.
-//    #[inline]
-//    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
-//
-//    /// Calcurates input.
-//    ///
-//    /// * `input` : Input vector;
-//    /// * _Return_ : Output vector;
-//    #[inline]
-//    pub fn calc(&self, input: &[f32; IN]) -> [f32; OUT] {
-//        self.output_layer.calc(&self.middle_layer.calc(input))
-//    }
-//
-//    /// Studies Gradients with training data.
-//    ///
-//    /// It only studies gradients. It doesn't update weights yet.
-//    ///
-//    /// * `train_out` : Output of training data.
-//    /// * `train_in` : Input of training data.
-//    pub fn study(&mut self, train_out: &[f32; OUT], train_in: &[f32; IN]) {
-//        let middle_value = self.middle_layer.calc(train_in);
-//        let out_value = self.output_layer.calc(&middle_value);
-//
-//        let mut loss = [0.0f32; OUT];
-//        for i in 0..OUT {
-//            loss[i] = out_value[i] - train_out[i];
-//        }
-//
-//        let _ = self.middle_layer.study(
-//            &self.output_layer.study(
-//                &loss,
-//                &middle_value
-//            ),
-//            train_in
-//        );
-//    }
-//
-//    /// Updates Weights to use studied gradients.
-//    ///
-//    /// * `rate` : Learning rate.
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.output_layer.update(rate);
-//        self.middle_layer.update(rate);
-//    }
-//}
-//
+/// Neural network.
+///
+/// * `OUT` : Dimension of output.
+/// * `MIDDLE` : Dimension of middle layer.
+/// * `IN` : Dimension of input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    output_layer: Layer<OUT, MIDDLE>,
+    middle_layer: Layer<MIDDLE, IN>,
+
+    tmp_out: MathVec<OUT>,
+    tmp_middle: MathVec<MIDDLE>,
+    tmp_in: MathVec<IN>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitAI<OUT, MIDDLE, IN> {
+    /// Creates ChobitAI.
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            output_layer: Layer::<OUT, MIDDLE>::new(activation),
+            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU),
+
+            tmp_out: MathVec::<OUT>::new(),
+            tmp_middle: MathVec::<MIDDLE>::new(),
+            tmp_in: MathVec::<IN>::new()
+        }
+    }
+
+    /// Gets Output Layer
+    ///
+    /// * _Return_ : Output layer.
+    #[inline]
+    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
+
+    #[inline]
+    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
+        &mut self.output_layer
+    }
+
+    /// Gets Middle Layer
+    ///
+    /// * _Return_ : Middle layer.
+    #[inline]
+    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
+
+    #[inline]
+    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
+        &mut self.middle_layer
+    }
+
+    /// Calcurates input.
+    ///
+    /// * `input` : Input vector;
+    /// * `output` : Output vector;
+    #[inline]
+    pub fn calc(&mut self, input: &MathVec<IN>, output: &mut MathVec<OUT>) {
+        self.middle_layer.calc(input, &mut self.tmp_middle);
+        self.output_layer.calc(&self.tmp_middle, output);
+    }
+
+    /// Studies Gradients with training data.
+    ///
+    /// It only studies gradients. It doesn't update weights yet.
+    ///
+    /// * `train_out` : Output of training data.
+    /// * `train_in` : Input of training data.
+    pub fn study_by_feedback(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        train_in: &MathVec<IN>
+    ) -> &MathVec<IN> {
+        self.middle_layer.calc(train_in, &mut self.tmp_middle);
+
+        self.tmp_in.copy_from(
+            self.middle_layer.study(
+                self.output_layer.study(
+                    feedback,
+                    &self.tmp_middle
+                ),
+                train_in
+            )
+        );
+
+        &self.tmp_in
+    }
+
+    pub fn study(
+        &mut self,
+        train_out: &MathVec<OUT>,
+        train_in: &MathVec<IN>
+    ) -> &MathVec<IN> {
+        self.middle_layer.calc(train_in, &mut self.tmp_middle);
+        self.output_layer.calc(&self.tmp_middle, &mut self.tmp_out);
+
+        self.tmp_out -= train_out;
+
+        self.tmp_in.copy_from(
+            self.middle_layer.study(
+                self.output_layer.study(
+                    &self.tmp_out,
+                    &self.tmp_middle
+                ),
+                train_in
+            )
+        );
+
+        &self.tmp_in
+    }
+
+    /// Updates Weights to use studied gradients.
+    ///
+    /// * `rate` : Learning rate.
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.output_layer.update(rate);
+        self.middle_layer.update(rate);
+    }
+}
+
 //#[derive(Debug, Clone, PartialEq)]
 //pub struct GRUNeuron<const N: usize> {
 //    z_weights: Box<(Weights<N>, f32)>,
