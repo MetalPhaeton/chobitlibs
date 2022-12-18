@@ -36,6 +36,11 @@ use core::{
 };
 
 #[inline]
+fn abs(x: f32) -> f32 {
+    f32::from_bits(x.to_bits() & 0x7fffffff)
+}
+
+#[inline]
 fn sqrt(x: f32) -> f32 {
     const MAGIC_32: u32 = 0x5f3759df;
 
@@ -607,7 +612,7 @@ impl Activation {
 
     #[inline]
     fn softsign_deno(x: f32) -> f32 {
-        1.0 + x.max(-x)
+        1.0 + abs(x)
     }
 
     #[inline]
@@ -726,7 +731,7 @@ impl<const N: usize> Neuron<N> {
 
     #[inline]
     pub fn set_mome_2(&mut self, mome_2: f32) {
-        self.mome_2 = mome_2.max(-mome_2);
+        self.mome_2 = abs(mome_2);
     }
 
     /// Calculates input by linear function and activation function.
