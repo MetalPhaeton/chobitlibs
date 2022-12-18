@@ -50,88 +50,6 @@ fn sqrt(x: f32) -> f32 {
     y * (1.5 - (a * y * y))
 }
 
-macro_rules! to_label_body {
-    ($type:ty, $x:expr) => {{
-        const FLAG: $type = (1 as $type).rotate_right(1);
-        let mut ret: $type = 0;
-
-        for bit in $x {
-            ret >>= 1;
-
-            ret |= if *bit >= 0.0 {
-                FLAG
-            } else {
-                0
-            };
-        }
-
-        ret
-    }};
-}
-
-macro_rules! from_label_body {
-    ($type:ty, $label:expr) => {{
-        const MASK: $type = 0x01;
-
-        [0.0f32; size_of::<$type>() * 8].iter().map(|_| {
-            let ret = if ($label & MASK) == 1 {
-                1.0
-            } else {
-                -1.0
-            };
-
-            $label >>= 1;
-
-            ret
-        }).collect::<Vec<f32>>().try_into().unwrap()
-    }};
-}
-
-pub fn to_u8_label(x: &[f32; size_of::<u8>() * 8]) -> u8 {
-    to_label_body!(u8, x)
-}
-
-pub fn from_u8_label(mut label: u8) -> [f32; size_of::<u8>() * 8] {
-    from_label_body!(u8, label)
-}
-
-pub fn to_u16_label(x: &[f32; size_of::<u16>() * 8]) -> u16 {
-    to_label_body!(u16, x)
-}
-
-pub fn from_u16_label(mut label: u16) -> [f32; size_of::<u16>() * 8] {
-    from_label_body!(u16, label)
-}
-
-pub fn to_u32_label(x: &[f32; size_of::<u32>() * 8]) -> u32 {
-    to_label_body!(u32, x)
-}
-
-pub fn from_u32_label(mut label: u32) -> [f32; size_of::<u32>() * 8] {
-    from_label_body!(u32, label)
-}
-
-pub fn to_u64_label(x: &[f32; size_of::<u64>() * 8]) -> u64 {
-    to_label_body!(u64, x)
-}
-
-pub fn from_u64_label(mut label: u64) -> [f32; size_of::<u64>() * 8] {
-    from_label_body!(u64, label)
-}
-
-pub fn to_u128_label(x: &[f32; size_of::<u128>() * 8]) -> u128 {
-    to_label_body!(u128, x)
-}
-
-pub fn from_u128_label(mut label: u128) -> [f32; size_of::<u128>() * 8] {
-    from_label_body!(u128, label)
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct MathVec<const N: usize> {
-    body: Box<[f32]>
-}
-
 macro_rules! pointwise_op {
     ($self:expr, $other:expr, $ops:tt) => {{
         for i in 0..N {$self.body[i] $ops $other.body[i];}
@@ -142,6 +60,11 @@ macro_rules! scalar_op {
     ($self:expr, $other:expr, $ops:tt) => {{
         for i in 0..N {$self.body[i] $ops $other;}
     }};
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct MathVec<const N: usize> {
+    body: Box<[f32]>
 }
 
 impl<const N: usize> MathVec<N> {
@@ -340,6 +263,105 @@ impl<const N: usize> DerefMut for MathVec<N> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [f32] {
         &mut *self.body
+    }
+}
+
+macro_rules! to_label_body {
+    ($self:expr, $type:ty) => {{
+        const FLAG: $type = (1 as $type).rotate_right(1);
+        let mut ret: $type = 0;
+
+        $self.iter().for_each(
+            |bit| {
+                ret >>= 1;
+
+                ret |= if *bit >= 0.0 {
+                    FLAG
+                } else {
+                    0
+                };
+            }
+        );
+
+        ret
+    }};
+}
+
+macro_rules! from_label_body {
+    ($self:expr, $type:ty, $label:expr) => {{
+        const MASK: $type = 0x01;
+
+        $self.iter_mut().for_each(
+            |bit| {
+                *bit = if ($label & MASK) == 1 {
+                    1.0 - f32::EPSILON
+                } else {
+                    -1.0 + f32::EPSILON
+                };
+
+                $label >>= 1;
+            }
+        );
+    }};
+}
+
+impl MathVec<8> {
+    #[inline]
+    pub fn to_u8_label(&self) -> u8 {
+        to_label_body!(self, u8)
+    }
+
+    #[inline]
+    pub fn from_u8_label(&mut self, mut label: u8) {
+        from_label_body!(self, u8, label)
+    }
+}
+
+impl MathVec<16> {
+    #[inline]
+    pub fn to_u16_label(&self) -> u16 {
+        to_label_body!(self, u16)
+    }
+
+    #[inline]
+    pub fn from_u16_label(&mut self, mut label: u16) {
+        from_label_body!(self, u16, label)
+    }
+}
+
+impl MathVec<32> {
+    #[inline]
+    pub fn to_u32_label(&self) -> u32 {
+        to_label_body!(self, u32)
+    }
+
+    #[inline]
+    pub fn from_u32_label(&mut self, mut label: u32) {
+        from_label_body!(self, u32, label)
+    }
+}
+
+impl MathVec<64> {
+    #[inline]
+    pub fn to_u64_label(&self) -> u64 {
+        to_label_body!(self, u64)
+    }
+
+    #[inline]
+    pub fn from_u64_label(&mut self, mut label: u64) {
+        from_label_body!(self, u64, label)
+    }
+}
+
+impl MathVec<128> {
+    #[inline]
+    pub fn to_u128_label(&self) -> u128 {
+        to_label_body!(self, u128)
+    }
+
+    #[inline]
+    pub fn from_u128_label(&mut self, mut label: u128) {
+        from_label_body!(self, u128, label)
     }
 }
 
