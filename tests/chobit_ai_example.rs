@@ -29,10 +29,10 @@ fn gen_data_set(
 
     for _ in 0..size {
         let mut vec_out = MathVec::<OUT>::new();
-        vec_out.from_u16_label(rng.next_u64() as u16);
+        vec_out.load_u16_label(rng.next_u64() as u16);
 
         let mut vec_in = MathVec::<IN>::new();
-        vec_in.from_u32_label(rng.next_u64() as u32);
+        vec_in.load_u32_label(rng.next_u64() as u32);
 
         ret.push((vec_out, vec_in));
     }
@@ -108,8 +108,6 @@ fn ai_example() {
 
     // Prints result before machine learning.
     let mut ai_output = MathVec::<OUT>::new();
-
-    const COUNT: usize = 10;
 
     println!("-----------------------");
     println!("Before machine learning");

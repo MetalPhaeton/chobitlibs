@@ -34,11 +34,11 @@ fn to_from_label_test() {
     }
 
     for _ in 0..COUNT {
-        to_from_label_test_core!(u8, rng, to_u8_label, from_u8_label);
-        to_from_label_test_core!(u16, rng, to_u16_label, from_u16_label);
-        to_from_label_test_core!(u32, rng, to_u32_label, from_u32_label);
-        to_from_label_test_core!(u64, rng, to_u64_label, from_u64_label);
-        to_from_label_test_core!(u128, rng, to_u128_label, from_u128_label);
+        to_from_label_test_core!(u8, rng, to_u8_label, load_u8_label);
+        to_from_label_test_core!(u16, rng, to_u16_label, load_u16_label);
+        to_from_label_test_core!(u32, rng, to_u32_label, load_u32_label);
+        to_from_label_test_core!(u64, rng, to_u64_label, load_u64_label);
+        to_from_label_test_core!(u128, rng, to_u128_label, load_u128_label);
     }
 }
 
