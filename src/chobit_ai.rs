@@ -1080,14 +1080,12 @@ impl<const N: usize> Neuron<N> {
 
     fn calc_nag(&mut self) {
         const BETA: f32 = 0.9;
-        const BETA_INV: f32 = 1.0 - BETA;
 
         self.nag_mome_1.copy_from(&self.mome_1);
         self.nag_mome_1 *= BETA;
 
         self.nag_weights.copy_from(&self.weights);
         self.nag_weights -= &self.nag_mome_1;
-
     }
 
     /// Updates Weights to use studied gradients.
@@ -1131,9 +1129,6 @@ impl<const N: usize> Neuron<N> {
 
     #[inline]
     fn calc_rate(&self, rate: f32) -> f32 {
-        const BETA: f32 = 0.999;
-        const BETA_INV: f32 = 1.0 - BETA;
-
         rate / (sqrt(self.mome_2) + f32::EPSILON)
     }
 }
@@ -1358,5 +1353,269 @@ impl<
     pub fn update(&mut self, rate: f32) {
         self.output_layer.update(rate);
         self.middle_layer.update(rate);
+    }
+}
+
+pub struct GRUGate<const OUT: usize, const IN: usize> {
+    x_matrix: Box<[Weights<IN>]>,
+    s_matrix: Box<[Weights<OUT>]>,
+
+    activation: Activation,
+
+    x_total_grad: Box<[Weights<IN>]>,
+    s_total_grad: Box<[Weights<OUT>]>,
+
+    x_mome_1: Box<[Weights<IN>]>,
+    s_mome_1: Box<[Weights<OUT>]>,
+
+    mome_2: Box<[f32]>,
+
+    x_nag_matrix: Box<[Weights<IN>]>,
+    s_nag_matrix: Box<[Weights<OUT>]>,
+
+    x_nag_mome_1: Box<[Weights<IN>]>,
+    s_nag_mome_1: Box<[Weights<OUT>]>,
+
+    x_grad_w: Box<[Weights<IN>]>,
+    s_grad_w: Box<[Weights<OUT>]>,
+
+    x_grad_x: Box<[MathVec<IN>]>,
+    s_grad_x: Box<[MathVec<OUT>]>,
+
+    x_feedback_next: MathVec<IN>,
+    s_feedback_next: MathVec<OUT>,
+
+    x_total_grad_2: Box<[Weights<IN>]>,
+    s_total_grad_2: Box<[Weights<OUT>]>,
+}
+
+impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            x_matrix: vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_matrix: vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            activation: activation,
+
+            x_total_grad:
+                vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_total_grad:
+                vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            x_mome_1: vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_mome_1: vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            mome_2: vec![0.0; OUT].into_boxed_slice(),
+
+            x_nag_matrix:
+                vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_nag_matrix:
+                vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            x_nag_mome_1:
+                vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_nag_mome_1:
+                vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            x_grad_w: vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_grad_w: vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            x_grad_x: vec![MathVec::<IN>::default(); OUT].into_boxed_slice(),
+            s_grad_x: vec![MathVec::<OUT>::default(); OUT].into_boxed_slice(),
+
+            x_feedback_next: MathVec::<IN>::default(),
+            s_feedback_next: MathVec::<OUT>::default(),
+
+            x_total_grad_2:
+                vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
+            s_total_grad_2:
+                vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+        }
+    }
+
+    #[inline]
+    pub fn x_matrix(&self) -> &[Weights<IN>] {&*self.x_matrix}
+
+    #[inline]
+    pub fn x_matrix_mut(&mut self) -> &mut [Weights<IN>] {&mut *self.x_matrix}
+
+    #[inline]
+    pub fn s_matrix(&self) -> &[Weights<OUT>] {&*self.s_matrix}
+
+    #[inline]
+    pub fn s_matrix_mut(&mut self) -> &mut [Weights<OUT>] {&mut *self.s_matrix}
+
+    #[inline]
+    pub fn activation(&self) -> &Activation {&self.activation}
+
+    #[inline]
+    pub fn activation_mut(&mut self) -> &mut Activation {&mut self.activation}
+
+    #[inline]
+    pub fn x_total_grad(&self) -> &[Weights<IN>] {&*self.x_total_grad}
+
+    #[inline]
+    pub fn x_total_grad_mut(&mut self) -> &mut [Weights<IN>] {
+        &mut *self.x_total_grad
+    }
+
+    #[inline]
+    pub fn s_total_grad(&self) -> &[Weights<OUT>] {&*self.s_total_grad}
+
+    #[inline]
+    pub fn s_total_grad_mut(&mut self) -> &mut [Weights<OUT>] {
+        &mut *self.s_total_grad
+    }
+
+    #[inline]
+    pub fn x_mome_1(&self) -> &[Weights<IN>] {&*self.x_mome_1}
+
+    #[inline]
+    pub fn x_mome_1_mut(&mut self) -> &mut [Weights<IN>] {
+        &mut *self.x_mome_1
+    }
+
+    #[inline]
+    pub fn s_mome_1(&self) -> &[Weights<OUT>] {&*self.s_mome_1}
+
+    #[inline]
+    pub fn s_mome_1_mut(&mut self) -> &mut [Weights<OUT>] {
+        &mut *self.s_mome_1
+    }
+
+    #[inline]
+    pub fn mome_2(&self) -> &[f32] {&self.mome_2}
+
+    #[inline]
+    pub fn set_mome_2(&mut self, mome_2: &[f32]) {
+        if mome_2.len() >= OUT {
+            for i in 0..OUT {
+                self.mome_2[i] = abs(mome_2[i]);
+            }
+        }
+    }
+
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>,
+        output: &mut MathVec<OUT>
+    ) {
+        for i in 0..OUT {
+            output[i] = self.activation.activate(
+                (&self.x_matrix[i] * input) + (&self.s_matrix[i] * state)
+            );
+        }
+    }
+
+    pub fn study(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>,
+    ) -> (&MathVec<IN>, &MathVec<OUT>) {
+        self.calc_nag();
+
+        self.x_feedback_next.clear();
+        self.s_feedback_next.clear();
+
+        for i in 0..OUT {
+            let factor = feedback[i] * self.activation.d_activate(
+                (&self.x_nag_matrix[i] * input)
+                    + (&self.s_nag_matrix[i] * state)
+            );
+
+            self.x_grad_w[i].w_mut().copy_from(input);
+            *self.x_grad_w[i].w_mut() *= factor;
+            *self.x_grad_w[i].b_mut() = factor;
+            self.x_total_grad[i] += &self.x_grad_w[i];
+
+            self.s_grad_w[i].w_mut().copy_from(state);
+            *self.s_grad_w[i].w_mut() *= factor;
+            *self.s_grad_w[i].b_mut() = factor;
+            self.s_total_grad[i] += &self.s_grad_w[i];
+
+            self.x_grad_x[i].copy_from(self.x_nag_matrix[i].w());
+            self.x_grad_x[i] *= factor;
+            self.x_feedback_next += &self.x_grad_x[i];
+
+            self.s_grad_x[i].copy_from(self.s_nag_matrix[i].w());
+            self.s_grad_x[i] *= factor;
+            self.s_feedback_next += &self.s_grad_x[i];
+
+        }
+
+        (&self.x_feedback_next, &self.s_feedback_next)
+    }
+
+    fn calc_nag(&mut self) {
+        const BETA: f32 = 0.9;
+
+        for i in 0..OUT {
+            self.x_nag_mome_1[i].copy_from(&self.x_mome_1[i]);
+            self.s_nag_mome_1[i].copy_from(&self.s_mome_1[i]);
+
+            self.x_nag_mome_1[i] *= BETA;
+            self.s_nag_mome_1[i] *= BETA;
+
+            self.x_nag_matrix[i].copy_from(&self.x_matrix[i]);
+            self.s_nag_matrix[i].copy_from(&self.s_matrix[i]);
+
+            self.x_nag_matrix[i] -= &self.x_nag_mome_1[i];
+            self.s_nag_matrix[i] -= &self.s_nag_mome_1[i];
+        }
+
+    }
+
+    pub fn update(&mut self, rate: f32) {
+        self.next_mome_1();
+        self.next_mome_2();
+
+        for i in 0..OUT {
+            self.x_total_grad[i] *=
+                rate / (sqrt(self.mome_2[i]) + f32::EPSILON);
+            self.s_total_grad[i] *=
+                rate / (sqrt(self.mome_2[i]) + f32::EPSILON);
+
+            self.x_matrix[i] -= &self.x_total_grad[i];
+            self.s_matrix[i] -= &self.s_total_grad[i];
+
+            self.x_total_grad[i].clear();
+            self.s_total_grad[i].clear();
+        }
+    }
+
+    fn next_mome_1(&mut self) {
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        for i in 0..OUT {
+            self.x_mome_1[i] *= BETA;
+            self.s_mome_1[i] *= BETA;
+
+            self.x_total_grad_2[i].copy_from(&self.x_total_grad[i]);
+            self.s_total_grad_2[i].copy_from(&self.s_total_grad[i]);
+
+            self.x_total_grad_2[i] *= BETA_INV;
+            self.s_total_grad_2[i] *= BETA_INV;
+
+            self.x_mome_1[i] += &self.x_total_grad_2[i];
+            self.s_mome_1[i] += &self.s_total_grad_2[i];
+        }
+    }
+
+    fn next_mome_2(&mut self) {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        for i in 0..OUT {
+            self.mome_2[i] *= BETA;
+            self.mome_2[i] += (
+                (&self.x_total_grad[i] * &self.x_total_grad[i])
+                    + (&self.s_total_grad[i] * &self.s_total_grad[i])
+            ) * BETA_INV;
+        }
     }
 }
