@@ -139,3 +139,122 @@ fn gru_gate_tests() {
 
     print(&data_set, &gate, &state);
 }
+
+fn gen_gru_layer<const OUT: usize, const IN: usize>(
+    rng: &mut ChobitRand,
+) -> GRULayer<OUT, IN> {
+    let mut ret = GRULayer::<OUT, IN>::new();
+
+    ret.z_gate_mut().x_matrix_mut().iter_mut().for_each(
+        |weights| {
+            weights.w_mut().iter_mut().for_each(
+                |x| {*x = rand_num(rng);}
+            );
+            *weights.b_mut() = rand_num(rng);
+        }
+    );
+
+    ret.z_gate_mut().s_matrix_mut().iter_mut().for_each(
+        |weights| {
+            weights.w_mut().iter_mut().for_each(
+                |x| {*x = rand_num(rng);}
+            );
+            *weights.b_mut() = rand_num(rng);
+        }
+    );
+
+    ret.r_gate_mut().x_matrix_mut().iter_mut().for_each(
+        |weights| {
+            weights.w_mut().iter_mut().for_each(
+                |x| {*x = rand_num(rng);}
+            );
+            *weights.b_mut() = rand_num(rng);
+        }
+    );
+
+    ret.r_gate_mut().s_matrix_mut().iter_mut().for_each(
+        |weights| {
+            weights.w_mut().iter_mut().for_each(
+                |x| {*x = rand_num(rng);}
+            );
+            *weights.b_mut() = rand_num(rng);
+        }
+    );
+
+    ret.h_gate_mut().x_matrix_mut().iter_mut().for_each(
+        |weights| {
+            weights.w_mut().iter_mut().for_each(
+                |x| {*x = rand_num(rng);}
+            );
+            *weights.b_mut() = rand_num(rng);
+        }
+    );
+
+    ret.h_gate_mut().s_matrix_mut().iter_mut().for_each(
+        |weights| {
+            weights.w_mut().iter_mut().for_each(
+                |x| {*x = rand_num(rng);}
+            );
+            *weights.b_mut() = rand_num(rng);
+        }
+    );
+
+    ret
+}
+
+#[test]
+fn gru_layer_test() {
+    const OUT: usize = 15;
+    const IN: usize = 10;
+    const DATA_SET_SIZE: usize = 50;
+
+    let mut rng = ChobitRand::new("gru_layer_tests_test".as_bytes());
+
+    let mut data_set = gen_data_set_1::<OUT, IN>(&mut rng, DATA_SET_SIZE);
+
+    let mut layer = gen_gru_layer::<OUT, IN>(&mut rng);
+    let state = gen_state(0.5);
+
+    fn print(
+        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
+        layer: &mut GRULayer<OUT, IN>,
+        state: &MathVec<OUT>
+    ) {
+        let mut total: f32 = 0.0;
+        let mut output = MathVec::<OUT>::new();
+
+        for data in data_set {
+            output.clear();
+            layer.calc(&data.1, state, &mut output);
+
+            output -= &data.0;
+            output.iter().for_each(|x| total += (*x).max(-(*x)));
+        }
+
+        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
+        println!("----------");
+    }
+
+    print(&data_set, &mut layer, &state);
+
+    const EPOCH: usize = 1000;
+    const RATE: f32 = 0.01;
+
+    let mut output = MathVec::<OUT>::new();
+    for _ in 0..EPOCH {
+        rng.shuffle(&mut data_set);
+
+        for data in &data_set {
+            output.clear();
+            layer.calc(&data.1, &state, &mut output);
+
+            output -= &data.0;
+
+            let _ = layer.study(&output, &data.1, &state);
+        }
+
+        layer.update(RATE);
+    }
+
+    print(&data_set, &mut layer, &state);
+}

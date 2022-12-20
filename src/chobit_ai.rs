@@ -1386,7 +1386,7 @@ pub struct GRUGate<const OUT: usize, const IN: usize> {
     s_feedback_next: MathVec<OUT>,
 
     x_total_grad_2: Box<[Weights<IN>]>,
-    s_total_grad_2: Box<[Weights<OUT>]>,
+    s_total_grad_2: Box<[Weights<OUT>]>
 }
 
 impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
@@ -1617,5 +1617,217 @@ impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
                     + (&self.s_total_grad[i] * &self.s_total_grad[i])
             ) * BETA_INV;
         }
+    }
+}
+
+pub struct GRULayer<const OUT: usize, const IN: usize> {
+    z_gate: GRUGate<OUT, IN>,
+    r_gate: GRUGate<OUT, IN>,
+    h_gate: GRUGate<OUT, IN>,
+
+    z_output: MathVec<OUT>,
+    r_output: MathVec<OUT>,
+    h_output: MathVec<OUT>,
+
+    z_inv_output: MathVec<OUT>,
+    r_output_2: MathVec<OUT>,
+    z_inv_base: MathVec<OUT>,
+
+    z_x_feedback_next: MathVec<IN>,
+    z_s_feedback_next: MathVec<OUT>,
+    r_x_feedback_next: MathVec<IN>,
+    r_s_feedback_next: MathVec<OUT>,
+    h_x_feedback_next: MathVec<IN>,
+    h_s_feedback_next: MathVec<OUT>,
+
+    this_x_feedback_next: MathVec<IN>,
+    this_s_feedback_next: MathVec<OUT>,
+
+    feedback_2: MathVec<OUT>,
+}
+
+impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
+    pub fn new() -> Self {
+        let mut z_inv_base = MathVec::<OUT>::default();
+        z_inv_base.iter_mut().for_each(|x| {*x = 1.0;});
+
+        Self {
+            z_gate: GRUGate::<OUT, IN>::new(Activation::Sigmoid),
+            r_gate: GRUGate::<OUT, IN>::new(Activation::Sigmoid),
+            h_gate: GRUGate::<OUT, IN>::new(Activation::SoftSign),
+
+            z_output: MathVec::<OUT>::default(),
+            r_output: MathVec::<OUT>::default(),
+            h_output: MathVec::<OUT>::default(),
+
+            z_inv_output: MathVec::<OUT>::default(),
+            r_output_2: MathVec::<OUT>::default(),
+            z_inv_base: z_inv_base,
+
+            z_x_feedback_next: MathVec::<IN>::default(),
+            z_s_feedback_next: MathVec::<OUT>::default(),
+            r_x_feedback_next: MathVec::<IN>::default(),
+            r_s_feedback_next: MathVec::<OUT>::default(),
+            h_x_feedback_next: MathVec::<IN>::default(),
+            h_s_feedback_next: MathVec::<OUT>::default(),
+
+            this_x_feedback_next: MathVec::<IN>::default(),
+            this_s_feedback_next: MathVec::<OUT>::default(),
+
+            feedback_2: MathVec::<OUT>::default(),
+        }
+    }
+
+    #[inline]
+    pub fn z_gate(&self) -> &GRUGate<OUT, IN> {&self.z_gate}
+
+    #[inline]
+    pub fn z_gate_mut(&mut self) -> &mut GRUGate<OUT, IN> {&mut self.z_gate}
+
+    #[inline]
+    pub fn r_gate(&self) -> &GRUGate<OUT, IN> {&self.r_gate}
+
+    #[inline]
+    pub fn r_gate_mut(&mut self) -> &mut GRUGate<OUT, IN> {&mut self.r_gate}
+
+    #[inline]
+    pub fn h_gate(&self) -> &GRUGate<OUT, IN> {&self.h_gate}
+
+    #[inline]
+    pub fn h_gate_mut(&mut self) -> &mut GRUGate<OUT, IN> {&mut self.h_gate}
+
+    #[inline]
+    pub fn calc(
+        &mut self,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>,
+        output: &mut MathVec<OUT>
+    ) {
+        self.z_gate.calc(input, state, &mut self.z_output);
+        self.r_gate.calc(input, state, &mut self.r_output);
+        self.r_output_2.copy_from(&self.r_output);
+
+        self.r_output_2.pointwise_mul_assign(&state);
+        self.h_gate.calc(input, &self.r_output_2, &mut self.h_output);
+
+        self.z_inv_output.copy_from(&self.z_inv_base);
+        self.z_inv_output -= &self.z_output;
+        self.z_inv_output.pointwise_mul_assign(&state);
+
+        self.h_output.pointwise_mul_assign(&self.z_output);
+        self.h_output += &self.z_inv_output;
+
+        output.copy_from(&self.h_output);
+    }
+
+    pub fn study(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>
+    ) -> (&MathVec<IN>, &MathVec<OUT>) {
+        self.z_gate.calc(input, state, &mut self.z_output);
+        self.r_gate.calc(input, state, &mut self.r_output);
+        self.r_output_2.copy_from(&self.r_output);
+
+        self.r_output_2.pointwise_mul_assign(&state);
+        self.h_gate.calc(input, &self.r_output_2, &mut self.h_output);
+
+        self.z_inv_output.copy_from(&self.z_inv_base);
+        self.z_inv_output -= &self.z_output;
+
+        self.study_z(feedback, input, state);
+
+        self.study_h(feedback, input);  // run before self.study_r.
+
+        self.study_r(feedback, input, state);  // run after self.study_h.
+
+        self.calc_x_feed_back_next();
+        self.calc_s_feed_back_next(feedback);
+
+        (&self.this_x_feedback_next, &self.this_s_feedback_next)
+    }
+
+    fn study_z(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>
+    ) {
+        self.feedback_2.copy_from(&self.h_output);
+        self.feedback_2 -= &state;
+        self.feedback_2.pointwise_mul_assign(&feedback);
+
+        let (x_feedback_next, s_feedback_next) = self.z_gate.study(
+            &self.feedback_2,
+            input,
+            state
+        );
+
+        self.z_x_feedback_next.copy_from(x_feedback_next);
+        self.z_s_feedback_next.copy_from(s_feedback_next);
+    }
+
+    fn study_h(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>
+    ) {
+        self.feedback_2.copy_from(feedback);
+        self.feedback_2.pointwise_mul_assign(&self.z_output);
+
+        let (x_feedback_next, s_feedback_next) = self.h_gate.study(
+            &self.feedback_2,
+            input,
+            &self.r_output_2
+        );
+
+        self.h_x_feedback_next.copy_from(x_feedback_next);
+        self.h_s_feedback_next.copy_from(s_feedback_next);
+    }
+
+    fn study_r(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>
+    ) {
+        self.feedback_2.copy_from(feedback);
+        self.feedback_2.pointwise_mul_assign(&self.z_output);
+        self.feedback_2.pointwise_mul_assign(&self.h_s_feedback_next);
+        self.feedback_2.pointwise_mul_assign(state);
+
+        let (x_feedback_next, s_feedback_next) = self.r_gate.study(
+            &self.feedback_2,
+            input,
+            state
+        );
+
+        self.r_x_feedback_next.copy_from(x_feedback_next);
+        self.r_s_feedback_next.copy_from(s_feedback_next);
+    }
+
+    fn calc_x_feed_back_next(&mut self) {
+        self.this_x_feedback_next.copy_from(&self.z_x_feedback_next);
+        self.this_x_feedback_next += &self.r_x_feedback_next;
+        self.this_x_feedback_next += &self.h_x_feedback_next;
+    }
+
+    fn calc_s_feed_back_next(&mut self, feedback: &MathVec<OUT>) {
+        self.this_s_feedback_next.copy_from(&self.z_s_feedback_next);
+        self.this_s_feedback_next += &self.r_s_feedback_next;
+
+        self.z_inv_output.pointwise_mul_assign(&feedback);
+        self.this_s_feedback_next += &self.z_inv_output;
+
+        self.h_s_feedback_next.pointwise_mul_assign(&self.r_output);
+        self.this_s_feedback_next += &self.h_s_feedback_next;
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.z_gate.update(rate);
+        self.r_gate.update(rate);
+        self.h_gate.update(rate);
     }
 }
