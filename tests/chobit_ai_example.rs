@@ -113,7 +113,7 @@ fn ai_example() {
     println!("Before machine learning");
     println!("-----------------------");
     for data in &data_set {
-        ai.calc(&data.1, &mut ai_output);
+        ai_output.copy_from(ai.calc(&data.1));
 
         print_result(data, &ai_output);
     }
@@ -137,7 +137,7 @@ fn ai_example() {
     println!("After machine learning");
     println!("----------------------");
     for data in &data_set {
-        ai.calc(&data.1, &mut ai_output);
+        ai_output.copy_from(ai.calc(&data.1));
 
         print_result(data, &ai_output);
     }

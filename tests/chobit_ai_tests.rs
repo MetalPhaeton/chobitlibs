@@ -467,7 +467,7 @@ fn neuron_test() {
 
     let mut neuron = gen_neuron::<N>(&mut rng);
 
-    fn print(data_set: &Vec<(f32, MathVec<N>)>, neuron: &Neuron<N>) {
+    fn print(data_set: &Vec<(f32, MathVec<N>)>, neuron: &mut Neuron<N>) {
         let mut total: f32 = 0.0;
 
         for data in data_set {
@@ -482,7 +482,7 @@ fn neuron_test() {
         println!("----------");
     }
 
-    print(&data_set, &neuron);
+    print(&data_set, &mut neuron);
 
     const EPOCH: usize = 3000;
     const RATE: f32 = 0.01;
@@ -501,7 +501,7 @@ fn neuron_test() {
         neuron.update(RATE);
     }
 
-    print(&data_set, &neuron);
+    print(&data_set, &mut neuron);
 }
 
 fn gen_matrix<const OUT: usize, const IN: usize>(
@@ -577,14 +577,14 @@ fn layer_test() {
 
     fn print(
         data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
-        layer: &Layer<OUT, IN>
+        layer: &mut Layer<OUT, IN>
     ) {
         let mut total: f32 = 0.0;
         let mut output = MathVec::<OUT>::new();
 
         for data in data_set {
             output.clear();
-            layer.calc(&data.1, &mut output);
+            output.copy_from(layer.calc(&data.1));
 
             output -= &data.0;
             output.iter().for_each(|x| total += (*x).max(-(*x)));
@@ -594,7 +594,7 @@ fn layer_test() {
         println!("----------");
     }
 
-    print(&data_set, &layer);
+    print(&data_set, &mut layer);
 
     const EPOCH: usize = 5000;
     const RATE: f32 = 0.01;
@@ -605,7 +605,7 @@ fn layer_test() {
 
         for data in &data_set {
             output.clear();
-            layer.calc(&data.1, &mut output);
+            output.copy_from(layer.calc(&data.1));
 
             output -= &data.0;
 
@@ -615,7 +615,7 @@ fn layer_test() {
         layer.update(RATE);
     }
 
-    print(&data_set, &layer);
+    print(&data_set, &mut layer);
 }
 
 fn gen_ai<const OUT: usize, const MIDDLE: usize, const IN: usize>(
@@ -668,7 +668,7 @@ fn ai_test() {
 
         for data in data_set {
             output.clear();
-            ai.calc(&data.1, &mut output);
+            output.copy_from(ai.calc(&data.1));
 
             output -= &data.0;
             output.iter().for_each(|x| total += (*x).max(-(*x)));
