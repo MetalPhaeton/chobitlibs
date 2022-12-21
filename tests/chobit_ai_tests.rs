@@ -583,7 +583,6 @@ fn layer_test() {
         let mut output = MathVec::<OUT>::new();
 
         for data in data_set {
-            output.clear();
             output.copy_from(layer.calc(&data.1));
 
             output -= &data.0;
@@ -604,7 +603,6 @@ fn layer_test() {
         rng.shuffle(&mut data_set);
 
         for data in &data_set {
-            output.clear();
             output.copy_from(layer.calc(&data.1));
 
             output -= &data.0;
@@ -667,7 +665,6 @@ fn ai_test() {
         let mut output = MathVec::<OUT>::new();
 
         for data in data_set {
-            output.clear();
             output.copy_from(ai.calc(&data.1));
 
             output -= &data.0;

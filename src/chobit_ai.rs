@@ -1340,6 +1340,7 @@ impl<
         &self.feedback_next
     }
 
+    #[inline]
     pub fn study_by_feedback(
         &mut self,
         feedback: &MathVec<OUT>,
@@ -1406,12 +1407,6 @@ pub struct GRUGate<const OUT: usize, const IN: usize> {
 
     mome_2: Box<[f32]>,
 
-    x_nag_matrix: Box<[Weights<IN>]>,
-    s_nag_matrix: Box<[Weights<OUT>]>,
-
-    x_nag_mome_1: Box<[Weights<IN>]>,
-    s_nag_mome_1: Box<[Weights<OUT>]>,
-
     x_grad_w: Box<[Weights<IN>]>,
     s_grad_w: Box<[Weights<OUT>]>,
 
@@ -1422,7 +1417,11 @@ pub struct GRUGate<const OUT: usize, const IN: usize> {
     s_feedback_next: MathVec<OUT>,
 
     x_total_grad_2: Box<[Weights<IN>]>,
-    s_total_grad_2: Box<[Weights<OUT>]>
+    s_total_grad_2: Box<[Weights<OUT>]>,
+
+    cache_x_middle_value: MathVec<OUT>,
+    cache_s_middle_value: MathVec<OUT>,
+    cache_output: MathVec<OUT>
 }
 
 impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
@@ -1444,16 +1443,6 @@ impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
 
             mome_2: vec![0.0; OUT].into_boxed_slice(),
 
-            x_nag_matrix:
-                vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
-            s_nag_matrix:
-                vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
-
-            x_nag_mome_1:
-                vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
-            s_nag_mome_1:
-                vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
-
             x_grad_w: vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
             s_grad_w: vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
 
@@ -1467,6 +1456,10 @@ impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
                 vec![Weights::<IN>::default(); OUT].into_boxed_slice(),
             s_total_grad_2:
                 vec![Weights::<OUT>::default(); OUT].into_boxed_slice(),
+
+            cache_x_middle_value: MathVec::<OUT>::default(),
+            cache_s_middle_value: MathVec::<OUT>::default(),
+            cache_output: MathVec::<OUT>::default(),
         }
     }
 
@@ -1533,34 +1526,50 @@ impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
     }
 
     #[inline]
-    pub fn calc(
-        &self,
-        input: &MathVec<IN>,
-        state: &MathVec<OUT>,
-        output: &mut MathVec<OUT>
-    ) {
-        for i in 0..OUT {
-            output[i] = self.activation.activate(
-                (&self.x_matrix[i] * input) + (&self.s_matrix[i] * state)
-            );
-        }
+    pub fn cache_x_middle_value(&self) -> &MathVec<OUT> {
+        &self.cache_x_middle_value
     }
 
-    pub fn study(
+    #[inline]
+    pub fn cache_s_middle_value(&self) -> &MathVec<OUT> {
+        &self.cache_s_middle_value
+    }
+
+    #[inline]
+    pub fn cache_output(&self) -> &MathVec<OUT> {
+        &self.cache_output
+    }
+
+    #[inline]
+    pub fn calc(
+        &mut self,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>,
+    ) -> &MathVec<OUT> {
+        for i in 0..OUT {
+            self.cache_x_middle_value[i] = &self.x_matrix[i] * input;
+            self.cache_s_middle_value[i] = &self.s_matrix[i] * state;
+
+            self.cache_output[i] = self.activation.activate(
+                self.cache_x_middle_value[i] + self.cache_s_middle_value[i]
+            );
+        }
+
+        &self.cache_output
+    }
+
+    pub fn study_with_cache(
         &mut self,
         feedback: &MathVec<OUT>,
         input: &MathVec<IN>,
         state: &MathVec<OUT>,
     ) -> (&MathVec<IN>, &MathVec<OUT>) {
-        self.calc_nag();
-
         self.x_feedback_next.clear();
         self.s_feedback_next.clear();
 
         for i in 0..OUT {
             let factor = feedback[i] * self.activation.d_activate(
-                (&self.x_nag_matrix[i] * input)
-                    + (&self.s_nag_matrix[i] * state)
+                self.cache_x_middle_value[i] + self.cache_s_middle_value[i]
             );
 
             self.x_grad_w[i].w_mut().copy_from(input);
@@ -1573,11 +1582,11 @@ impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
             *self.s_grad_w[i].b_mut() = factor;
             self.s_total_grad[i] += &self.s_grad_w[i];
 
-            self.x_grad_x[i].copy_from(self.x_nag_matrix[i].w());
+            self.x_grad_x[i].copy_from(self.x_matrix[i].w());
             self.x_grad_x[i] *= factor;
             self.x_feedback_next += &self.x_grad_x[i];
 
-            self.s_grad_x[i].copy_from(self.s_nag_matrix[i].w());
+            self.s_grad_x[i].copy_from(self.s_matrix[i].w());
             self.s_grad_x[i] *= factor;
             self.s_feedback_next += &self.s_grad_x[i];
 
@@ -1586,23 +1595,16 @@ impl<const OUT: usize, const IN: usize> GRUGate<OUT, IN> {
         (&self.x_feedback_next, &self.s_feedback_next)
     }
 
-    fn calc_nag(&mut self) {
-        const BETA: f32 = 0.9;
+    #[inline]
+    pub fn study(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>,
+    ) -> (&MathVec<IN>, &MathVec<OUT>) {
+        let _ = self.calc(input, state);
 
-        for i in 0..OUT {
-            self.x_nag_mome_1[i].copy_from(&self.x_mome_1[i]);
-            self.s_nag_mome_1[i].copy_from(&self.s_mome_1[i]);
-
-            self.x_nag_mome_1[i] *= BETA;
-            self.s_nag_mome_1[i] *= BETA;
-
-            self.x_nag_matrix[i].copy_from(&self.x_matrix[i]);
-            self.s_nag_matrix[i].copy_from(&self.s_matrix[i]);
-
-            self.x_nag_matrix[i] -= &self.x_nag_mome_1[i];
-            self.s_nag_matrix[i] -= &self.s_nag_mome_1[i];
-        }
-
+        self.study_with_cache(feedback, input, state)
     }
 
     pub fn update(&mut self, rate: f32) {
@@ -1661,13 +1663,16 @@ pub struct GRULayer<const OUT: usize, const IN: usize> {
     r_gate: GRUGate<OUT, IN>,
     h_gate: GRUGate<OUT, IN>,
 
-    z_output: MathVec<OUT>,
-    r_output: MathVec<OUT>,
-    h_output: MathVec<OUT>,
-
-    z_inv_output: MathVec<OUT>,
-    r_output_2: MathVec<OUT>,
     z_inv_base: MathVec<OUT>,
+
+    cache_z_gate_output: MathVec<OUT>,
+    cache_r_gate_output: MathVec<OUT>,
+    cache_h_gate_output: MathVec<OUT>,
+    cache_z_inv: MathVec<OUT>,
+    cache_output: MathVec<OUT>,
+
+    r_gate_output_2: MathVec<OUT>,
+    z_inv_output_2: MathVec<OUT>,
 
     z_x_feedback_next: MathVec<IN>,
     z_s_feedback_next: MathVec<OUT>,
@@ -1692,13 +1697,16 @@ impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
             r_gate: GRUGate::<OUT, IN>::new(Activation::Sigmoid),
             h_gate: GRUGate::<OUT, IN>::new(Activation::SoftSign),
 
-            z_output: MathVec::<OUT>::default(),
-            r_output: MathVec::<OUT>::default(),
-            h_output: MathVec::<OUT>::default(),
-
-            z_inv_output: MathVec::<OUT>::default(),
-            r_output_2: MathVec::<OUT>::default(),
             z_inv_base: z_inv_base,
+
+            cache_z_gate_output: MathVec::<OUT>::default(),
+            cache_r_gate_output: MathVec::<OUT>::default(),
+            cache_h_gate_output: MathVec::<OUT>::default(),
+            cache_z_inv: MathVec::<OUT>::default(),
+            cache_output: MathVec::<OUT>::default(),
+
+            r_gate_output_2: MathVec::<OUT>::default(),
+            z_inv_output_2: MathVec::<OUT>::default(),
 
             z_x_feedback_next: MathVec::<IN>::default(),
             z_s_feedback_next: MathVec::<OUT>::default(),
@@ -1733,45 +1741,67 @@ impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
     pub fn h_gate_mut(&mut self) -> &mut GRUGate<OUT, IN> {&mut self.h_gate}
 
     #[inline]
+    pub fn cache_z_gate_output(&self) -> &MathVec<OUT> {
+        &self.cache_z_gate_output
+    }
+
+    #[inline]
+    pub fn cache_r_gate_output(&self) -> &MathVec<OUT> {
+        &self.cache_r_gate_output
+    }
+
+    #[inline]
+    pub fn cache_h_gate_output(&self) -> &MathVec<OUT> {
+        &self.cache_h_gate_output
+    }
+
+    #[inline]
+    pub fn cache_z_inv(&self) -> &MathVec<OUT> {
+        &self.cache_z_inv
+    }
+
+    #[inline]
+    pub fn cache_output(&self) -> &MathVec<OUT> {
+        &self.cache_output
+    }
+
+    #[inline]
     pub fn calc(
         &mut self,
         input: &MathVec<IN>,
-        state: &MathVec<OUT>,
-        output: &mut MathVec<OUT>
-    ) {
-        self.z_gate.calc(input, state, &mut self.z_output);
-        self.r_gate.calc(input, state, &mut self.r_output);
-        self.r_output_2.copy_from(&self.r_output);
+        state: &MathVec<OUT>
+    ) -> &MathVec<OUT> {
+        self.cache_z_gate_output.copy_from(self.z_gate.calc(input, state));
+        self.cache_r_gate_output.copy_from(self.r_gate.calc(input, state));
+        self.r_gate_output_2.copy_from(&self.cache_r_gate_output);
 
-        self.r_output_2.pointwise_mul_assign(&state);
-        self.h_gate.calc(input, &self.r_output_2, &mut self.h_output);
+        self.r_gate_output_2.pointwise_mul_assign(&state);
+        self.cache_h_gate_output.copy_from(
+            self.h_gate.calc(input, &self.r_gate_output_2)
+        );
 
-        self.z_inv_output.copy_from(&self.z_inv_base);
-        self.z_inv_output -= &self.z_output;
-        self.z_inv_output.pointwise_mul_assign(&state);
+        self.cache_z_inv.copy_from(&self.z_inv_base);
+        self.cache_z_inv -= &self.cache_z_gate_output;
 
-        self.h_output.pointwise_mul_assign(&self.z_output);
-        self.h_output += &self.z_inv_output;
+        self.z_inv_output_2.copy_from(&self.cache_z_inv);
+        self.z_inv_output_2.pointwise_mul_assign(&state);
 
-        output.copy_from(&self.h_output);
+        self.cache_output.copy_from(&self.cache_h_gate_output);
+        self.cache_output.pointwise_mul_assign(
+            &self.cache_z_gate_output
+        );
+
+        self.cache_output += &self.z_inv_output_2;
+
+        &self.cache_output
     }
 
-    pub fn study(
+    pub fn study_with_cache(
         &mut self,
         feedback: &MathVec<OUT>,
         input: &MathVec<IN>,
         state: &MathVec<OUT>
     ) -> (&MathVec<IN>, &MathVec<OUT>) {
-        self.z_gate.calc(input, state, &mut self.z_output);
-        self.r_gate.calc(input, state, &mut self.r_output);
-        self.r_output_2.copy_from(&self.r_output);
-
-        self.r_output_2.pointwise_mul_assign(&state);
-        self.h_gate.calc(input, &self.r_output_2, &mut self.h_output);
-
-        self.z_inv_output.copy_from(&self.z_inv_base);
-        self.z_inv_output -= &self.z_output;
-
         self.study_z(feedback, input, state);
 
         self.study_h(feedback, input);  // run before self.study_r.
@@ -1790,7 +1820,7 @@ impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
         input: &MathVec<IN>,
         state: &MathVec<OUT>
     ) {
-        self.feedback_2.copy_from(&self.h_output);
+        self.feedback_2.copy_from(&self.cache_h_gate_output);
         self.feedback_2 -= &state;
         self.feedback_2.pointwise_mul_assign(&feedback);
 
@@ -1810,12 +1840,12 @@ impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
         input: &MathVec<IN>
     ) {
         self.feedback_2.copy_from(feedback);
-        self.feedback_2.pointwise_mul_assign(&self.z_output);
+        self.feedback_2.pointwise_mul_assign(&self.cache_z_gate_output);
 
         let (x_feedback_next, s_feedback_next) = self.h_gate.study(
             &self.feedback_2,
             input,
-            &self.r_output_2
+            &self.r_gate_output_2
         );
 
         self.h_x_feedback_next.copy_from(x_feedback_next);
@@ -1829,7 +1859,7 @@ impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
         state: &MathVec<OUT>
     ) {
         self.feedback_2.copy_from(feedback);
-        self.feedback_2.pointwise_mul_assign(&self.z_output);
+        self.feedback_2.pointwise_mul_assign(&self.cache_z_gate_output);
         self.feedback_2.pointwise_mul_assign(&self.h_s_feedback_next);
         self.feedback_2.pointwise_mul_assign(state);
 
@@ -1853,11 +1883,23 @@ impl<const OUT: usize, const IN: usize> GRULayer<OUT, IN>{
         self.this_s_feedback_next.copy_from(&self.z_s_feedback_next);
         self.this_s_feedback_next += &self.r_s_feedback_next;
 
-        self.z_inv_output.pointwise_mul_assign(&feedback);
-        self.this_s_feedback_next += &self.z_inv_output;
+        self.z_inv_output_2.copy_from(&self.cache_z_gate_output);
+        self.z_inv_output_2.pointwise_mul_assign(&feedback);
+        self.this_s_feedback_next += &self.z_inv_output_2;
 
-        self.h_s_feedback_next.pointwise_mul_assign(&self.r_output);
+        self.h_s_feedback_next.pointwise_mul_assign(&self.cache_r_gate_output);
         self.this_s_feedback_next += &self.h_s_feedback_next;
+    }
+
+    pub fn study(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        input: &MathVec<IN>,
+        state: &MathVec<OUT>
+    ) -> (&MathVec<IN>, &MathVec<OUT>) {
+        let _ = self.calc(input, state);
+
+        self.study_with_cache(feedback, input, state)
     }
 
     #[inline]

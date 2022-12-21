@@ -98,15 +98,14 @@ fn gru_gate_tests() {
 
     fn print(
         data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
-        gate: &GRUGate<OUT, IN>,
+        gate: &mut GRUGate<OUT, IN>,
         state: &MathVec<OUT>
     ) {
         let mut total: f32 = 0.0;
         let mut output = MathVec::<OUT>::new();
 
         for data in data_set {
-            output.clear();
-            gate.calc(&data.1, state, &mut output);
+            output.copy_from(gate.calc(&data.1, state));
 
             output -= &data.0;
             output.iter().for_each(|x| total += (*x).max(-(*x)));
@@ -116,7 +115,7 @@ fn gru_gate_tests() {
         println!("----------");
     }
 
-    print(&data_set, &gate, &state);
+    print(&data_set, &mut gate, &state);
 
     const EPOCH: usize = 1000;
     const RATE: f32 = 0.01;
@@ -126,8 +125,7 @@ fn gru_gate_tests() {
         rng.shuffle(&mut data_set);
 
         for data in &data_set {
-            output.clear();
-            gate.calc(&data.1, &state, &mut output);
+            output.copy_from(gate.calc(&data.1, &state));
 
             output -= &data.0;
 
@@ -137,7 +135,7 @@ fn gru_gate_tests() {
         gate.update(RATE);
     }
 
-    print(&data_set, &gate, &state);
+    print(&data_set, &mut gate, &state);
 }
 
 fn gen_gru_layer<const OUT: usize, const IN: usize>(
@@ -224,8 +222,7 @@ fn gru_layer_test() {
         let mut output = MathVec::<OUT>::new();
 
         for data in data_set {
-            output.clear();
-            layer.calc(&data.1, state, &mut output);
+            output.copy_from(layer.calc(&data.1, state));
 
             output -= &data.0;
             output.iter().for_each(|x| total += (*x).max(-(*x)));
@@ -245,8 +242,7 @@ fn gru_layer_test() {
         rng.shuffle(&mut data_set);
 
         for data in &data_set {
-            output.clear();
-            layer.calc(&data.1, &state, &mut output);
+            output.copy_from(layer.calc(&data.1, &state));
 
             output -= &data.0;
 
