@@ -495,7 +495,7 @@ fn neuron_test() {
 
             let diff = output - data.0;
 
-            let _ = neuron.study(diff, &data.1);
+            let _ = neuron.study(diff);
         }
 
         neuron.update(RATE);
@@ -607,7 +607,7 @@ fn layer_test() {
 
             output -= &data.0;
 
-            let _ = layer.study(&output, &data.1);
+            let _ = layer.study(&output);
         }
 
         layer.update(RATE);
