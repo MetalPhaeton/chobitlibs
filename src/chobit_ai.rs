@@ -1212,6 +1212,14 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
         &self.cache_output
     }
 
+    /// Forgets data of gradients and momenta.
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.neurons.iter_mut().for_each(
+            |neuron| {neuron.clear_study_data()}
+        );
+    }
+
     /// Studies gradients.
     ///
     /// It only studies gradients. It doesn't update weights yet.  
@@ -1351,6 +1359,13 @@ impl<
         );
 
         &self.cache_output
+    }
+
+    /// Forgets data of gradients and momenta.
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.output_layer.clear_study_data();
+        self.middle_layer.clear_study_data();
     }
 
     /// Studies Gradients by feedback.
