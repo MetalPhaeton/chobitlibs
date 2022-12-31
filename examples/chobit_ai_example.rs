@@ -94,8 +94,7 @@ fn print_result(
     );
 }
 
-#[test]
-fn ai_example() {
+fn main() {
     // Generates random number generator.
     let mut rng = ChobitRand::new("This is ChobitAI Example".as_bytes());
 
