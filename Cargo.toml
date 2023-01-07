@@ -3,6 +3,9 @@ name = "chobitlibs"
 version = "0.3.0"
 edition = "2021"
 
+description = "Single file libraries for my project."
+repository = "https://github.com/MetalPhaeton/chobitlibs"
+
 license = "WTFPL"
 readme = "README.md"
 
