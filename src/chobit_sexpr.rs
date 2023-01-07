@@ -56,7 +56,8 @@ use core::{
     mem::size_of,
     slice::{from_raw_parts, from_raw_parts_mut},
     marker::PhantomData,
-    ops::{Deref, DerefMut}
+    ops::{Deref, DerefMut},
+    fmt
 };
 
 /// Header size on byte string.
@@ -980,6 +981,67 @@ impl<'a> TryFrom<&'a ChobitSexpr> for &'a str {
     #[inline]
     fn try_from(sexpr: &'a ChobitSexpr) -> Result<&'a str, ()> {
         core::str::from_utf8(sexpr.atom().ok_or_else(|| ())?).map_err(|_| ())
+    }
+}
+
+impl fmt::Display for ChobitSexpr {
+    #[inline]
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.fmt_sexpr(0, formatter)
+    }
+}
+
+impl ChobitSexpr {
+    fn write_indent(
+        indent: usize,
+        formatter: &mut fmt::Formatter
+    ) -> fmt::Result {
+        for _ in 0..indent {
+            write!(formatter, "|    ")?;
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    fn fmt_sexpr(
+        &self,
+        indent: usize,
+        formatter: &mut fmt::Formatter
+    ) -> fmt::Result {
+        match self.atom() {
+            Some(atom) => Self::fmt_atom(indent, atom, formatter),
+
+            None => self.fmt_cons(indent, formatter)
+        }
+    }
+
+    fn fmt_atom(
+        indent: usize,
+        atom: &[u8],
+        formatter: &mut fmt::Formatter
+    ) -> fmt::Result {
+        Self::write_indent(indent, formatter)?;
+
+        write!(formatter, "len: {}, bytes: {:02x?}\n", atom.len(), atom)
+    }
+
+    fn fmt_cons(
+        &self,
+        indent: usize,
+        formatter: &mut fmt::Formatter
+    ) -> fmt::Result {
+        let car = self.car().ok_or_else(|| fmt::Error)?;
+
+        Self::write_indent(indent, formatter)?;
+        write!(formatter, "car:\n")?;
+        car.fmt_sexpr(indent + 1, formatter)?;
+
+        let cdr = self.cdr().ok_or_else(|| fmt::Error)?;
+
+        Self::write_indent(indent, formatter)?;
+        write!(formatter, "cdr:\n")?;
+        cdr.fmt_sexpr(indent + 1, formatter)
     }
 }
 

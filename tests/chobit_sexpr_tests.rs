@@ -479,3 +479,23 @@ fn push_number_test() {
         push_number_test_core!(f64, value, push_f64);
     }
 }
+
+#[test]
+fn sexpr_fmt_test() {
+    let value_1: u8 = 0x11;
+    let value_2: u16 = 0x1122;
+    let value_3: u32 = 0x11223344;
+    let value_4: u64 = 0x1122334455667788;
+
+    let sexpr = ChobitSexprBuf::new().build_list().push_item(
+        ChobitSexprBuf::from(value_1).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_2).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_3).as_sexpr()
+    ).push_item(
+        ChobitSexprBuf::from(value_4).as_sexpr()
+    ).finish();
+
+    println!("{}", sexpr.as_sexpr());
+}
