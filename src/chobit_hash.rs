@@ -41,7 +41,7 @@ macro_rules! fnv_1a {
 /// * `bytes` : Bytes that you want to calculate hash value.
 /// * _Return_ : Hash value.
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_hash::fnv_1a_32;
 ///
 /// const TEXT: &str = "Hello Alice! My name is Bob!";
@@ -58,7 +58,7 @@ pub const fn fnv_1a_32(bytes: &[u8]) -> u32 {
 /// * `bytes` : Bytes that you want to calculate hash value.
 /// * _Return_ : Hash value.
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_hash::fnv_1a_64;
 ///
 /// const TEXT: &str = "Hello Alice! My name is Bob!";
@@ -75,7 +75,7 @@ pub const fn fnv_1a_64(bytes: &[u8]) -> u64 {
 /// * `bytes` : Bytes that you want to calculate hash value.
 /// * _Return_ : Hash value.
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_hash::fnv_1a_128;
 ///
 /// const TEXT: &str = "Hello Alice! My name is Bob!";

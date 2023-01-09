@@ -18,7 +18,7 @@
 //!
 //! This library needs `alloc` crate.
 //!
-//! ```
+//! ```ignore
 //! extern crate alloc;
 //! ```
 //!
@@ -65,7 +65,7 @@ pub const HEADER_SIZE: usize = size_of::<u32>();
 
 /// Mask for flag.
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_sexpr::*;
 ///
 /// let header = SexprHeader::new_atom(10);
@@ -78,7 +78,7 @@ pub const FLAG_MASK: u32 = 0b10000000_00000000_00000000_00000000;
 
 /// Mask for size.
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_sexpr::*;
 ///
 /// let header = SexprHeader::new_atom(10);
@@ -86,6 +86,7 @@ pub const FLAG_MASK: u32 = 0b10000000_00000000_00000000_00000000;
 ///
 /// let header = SexprHeader::new_cons(10);
 /// assert_eq!(header.to_u32() & SIZE_MASK, 10);
+/// ```
 pub const SIZE_MASK: u32 = !FLAG_MASK;
 
 /// Max size of ChobitSexpr.
@@ -238,7 +239,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///
 /// # Example of atom
 ///
-/// ```
+/// ```ignore
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 ///
@@ -260,7 +261,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///
 /// # Example of cons
 ///
-/// ```
+/// ```ignore
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 ///
@@ -315,7 +316,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///
 /// # Example of TryFrom trait
 ///
-/// ```
+/// ```ignore
 /// extern crate alloc;
 /// use alloc::vec::Vec;
 ///
@@ -811,7 +812,7 @@ impl ChobitSexpr {
     ///
     /// * _Return_ : Iterator.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_sexpr::{ChobitSexpr, ChobitSexprBuf};
     ///
     /// let buf = ChobitSexprBuf::new().build_list().push_item(

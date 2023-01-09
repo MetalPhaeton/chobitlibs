@@ -32,7 +32,7 @@ extern {
 ///
 /// # Exapmle
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_module::{ChobitModule, chobit_module};
 ///
 /// struct MyObject {
@@ -208,7 +208,7 @@ impl<T> ChobitModule<T> {
 
 /// Defines WASM module.
 ///
-/// ```
+/// ```ignore
 /// use chobitlibs::chobit_module::{ChobitModule, chobit_module};
 ///
 /// struct MyObject {

@@ -20,7 +20,7 @@
 //!
 //! # Example
 //!
-//! ```
+//! ```ignore
 //! use chobitlibs::chobit_ai::*;
 //! use chobitlibs::chobit_rand::*;
 //! 

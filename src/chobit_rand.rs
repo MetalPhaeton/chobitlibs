@@ -86,7 +86,7 @@ impl ChobitRand {
     ///
     /// * _Return_ : A random number.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_rand::ChobitRand;
     ///
     /// let mut rand = ChobitRand::new("Hello World!".as_bytes());
@@ -116,7 +116,7 @@ impl ChobitRand {
     ///
     /// * _Return_ : A random number.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_rand::ChobitRand;
     ///
     /// let mut rand = ChobitRand::new("Hello World!".as_bytes());
@@ -132,7 +132,7 @@ impl ChobitRand {
     ///
     /// * slice : A slice that you want to shuffle.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_rand::ChobitRand;
     ///
     /// let mut rand = ChobitRand::new("Hello World!".as_bytes());

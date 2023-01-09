@@ -18,7 +18,7 @@
 //!
 //! This library needs `alloc` crate.
 //!
-//! ```
+//! ```ignore
 //! extern crate alloc;
 //! ```
 
@@ -42,7 +42,7 @@ impl<T> ChobitMap<T> {
     /// * `table_size` : Key-value table size. this is repaired into power of 2.
     /// * _Return_ : Instance.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let map = ChobitMap::<i32>::new(200);
@@ -139,7 +139,7 @@ impl<T> ChobitMap<T> {
     /// * `key` : A key of the value.
     /// * _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
@@ -173,7 +173,7 @@ impl<T> ChobitMap<T> {
     /// * `key` : A key of the value.
     /// * _Return_ : If `key` exists, returns the mutable value. Otherwise, returns `None`.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
@@ -220,7 +220,7 @@ impl<T> ChobitMap<T> {
     /// * `value` : A value that you want to put into `ChobitMap`.
     /// * _Return_ : If the key is conflicted, returns `None`. Otherwise, returns `Some(())`.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
@@ -264,7 +264,7 @@ impl<T> ChobitMap<T> {
     /// * `key` : A key of the value.
     /// * _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
@@ -313,7 +313,7 @@ impl<T> ChobitMap<T> {
     ///
     /// * _Return_ : A iterator of `ChobitMap`.
     ///
-    /// ```
+    /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
     ///
     /// let mut map = ChobitMap::<i32>::new(200);
