@@ -844,10 +844,10 @@ impl<'a> Iterator for Iter<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<&'a ChobitSexpr> {
-        let ret = self.body.car()?;
-        self.body = self.body.cdr()?;
+        let (car, cdr) = self.body.car_cdr()?;
+        self.body = cdr;
 
-        Some(ret)
+        Some(car)
     }
 }
 
