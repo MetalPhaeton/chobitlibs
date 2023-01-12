@@ -118,7 +118,7 @@ fn main() {
     }
 
     // Machine learning.
-    const EPOCH: usize = 1000;
+    const EPOCH: usize = 2000;
     const RATE: f32 = 0.01;
 
     for _ in 0..EPOCH {

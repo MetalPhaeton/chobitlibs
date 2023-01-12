@@ -29,3 +29,5 @@ pub mod chobit_ai;
 pub mod chobit_sexpr;
 
 pub mod chobit_module;
+
+pub mod chobit_complex;
