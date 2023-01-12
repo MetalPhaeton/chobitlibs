@@ -533,18 +533,17 @@ impl Complex {
         mut max_angle: usize
     ) -> usize {
         loop {
+            let middle_angle = (min_angle + max_angle) >> 1;
+            if (min_angle == middle_angle) || (max_angle == middle_angle) {
+                break middle_angle;
+            }
+
             let min_d = (*cis - table[min_angle]).abs_2();
             let max_d = (*cis - table[max_angle]).abs_2();
 
-            let middle_angle = (min_angle + max_angle) >> 1;
-
             if min_d < max_d {
-                if max_angle == middle_angle {break middle_angle}
-
                 max_angle = middle_angle;
             } else {
-                if min_angle == middle_angle {break middle_angle}
-
                 min_angle = middle_angle;
             }
 
