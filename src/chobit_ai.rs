@@ -138,7 +138,7 @@
 //! }
 //! 
 //! // Machine learning.
-//! const EPOCH: usize = 1000;
+//! const EPOCH: usize = 2000;
 //! const RATE: f32 = 0.01;
 //! 
 //! for _ in 0..EPOCH {
@@ -194,7 +194,7 @@ fn sqrt(x: f32) -> f32 {
     let a = x * 0.5;
     let y = f32::from_bits(MAGIC_32 - (x.to_bits() >> 1));
 
-    y * (1.5 - (a * y * y))
+    y * (1.5 - (a * y * y)) * x
 }
 
 macro_rules! pointwise_op {
