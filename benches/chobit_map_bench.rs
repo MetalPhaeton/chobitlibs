@@ -1,5 +1,5 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use chobit::chobit_map::ChobitMap;
+use criterion::{criterion_group, criterion_main, Criterion};
+use chobitlibs::chobit_map::ChobitMap;
 
 const MAX: u64 = 10000;
 

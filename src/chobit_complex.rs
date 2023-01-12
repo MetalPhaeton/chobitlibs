@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-#![allow(dead_code)]
+//#![allow(dead_code)]
 
 use core::{
     f32::consts::*,
@@ -27,7 +27,8 @@ use core::{
         Mul,
         MulAssign,
         Div,
-        DivAssign
+        DivAssign,
+        Index
     },
     fmt
 };
@@ -458,20 +459,25 @@ const QUADRANT_3: Complex = Complex::new(0.0, -1.0);
 
 impl Complex {
     #[inline]
-    pub const fn full_circle_angle() -> i32 {
-        const ANGLE: i32 = 1 << (BASE_LEN + 2);
+    pub const fn full_circle_angle() -> usize {
+        const ANGLE: usize = 1 << (BASE_LEN + 2);
 
         ANGLE
     }
 
-    pub fn cis(angle: i32) -> Self {
-        const MASK: i32 = Complex::full_circle_angle() - 1;
-        const QUADRANT_1_ANGLE: i32 = Complex::full_circle_angle() >> 2;
-        const QUADRANT_2_ANGLE: i32 = Complex::full_circle_angle() >> 1;
-        const QUADRANT_3_ANGLE: i32 = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
-        const BIT_MASK: i32 = 1;
+    #[inline]
+    pub const fn rem_full_circle_angle(angle: usize) -> usize {
+        const MASK: usize = Complex::full_circle_angle() - 1;
+        angle & MASK
+    }
 
-        let mut angle = angle & MASK;
+    pub fn cis(angle: usize) -> Self {
+        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
+        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+        const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
+        const BIT_MASK: usize = 1;
+
+        let mut angle = Self::rem_full_circle_angle(angle);
 
         let mut ret = if angle < QUADRANT_1_ANGLE {
             QUADRANT_0
@@ -495,83 +501,133 @@ impl Complex {
     }
 
     #[inline]
-    pub fn from_polar(mag: f32, phase: i32) -> Self {
-        Self::cis(phase) * mag
+    pub fn from_polar(table: &CisTable, mag: f32, phase: usize) -> Self {
+        table[phase] * mag
     }
 
     #[inline]
-    pub fn radian_to_angle(rad: f32) -> i32 {
+    pub fn radian_to_angle(rad: f32) -> usize {
         const MAX_ANGLE: f32 = Complex::full_circle_angle() as f32;
-        const MASK: i32 = Complex::full_circle_angle() - 1;
 
-        (((rad * MAX_ANGLE) / TAU) as i32) & MASK
+        let angle = (((rad % TAU) * MAX_ANGLE) / TAU) + MAX_ANGLE;
+
+        Self::rem_full_circle_angle(angle as usize)
     }
 
     #[inline]
-    pub fn angle_to_radian(angle: i32) -> f32 {
+    pub fn angle_to_radian(angle: usize) -> f32 {
         const MAX_ANGLE: f32 = Complex::full_circle_angle() as f32;
-        const MASK: i32 = Complex::full_circle_angle() - 1;
 
-        (((angle & MASK) as f32) * TAU) / MAX_ANGLE 
+        ((Self::rem_full_circle_angle(angle) as f32) * TAU) / MAX_ANGLE 
     }
 
     #[inline]
-    pub fn rot(&mut self, angle: i32) {
-        *self *= Self::cis(angle);
+    pub fn rot(&mut self, table: &CisTable, angle: usize) {
+        *self *= table[angle];
     }
 
     fn polar_core(
+        table: &CisTable,
         cis: &Complex,
-        mut min: Complex,
-        mut max: Complex
-    ) -> i32 {
-        let mut ret: i32 = 0;
+        mut min_angle: usize,
+        mut max_angle: usize
+    ) -> usize {
+        loop {
+            let min_d = (*cis - table[min_angle]).abs_2();
+            let max_d = (*cis - table[max_angle]).abs_2();
 
-        for cis_base in CIS_BASE[..BASE_LEN].iter().rev() {
-            ret <<= 1;
-
-            let min_d = (*cis - min).abs_2();
-            let max_d = (*cis - max).abs_2();
+            let middle_angle = (min_angle + max_angle) >> 1;
 
             if min_d < max_d {
-                max = min * *cis_base;
-            } else {
-                min = min * *cis_base;
-                ret |= 1;
-            }
-        }
+                if max_angle == middle_angle {break middle_angle}
 
-        ret
+                max_angle = middle_angle;
+            } else {
+                if min_angle == middle_angle {break middle_angle}
+
+                min_angle = middle_angle;
+            }
+
+        }
     }
 
-    pub fn polar(&self) -> (f32, i32) {
-        const QUADRANT_1_ANGLE: i32 = Complex::full_circle_angle() >> 2;
-        const QUADRANT_2_ANGLE: i32 = Complex::full_circle_angle() >> 1;
-        const QUADRANT_3_ANGLE: i32 = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
+    pub fn polar(&self, table: &CisTable) -> (f32, usize) {
+        const QUADRANT_0_ANGLE: usize = 0;
+        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
+        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+        const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
+        const QUADRANT_4_ANGLE: usize = Complex::full_circle_angle();
 
         let abs = self.abs();
         let cis = *self / abs;
 
-        if cis.re >= 0.0 {
+        let angle = if cis.re >= 0.0 {
             if cis.im >= 0.0 {
-                let angle = Self::polar_core(&cis, QUADRANT_0, QUADRANT_1);
-
-                (abs, angle)
+                const MAX: usize = QUADRANT_1_ANGLE - 1;
+                Self::polar_core(
+                    table,
+                    &cis,
+                    QUADRANT_0_ANGLE,
+                    MAX
+                )
             } else {
-                let angle = Self::polar_core(&cis, QUADRANT_3, QUADRANT_0);
-
-                (abs, QUADRANT_3_ANGLE | angle)
+                const MAX: usize = QUADRANT_4_ANGLE - 1;
+                Self::polar_core(
+                    table,
+                    &cis,
+                    QUADRANT_3_ANGLE,
+                    MAX
+                )
             }
         } else {
             if cis.im >= 0.0 {
-                let angle = Self::polar_core(&cis, QUADRANT_1, QUADRANT_2);
-
-                (abs, QUADRANT_1_ANGLE | angle)
+                const MAX: usize = QUADRANT_2_ANGLE - 1;
+                Self::polar_core(
+                    table,
+                    &cis,
+                    QUADRANT_1_ANGLE,
+                    MAX
+                )
             } else {
-                let angle = Self::polar_core(&cis, QUADRANT_2, QUADRANT_3);
-
-                (abs, QUADRANT_2_ANGLE | angle)
+                const MAX: usize = QUADRANT_3_ANGLE - 1;
+                Self::polar_core(
+                    table,
+                    &cis,
+                    QUADRANT_2_ANGLE,
+                    MAX
+                )
             }
+        };
+
+        (abs, angle)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CisTable {
+    body: [Complex; Complex::full_circle_angle()]
+}
+
+impl CisTable {
+    pub fn new() -> Self {
+        const FULL_CIRCLE_ANGLE: usize = Complex::full_circle_angle();
+
+        let mut body: [Complex; FULL_CIRCLE_ANGLE] =
+            [Complex::default(); FULL_CIRCLE_ANGLE];
+
+        for i in 0..FULL_CIRCLE_ANGLE {
+            body[i] = Complex::cis(i);
         }
+
+        Self {body: body}
+    }
+}
+
+impl Index<usize> for CisTable {
+    type Output = Complex;
+
+    #[inline]
+    fn index(&self, index: usize) -> &Complex {
+        &self.body[Complex::rem_full_circle_angle(index)]
     }
 }

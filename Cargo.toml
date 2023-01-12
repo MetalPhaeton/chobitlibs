@@ -15,3 +15,7 @@ criterion = "0.4"
 [[bench]]
 name = "chobit_map_bench"
 harness = false
+
+[[bench]]
+name = "chobit_complex_bench"
+harness = false

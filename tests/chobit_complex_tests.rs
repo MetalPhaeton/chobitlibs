@@ -190,29 +190,27 @@ fn div_test() {
 }
 
 #[test]
+fn rad_to_angle_test() {
+    for angle in 0..Complex::full_circle_angle() {
+        let rad = Complex::angle_to_radian(angle);
+        let angle_2 = Complex::radian_to_angle(rad);
+
+        assert_eq!(angle_2, angle);
+    }
+}
+
+#[test]
 fn rot_test() {
     const COUNT: usize = 5000;
 
     let mut rng = ChobitRand::new("rot_test".as_bytes());
+    let table = CisTable::new();
 
     for _ in 0..COUNT {
         let rad = rand_num(&mut rng);
 
         let mut x = Complex::new(1.0, 0.0);
-        x.rot(Complex::radian_to_angle(rad));
-
-        let diff_re = (x.re - rad.cos()).abs();
-        let diff_im = (x.im - rad.sin()).abs();
-
-        assert!(diff_re < 0.0008);
-        assert!(diff_im < 0.0008);
-    }
-
-    for _ in 0..COUNT {
-        let rad = rand_num(&mut rng);
-
-        let mut x = Complex::new(1.0, 0.0);
-        x.rot(Complex::radian_to_angle(rad));
+        x.rot(&table, Complex::radian_to_angle(rad));
 
         let diff_re = (x.re - rad.cos()).abs();
         let diff_im = (x.im - rad.sin()).abs();
@@ -227,11 +225,12 @@ fn polar_test() {
     const COUNT: usize = 10000;
 
     let mut rng = ChobitRand::new("polar_test".as_bytes());
+    let table = CisTable::new();
 
     for _ in 0..COUNT {
         let x = Complex::new(rand_num(&mut rng), rand_num(&mut rng));
-        let (mag, phase) = x.polar();
-        let y = Complex::from_polar(mag, phase);
+        let (mag, phase) = x.polar(&table);
+        let y = Complex::from_polar(&table, mag, phase);
 
         let diff = (x - y).abs();
         assert!(diff < 0.025);
@@ -276,11 +275,12 @@ fn normalize_test() {
     const COUNT: usize = 1000;
 
     let mut rng = ChobitRand::new("normalize_test".as_bytes());
+    let table = CisTable::new();
 
     for _ in 0..COUNT {
         let x = Complex::new(rand_num(&mut rng), rand_num(&mut rng));
-        let (_, phase) = x.polar();
-        let cis = Complex::cis(phase);
+        let (_, phase) = x.polar(&table);
+        let cis = table[phase];
         let y = x.normalize();
 
         let diff = (y - cis).abs();
