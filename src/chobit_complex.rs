@@ -471,14 +471,41 @@ impl Complex {
         const MASK: usize = Complex::full_circle_angle() - 1;
         angle & MASK
     }
+}
 
-    pub fn cis(angle: usize) -> Self {
+#[derive(Debug, Clone, PartialEq)]
+pub struct CisTable {
+    body: [Complex; Complex::full_circle_angle()]
+}
+
+impl CisTable {
+    pub fn new() -> Self {
+        const QUADRANT_0_ANGLE: usize = 0;
+        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
+        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+        const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
+        const QUADRANT_4_ANGLE: usize = Complex::full_circle_angle();
+
+        let mut body: [Complex; QUADRANT_4_ANGLE] =
+            [Complex::default(); QUADRANT_4_ANGLE];
+
+        for i in QUADRANT_0_ANGLE..QUADRANT_1_ANGLE {
+            body[i] = Self::cis(i);
+            body[i + QUADRANT_1_ANGLE] = body[i].mul_i();
+            body[i + QUADRANT_2_ANGLE] = -body[i];
+            body[i + QUADRANT_3_ANGLE] = body[i].mul_neg_i();
+        }
+
+        Self {body: body}
+    }
+
+    fn cis(angle: usize) -> Complex {
         const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
         const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
         const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
         const BIT_MASK: usize = 1;
 
-        let mut angle = Self::rem_full_circle_angle(angle);
+        let mut angle = Complex::rem_full_circle_angle(angle);
 
         let mut ret = if angle < QUADRANT_1_ANGLE {
             QUADRANT_0
@@ -501,6 +528,36 @@ impl Complex {
         ret
     }
 
+    #[inline]
+    pub fn get(&self, index: usize) -> Option<&Complex> {
+        self.body.get(index)
+    }
+
+    #[inline]
+    pub unsafe fn get_unchecked(&self, index: usize) -> &Complex {
+        self.body.get_unchecked(index)
+    }
+}
+
+impl Index<usize> for CisTable {
+    type Output = Complex;
+
+    #[inline]
+    fn index(&self, index: usize) -> &Complex {
+        unsafe {self.get_unchecked(Complex::rem_full_circle_angle(index))}
+    }
+}
+
+impl Index<Range<usize>> for CisTable {
+    type Output = [Complex];
+
+    #[inline]
+    fn index(&self, index: Range<usize>) -> &[Complex] {
+        &self.body[index]
+    }
+}
+
+impl Complex {
     #[inline]
     pub fn from_polar(table: &CisTable, mag: f32, phase: usize) -> Self {
         table[phase] * mag
@@ -600,60 +657,5 @@ impl Complex {
         };
 
         (abs, angle)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct CisTable {
-    body: [Complex; Complex::full_circle_angle()]
-}
-
-impl CisTable {
-    pub fn new() -> Self {
-        const QUADRANT_0_ANGLE: usize = 0;
-        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
-        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
-        const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
-        const QUADRANT_4_ANGLE: usize = Complex::full_circle_angle();
-
-        let mut body: [Complex; QUADRANT_4_ANGLE] =
-            [Complex::default(); QUADRANT_4_ANGLE];
-
-        for i in QUADRANT_0_ANGLE..QUADRANT_1_ANGLE {
-            body[i] = Complex::cis(i);
-            body[i + QUADRANT_1_ANGLE] = body[i].mul_i();
-            body[i + QUADRANT_2_ANGLE] = -body[i];
-            body[i + QUADRANT_3_ANGLE] = body[i].mul_neg_i();
-        }
-
-        Self {body: body}
-    }
-
-    #[inline]
-    pub fn get(&self, index: usize) -> Option<&Complex> {
-        self.body.get(index)
-    }
-
-    #[inline]
-    pub unsafe fn get_unchecked(&self, index: usize) -> &Complex {
-        self.body.get_unchecked(index)
-    }
-}
-
-impl Index<usize> for CisTable {
-    type Output = Complex;
-
-    #[inline]
-    fn index(&self, index: usize) -> &Complex {
-        unsafe {self.get_unchecked(Complex::rem_full_circle_angle(index))}
-    }
-}
-
-impl Index<Range<usize>> for CisTable {
-    type Output = [Complex];
-
-    #[inline]
-    fn index(&self, index: Range<usize>) -> &[Complex] {
-        &self.body[index]
     }
 }

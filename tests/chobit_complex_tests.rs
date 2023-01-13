@@ -239,9 +239,11 @@ fn polar_test() {
 
 #[test]
 fn div_test_2() {
+    let table = CisTable::new();
+
     for angle in 0..Complex::full_circle_angle() {
-        let cis_1 = Complex::cis(angle);
-        let cis_2 = Complex::cis(angle);
+        let cis_1 = table[angle];
+        let cis_2 = table[angle];
         let check = Complex::new(1.0, 0.0);
 
         let result = cis_1 / cis_2;
