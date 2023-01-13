@@ -288,3 +288,17 @@ fn normalize_test() {
         assert!(diff < 0.002);
     }
 }
+
+#[test]
+fn cis_table_slice_test() {
+    const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
+    const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+
+    let table = CisTable::new();
+    let table_slice = &table[QUADRANT_1_ANGLE..QUADRANT_2_ANGLE];
+    assert_eq!(table_slice.len(), QUADRANT_1_ANGLE);
+
+    for angle in 0..QUADRANT_1_ANGLE {
+        assert_eq!(table_slice[angle], table[angle + QUADRANT_1_ANGLE]);
+    }
+}

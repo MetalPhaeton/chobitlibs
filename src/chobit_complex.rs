@@ -28,7 +28,8 @@ use core::{
         MulAssign,
         Div,
         DivAssign,
-        Index
+        Index,
+        Range
     },
     fmt
 };
@@ -645,5 +646,14 @@ impl Index<usize> for CisTable {
     #[inline]
     fn index(&self, index: usize) -> &Complex {
         unsafe {self.get_unchecked(Complex::rem_full_circle_angle(index))}
+    }
+}
+
+impl Index<Range<usize>> for CisTable {
+    type Output = [Complex];
+
+    #[inline]
+    fn index(&self, index: Range<usize>) -> &[Complex] {
+        &self.body[index]
     }
 }
