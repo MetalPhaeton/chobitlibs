@@ -522,8 +522,8 @@ impl Complex {
     }
 
     #[inline]
-    pub fn rot(&mut self, table: &CisTable, angle: usize) {
-        *self *= table[angle];
+    pub fn rot(&self, table: &CisTable, angle: usize) -> Self {
+        *self * table[angle]
     }
 
     fn polar_core(

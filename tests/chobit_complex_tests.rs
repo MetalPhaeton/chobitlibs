@@ -209,11 +209,11 @@ fn rot_test() {
     for _ in 0..COUNT {
         let rad = rand_num(&mut rng);
 
-        let mut x = Complex::new(1.0, 0.0);
-        x.rot(&table, Complex::radian_to_angle(rad));
+        let x = Complex::new(1.0, 0.0);
+        let y = x.rot(&table, Complex::radian_to_angle(rad));
 
-        let diff_re = (x.re - rad.cos()).abs();
-        let diff_im = (x.im - rad.sin()).abs();
+        let diff_re = (y.re - rad.cos()).abs();
+        let diff_im = (y.im - rad.sin()).abs();
 
         assert!(diff_re < 0.0008);
         assert!(diff_im < 0.0008);
