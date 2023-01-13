@@ -304,3 +304,19 @@ fn cis_table_slice_test() {
         assert_eq!(table_slice[angle], table[angle + QUADRANT_1_ANGLE]);
     }
 }
+
+#[test]
+fn rem_full_circle_angle_test() {
+    const QUADRANT_0_ANGLE: usize = 0;
+    const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
+    const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+    const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
+
+    let angle = QUADRANT_0_ANGLE;
+    let angle = angle.wrapping_sub(QUADRANT_1_ANGLE);
+
+    assert_ne!(angle, QUADRANT_3_ANGLE);
+
+    let angle = Complex::rem_full_circle_angle(angle);
+    assert_eq!(angle, QUADRANT_3_ANGLE);
+}
