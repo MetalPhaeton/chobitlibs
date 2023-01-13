@@ -210,7 +210,7 @@ fn rot_test() {
         let rad = rand_num(&mut rng);
 
         let x = Complex::new(1.0, 0.0);
-        let y = x.rot(&table, Complex::radian_to_angle(rad));
+        let y = x * table[Complex::radian_to_angle(rad)];
 
         let diff_re = (y.re - rad.cos()).abs();
         let diff_im = (y.im - rad.sin()).abs();

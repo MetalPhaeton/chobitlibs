@@ -12,7 +12,59 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//#![allow(dead_code)]
+//! Complex number for high-speed rotation.
+//!
+//! Using [CisTable], a complex number can be rotate without trigonometric function.
+//!
+//! Angle for [Complex] is not radian. it is usize number `[0, 2^13)`.
+//!
+//! | Radian (`f32`) | Angle (`usize`)       |
+//! |----------------|-----------------------|
+//! | `0.0`          | `0`                   |
+//! | `FRAC_PI_4`    | `1024 == (8192 >> 3)` |
+//! | `FRAC_PI_2`    | `2048 == (8192 >> 2)` |
+//! | `PI`           | `4096 == (8192 >> 1)` |
+//! | `TAU`          | `8192`                |
+//! | `rad % TAU`    | `angle & (8192 - 1)`  |
+//!
+//! ### CisTable example
+//!
+//! ```ignore
+//! use chobitlibs::chobit_complex::{Complex, CisTable};
+//! use core::f32::consts::FRAC_PI_4;
+//!
+//! let table = CisTable::new();
+//!
+//! let num_a = Complex::new(FRAC_PI_4.cos(), FRAC_PI_4.sin());
+//! let num_b = table[Complex::full_circle_angle() >> 3];
+//!
+//! let diff = (num_a - num_b).abs();
+//!
+//! assert_eq!(num_a, num_b);
+//! ```
+//!
+//! ### Rotation example
+//!
+//! ```ignore
+//! use chobitlibs::chobit_complex::{Complex, CisTable};
+//!
+//! let z = Complex::new(10.0, 20.0);
+//! let table = CisTable::new();
+//!
+//! // 2 laps.
+//! for angle in 0..(Complex::full_circle_angle() * 2) {
+//!     println!("{}", z * talbe[angle])
+//! }
+//!
+//! // 2 laps contra-rotating.
+//! for angle in 0..(Complex::full_circle_angle() * 2) {
+//!     let angle = 0usize.wrapping_sub(angle);
+//!
+//!     println!("{}", z * talbe[angle])
+//! }
+//! ```
+
+#![allow(dead_code)]
 
 use core::{
     f32::consts::*,
@@ -577,11 +629,6 @@ impl Complex {
         const MAX_ANGLE: f32 = Complex::full_circle_angle() as f32;
 
         ((Self::rem_full_circle_angle(angle) as f32) * TAU) / MAX_ANGLE 
-    }
-
-    #[inline]
-    pub fn rot(&self, table: &CisTable, angle: usize) -> Self {
-        *self * table[angle]
     }
 
     fn polar_core(
