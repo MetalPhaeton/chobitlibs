@@ -18,14 +18,15 @@
 //!
 //! Angle for [Complex] is not radian. it is usize number `[0, 2^13)`.
 //!
-//! | Radian (`f32`) | Angle (`usize`)       |
-//! |----------------|-----------------------|
-//! | `0.0`          | `0`                   |
-//! | `FRAC_PI_4`    | `1024 == (8192 >> 3)` |
-//! | `FRAC_PI_2`    | `2048 == (8192 >> 2)` |
-//! | `PI`           | `4096 == (8192 >> 1)` |
-//! | `TAU`          | `8192`                |
-//! | `rad % TAU`    | `angle & (8192 - 1)`  |
+//! | Radian (`f32`)                           | Angle (`usize`)                                               |
+//! |------------------------------------------|---------------------------------------------------------------|
+//! | `rad == Complex::angle_to_radian(angle)` | `angle == Complex::radian_to_angle(rad)`                      |
+//! | `0.0`                                    | `0`                                                           |
+//! | `FRAC_PI_4                          `    | `1024 == (8192 >> 3)`                                         |
+//! | `FRAC_PI_2`                              | `2048 == (8192 >> 2)`                                         |
+//! | `PI`                                     | `4096 == (8192 >> 1)`                                         |
+//! | `TAU`                                    | `8192 == Complex::full_circle_angle()`                        |
+//! | `rad % TAU`                              | `angle & (8192 - 1) == Complex::rem_full_circle_angle(angle)` |
 //!
 //! ### CisTable example
 //!
@@ -35,12 +36,10 @@
 //!
 //! let table = CisTable::new();
 //!
-//! let num_a = Complex::new(FRAC_PI_4.cos(), FRAC_PI_4.sin());
-//! let num_b = table[Complex::full_circle_angle() >> 3];
+//! let z_1 = Complex::new(FRAC_PI_4.cos(), FRAC_PI_4.sin());
+//! let z_2 = table[Complex::full_circle_angle() >> 3];
 //!
-//! let diff = (num_a - num_b).abs();
-//!
-//! assert_eq!(num_a, num_b);
+//! assert_eq!(z_1, z_2);
 //! ```
 //!
 //! ### Rotation example
@@ -53,14 +52,14 @@
 //!
 //! // 2 laps.
 //! for angle in 0..(Complex::full_circle_angle() * 2) {
-//!     println!("{}", z * talbe[angle])
+//!     println!("{}", z * table[angle])
 //! }
 //!
-//! // 2 laps contra-rotating.
+//! // 2 laps in contra-rotating.
 //! for angle in 0..(Complex::full_circle_angle() * 2) {
 //!     let angle = 0usize.wrapping_sub(angle);
 //!
-//!     println!("{}", z * talbe[angle])
+//!     println!("{}", z * table[angle])
 //! }
 //! ```
 
@@ -651,58 +650,17 @@ impl Complex {
             } else {
                 min_angle = middle_angle;
             }
-
         }
     }
 
+    #[inline]
     pub fn polar(&self, table: &CisTable) -> (f32, usize) {
-        const QUADRANT_0_ANGLE: usize = 0;
-        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
-        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
-        const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
-        const QUADRANT_4_ANGLE: usize = Complex::full_circle_angle();
+        const MIN_ANGLE: usize = 0;
+        const MAX_ANGLE: usize = Complex::full_circle_angle() - 1;
 
         let abs = self.abs();
         let cis = *self / abs;
 
-        let angle = if cis.re >= 0.0 {
-            if cis.im >= 0.0 {
-                const MAX: usize = QUADRANT_1_ANGLE - 1;
-                Self::polar_core(
-                    table,
-                    &cis,
-                    QUADRANT_0_ANGLE,
-                    MAX
-                )
-            } else {
-                const MAX: usize = QUADRANT_4_ANGLE - 1;
-                Self::polar_core(
-                    table,
-                    &cis,
-                    QUADRANT_3_ANGLE,
-                    MAX
-                )
-            }
-        } else {
-            if cis.im >= 0.0 {
-                const MAX: usize = QUADRANT_2_ANGLE - 1;
-                Self::polar_core(
-                    table,
-                    &cis,
-                    QUADRANT_1_ANGLE,
-                    MAX
-                )
-            } else {
-                const MAX: usize = QUADRANT_3_ANGLE - 1;
-                Self::polar_core(
-                    table,
-                    &cis,
-                    QUADRANT_2_ANGLE,
-                    MAX
-                )
-            }
-        };
-
-        (abs, angle)
+        (abs, Self::polar_core(table, &cis, MIN_ANGLE, MAX_ANGLE))
     }
 }
