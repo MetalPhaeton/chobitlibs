@@ -105,7 +105,7 @@ impl Complex {
     }
 
     #[inline]
-    pub fn mul_minus_i(&self) -> Self {
+    pub fn mul_neg_i(&self) -> Self {
         Self {
             re: self.im,
             im: -self.re
@@ -609,16 +609,33 @@ pub struct CisTable {
 
 impl CisTable {
     pub fn new() -> Self {
-        const FULL_CIRCLE_ANGLE: usize = Complex::full_circle_angle();
+        const QUADRANT_0_ANGLE: usize = 0;
+        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
+        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+        const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
+        const QUADRANT_4_ANGLE: usize = Complex::full_circle_angle();
 
-        let mut body: [Complex; FULL_CIRCLE_ANGLE] =
-            [Complex::default(); FULL_CIRCLE_ANGLE];
+        let mut body: [Complex; QUADRANT_4_ANGLE] =
+            [Complex::default(); QUADRANT_4_ANGLE];
 
-        for i in 0..FULL_CIRCLE_ANGLE {
+        for i in QUADRANT_0_ANGLE..QUADRANT_1_ANGLE {
             body[i] = Complex::cis(i);
+            body[i + QUADRANT_1_ANGLE] = body[i].mul_i();
+            body[i + QUADRANT_2_ANGLE] = -body[i];
+            body[i + QUADRANT_3_ANGLE] = body[i].mul_neg_i();
         }
 
         Self {body: body}
+    }
+
+    #[inline]
+    pub fn get(&self, index: usize) -> Option<&Complex> {
+        self.body.get(index)
+    }
+
+    #[inline]
+    pub unsafe fn get_unchecked(&self, index: usize) -> &Complex {
+        self.body.get_unchecked(index)
     }
 }
 
@@ -627,6 +644,6 @@ impl Index<usize> for CisTable {
 
     #[inline]
     fn index(&self, index: usize) -> &Complex {
-        &self.body[Complex::rem_full_circle_angle(index)]
+        unsafe {self.get_unchecked(Complex::rem_full_circle_angle(index))}
     }
 }
