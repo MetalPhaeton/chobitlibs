@@ -20,13 +20,13 @@
 //!
 //! | Radian (`f32`)                           | Angle (`usize`)                                               |
 //! |------------------------------------------|---------------------------------------------------------------|
-//! | `rad == Complex::angle_to_radian(angle)` | `angle == Complex::radian_to_angle(rad)`                      |
+//! | `rad == CisTable::angle_to_radian(angle)` | `angle == CisTable::radian_to_angle(rad)`                      |
 //! | `0.0`                                    | `0`                                                           |
 //! | `FRAC_PI_4                          `    | `1024 == (8192 >> 3)`                                         |
 //! | `FRAC_PI_2`                              | `2048 == (8192 >> 2)`                                         |
 //! | `PI`                                     | `4096 == (8192 >> 1)`                                         |
 //! | `TAU`                                    | `8192 == Complex::full_circle_angle()`                        |
-//! | `rad % TAU`                              | `angle & (8192 - 1) == Complex::rem_full_circle_angle(angle)` |
+//! | `rad % TAU`                              | `angle & (8192 - 1) == Complex::normalize_angle(angle)` |
 //!
 //! ### CisTable example
 //!
@@ -95,6 +95,61 @@ fn sqrt(x: f32) -> f32 {
     y * (1.5 - (a * y * y)) * x
 }
 
+/// Complex number.
+///
+/// # Four arithmetic operations
+///
+/// ```ignore
+/// use chobitlibs::chobit_complex::Complex;
+/// {
+///     let mut z_1 = Complex::new(1.0, 2.0);
+///     let z_2 = Complex::new(3.0, 4.0);
+///
+///     let result = z_1 + z_2;
+///     assert_eq!(result.re, 1.0 + 3.0);
+///     assert_eq!(result.im, 2.0 + 4.0);
+///
+///     z_1 += z_2;
+///     assert_eq!(z_1, result);
+/// }
+///
+/// {
+///     let mut z_1 = Complex::new(1.0, 2.0);
+///     let z_2 = Complex::new(3.0, 4.0);
+///
+///     let result = z_1 - z_2;
+///     assert_eq!(result.re, 1.0 - 3.0);
+///     assert_eq!(result.im, 2.0 - 4.0);
+///
+///     z_1 -= z_2;
+///     assert_eq!(z_1, result);
+/// }
+///
+/// {
+///     let mut z_1 = Complex::new(1.0, 2.0);
+///     let z_2 = Complex::new(3.0, 4.0);
+///
+///     let result = z_1 * z_2;
+///     assert_eq!(result.re, (1.0 * 3.0) - (2.0 * 4.0));
+///     assert_eq!(result.im, (1.0 * 4.0) + (2.0 * 3.0));
+///
+///     z_1 *= z_2;
+///     assert_eq!(z_1, result);
+/// }
+///
+/// {
+///     let mut z_1 = Complex::new(1.0, 2.0);
+///     let z_2 = Complex::new(3.0, 4.0);
+///
+///     let result = z_1 / z_2;
+///     let z_2_abs_2 = z_2.abs_sq();
+///     assert_eq!(result.re, ((1.0 * 3.0) + (2.0 * 4.0)) / z_2_abs_2);
+///     assert_eq!(result.im, ((2.0 * 3.0) - (1.0 * 4.0)) / z_2_abs_2);
+///
+///     z_1 /= z_2;
+///     assert_eq!(z_1, result);
+/// }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Complex {
     pub re: f32,
@@ -102,6 +157,11 @@ pub struct Complex {
 }
 
 impl Complex {
+    /// Creates complex.
+    ///
+    /// * `re` : Real number.
+    /// * `im` : Imaginary number.
+    /// * __Return__ : Complex number.
     #[inline]
     pub const fn new(re: f32, im: f32) -> Self {
         Self {
@@ -110,16 +170,25 @@ impl Complex {
         }
     }
 
+    /// Calculates absolute square.
+    ///
+    /// * __Return__ : Absolute square.
     #[inline]
-    pub fn abs_2(&self) -> f32 {
+    pub fn abs_sq(&self) -> f32 {
         (self.re * self.re) + (self.im * self.im)
     }
 
+    /// Calculates absolute value.
+    ///
+    /// * __Return__ : Absolute value.
     #[inline]
     pub fn abs(&self) -> f32 {
-        sqrt(self.abs_2())
+        sqrt(self.abs_sq())
     }
 
+    /// Calculates complex conjugate
+    ///
+    /// * __Return__ : complex conjugate.
     #[inline]
     pub fn conj(&self) -> Self {
         Self {
@@ -128,16 +197,22 @@ impl Complex {
         }
     }
 
+    /// Calculates reciprocal.
+    ///
+    /// * __Return__ : Reciprocal.
     #[inline]
     pub fn recip(&self) -> Self {
-        let abs_2 = self.abs_2();
+        let abs_sq = self.abs_sq();
 
         Self {
-            re: self.re / abs_2,
-            im: -(self.im / abs_2),
+            re: self.re / abs_sq,
+            im: -(self.im / abs_sq),
         }
     }
 
+    /// Returns normalized value of self.
+    ///
+    /// * __Return__ : Normalized value.
     #[inline]
     pub fn normalize(&self) -> Self {
         let abs = self.abs();
@@ -148,6 +223,9 @@ impl Complex {
         }
     }
 
+    /// Returns self multiplied by `i`.
+    ///
+    /// * __Return__ : Self multiplied by `i`.
     #[inline]
     pub fn mul_i(&self) -> Self {
         Self {
@@ -156,6 +234,9 @@ impl Complex {
         }
     }
 
+    /// Returns self multiplied by `-i`.
+    ///
+    /// * __Return__ : Self multiplied by `-i`.
     #[inline]
     pub fn mul_neg_i(&self) -> Self {
         Self {
@@ -388,11 +469,11 @@ impl Div<Complex> for Complex {
 
     #[inline]
     fn div(self, other: Complex) -> Complex {
-        let abs_2 = other.abs_2();
+        let abs_sq = other.abs_sq();
 
         Complex {
-            re: ((self.re * other.re) + (other.im * self.im)) / abs_2,
-            im: ((other.re * self.im) - (self.re * other.im)) / abs_2
+            re: ((self.re * other.re) + (other.im * self.im)) / abs_sq,
+            im: ((other.re * self.im) - (self.re * other.im)) / abs_sq
         }
     }
 }
@@ -414,11 +495,11 @@ impl Div<Complex> for f32 {
 
     #[inline]
     fn div(self, other: Complex) -> Complex {
-        let abs_2 = other.abs_2();
+        let abs_sq = other.abs_sq();
 
         Complex {
-            re: (self * other.re) / abs_2,
-            im: -((self * other.im) / abs_2)
+            re: (self * other.re) / abs_sq,
+            im: -((self * other.im) / abs_sq)
         }
     }
 }
@@ -426,10 +507,10 @@ impl Div<Complex> for f32 {
 impl DivAssign<Complex> for Complex {
     #[inline]
     fn div_assign(&mut self, other: Complex) {
-        let abs_2 = other.abs_2();
+        let abs_sq = other.abs_sq();
 
-        let re = ((self.re * other.re) + (other.im * self.im)) / abs_2;
-        let im = ((other.re * self.im) - (self.re * other.im)) / abs_2;
+        let re = ((self.re * other.re) + (other.im * self.im)) / abs_sq;
+        let im = ((other.re * self.im) - (self.re * other.im)) / abs_sq;
 
         self.re = re;
         self.im = im;
@@ -447,9 +528,9 @@ impl DivAssign<f32> for Complex {
 impl DivAssign<Complex> for f32 {
     #[inline]
     fn div_assign(&mut self, other: Complex) {
-        let abs_2 = other.abs_2();
+        let abs_sq = other.abs_sq();
 
-        *self = (*self * other.re) / abs_2;
+        *self = (*self * other.re) / abs_sq;
     }
 }
 
@@ -509,7 +590,36 @@ const QUADRANT_1: Complex = Complex::new(0.0, 1.0);
 const QUADRANT_2: Complex = Complex::new(-1.0, 0.0);
 const QUADRANT_3: Complex = Complex::new(0.0, -1.0);
 
-impl Complex {
+/// Constant functions of chobit_complex.
+///
+/// In chobit_complex, Angle is not radian. That is unsigned integral number.  
+/// Full circle angle is `8192` that is 2 to the 13th power, because it can calculate angle faster than radian. For example...
+///
+/// ``` ignore
+/// // Divides angle by 2.
+/// let angle: usize = 1234;
+/// let half_angle = angle >> 1;
+/// assert_eq!(half_angle, angle / 2);
+///
+/// // Normalizes big angle.
+/// let angle: usize = 1234 + 8192;
+/// let normalized_angle = angle & (8192 - 1);
+/// assert_eq!(normalized_angle, 1234);
+///
+/// // Normalizes negative angle.
+/// let angle: usize = 0usize.wrapping_sub(1234);
+/// let normalized_angle = angle & (8192 - 1);
+/// assert_eq!(normalized_angle, 8192 - 1234);
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub struct CisTable {
+    body: [Complex; CisTable::full_circle_angle()]
+}
+
+impl CisTable {
+    /// Returns `8192`.
+    ///
+    /// __Return__ : `8192`.
     #[inline]
     pub const fn full_circle_angle() -> usize {
         const ANGLE: usize = 1 << (BASE_LEN + 2);
@@ -518,24 +628,33 @@ impl Complex {
     }
 
     #[inline]
-    pub const fn rem_full_circle_angle(angle: usize) -> usize {
-        const MASK: usize = Complex::full_circle_angle() - 1;
+    pub const fn normalize_angle(angle: usize) -> usize {
+        const MASK: usize = CisTable::full_circle_angle() - 1;
         angle & MASK
     }
-}
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct CisTable {
-    body: [Complex; Complex::full_circle_angle()]
-}
+    #[inline]
+    pub fn radian_to_angle(rad: f32) -> usize {
+        const MAX_ANGLE: f32 = CisTable::full_circle_angle() as f32;
 
-impl CisTable {
+        let angle = (((rad % TAU) * MAX_ANGLE) / TAU) + MAX_ANGLE;
+
+        Self::normalize_angle(angle as usize)
+    }
+
+    #[inline]
+    pub fn angle_to_radian(angle: usize) -> f32 {
+        const MAX_ANGLE: f32 = CisTable::full_circle_angle() as f32;
+
+        ((Self::normalize_angle(angle) as f32) * TAU) / MAX_ANGLE 
+    }
+
     pub fn new() -> Self {
         const QUADRANT_0_ANGLE: usize = 0;
-        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
-        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+        const QUADRANT_1_ANGLE: usize = CisTable::full_circle_angle() >> 2;
+        const QUADRANT_2_ANGLE: usize = CisTable::full_circle_angle() >> 1;
         const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
-        const QUADRANT_4_ANGLE: usize = Complex::full_circle_angle();
+        const QUADRANT_4_ANGLE: usize = CisTable::full_circle_angle();
 
         let mut body: [Complex; QUADRANT_4_ANGLE] =
             [Complex::default(); QUADRANT_4_ANGLE];
@@ -551,12 +670,12 @@ impl CisTable {
     }
 
     fn cis(angle: usize) -> Complex {
-        const QUADRANT_1_ANGLE: usize = Complex::full_circle_angle() >> 2;
-        const QUADRANT_2_ANGLE: usize = Complex::full_circle_angle() >> 1;
+        const QUADRANT_1_ANGLE: usize = CisTable::full_circle_angle() >> 2;
+        const QUADRANT_2_ANGLE: usize = CisTable::full_circle_angle() >> 1;
         const QUADRANT_3_ANGLE: usize = QUADRANT_1_ANGLE + QUADRANT_2_ANGLE;
         const BIT_MASK: usize = 1;
 
-        let mut angle = Complex::rem_full_circle_angle(angle);
+        let mut angle = CisTable::normalize_angle(angle);
 
         let mut ret = if angle < QUADRANT_1_ANGLE {
             QUADRANT_0
@@ -595,7 +714,7 @@ impl Index<usize> for CisTable {
 
     #[inline]
     fn index(&self, index: usize) -> &Complex {
-        unsafe {self.get_unchecked(Complex::rem_full_circle_angle(index))}
+        unsafe {self.get_unchecked(CisTable::normalize_angle(index))}
     }
 }
 
@@ -614,22 +733,6 @@ impl Complex {
         table[phase] * mag
     }
 
-    #[inline]
-    pub fn radian_to_angle(rad: f32) -> usize {
-        const MAX_ANGLE: f32 = Complex::full_circle_angle() as f32;
-
-        let angle = (((rad % TAU) * MAX_ANGLE) / TAU) + MAX_ANGLE;
-
-        Self::rem_full_circle_angle(angle as usize)
-    }
-
-    #[inline]
-    pub fn angle_to_radian(angle: usize) -> f32 {
-        const MAX_ANGLE: f32 = Complex::full_circle_angle() as f32;
-
-        ((Self::rem_full_circle_angle(angle) as f32) * TAU) / MAX_ANGLE 
-    }
-
     fn polar_core(
         table: &CisTable,
         cis: &Complex,
@@ -641,8 +744,8 @@ impl Complex {
         let mut middle_angle: usize = 0;
 
         for _ in 0..COUNT {
-            let min_d = (*cis - table[min_angle]).abs_2();
-            let max_d = (*cis - table[max_angle]).abs_2();
+            let min_d = (*cis - table[min_angle]).abs_sq();
+            let max_d = (*cis - table[max_angle]).abs_sq();
 
             middle_angle = (min_angle + max_angle) >> 1;
 
@@ -659,7 +762,7 @@ impl Complex {
     #[inline]
     pub fn polar(&self, table: &CisTable) -> (f32, usize) {
         const MIN_ANGLE: usize = 0;
-        const MAX_ANGLE: usize = Complex::full_circle_angle() - 1;
+        const MAX_ANGLE: usize = CisTable::full_circle_angle() - 1;
 
         let abs = self.abs();
         let cis = *self / abs;
