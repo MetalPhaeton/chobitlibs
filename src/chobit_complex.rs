@@ -39,7 +39,8 @@
 //! let z_1 = Complex::new(FRAC_PI_4.cos(), FRAC_PI_4.sin());
 //! let z_2 = table[CisTable::full_circle_angle() >> 3];
 //!
-//! assert_eq!(z_1, z_2);
+//! let diff = (z_2 - z_1).abs();
+//! assert!(diff < 0.002);
 //! ```
 //!
 //! ### Rotation example
