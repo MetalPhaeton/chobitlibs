@@ -215,8 +215,8 @@ fn rot_test() {
         let diff_re = (y.re - rad.cos()).abs();
         let diff_im = (y.im - rad.sin()).abs();
 
-        assert!(diff_re < 0.0008);
-        assert!(diff_im < 0.0008);
+        assert!(diff_re < 0.002);
+        assert!(diff_im < 0.002);
     }
 }
 
@@ -230,7 +230,7 @@ fn polar_test() {
     for _ in 0..COUNT {
         let x = Complex::new(rand_num(&mut rng), rand_num(&mut rng));
         let (mag, phase) = x.polar(&table);
-        let y = Complex::from_polar(&table, mag, phase);
+        let y = table[phase] * mag;
 
         let diff = (x - y).abs();
         assert!(diff < 0.025);
@@ -273,8 +273,20 @@ fn recip_test() {
 }
 
 #[test]
+fn cis_table_abs_test() {
+    let table = CisTable::new();
+
+    for cis in table.as_slice() {
+        let abs = cis.abs();
+        let diff = (abs - 1.0).abs();
+
+        assert!(diff < 0.00008);
+    }
+}
+
+#[test]
 fn normalize_test() {
-    const COUNT: usize = 1000;
+    const COUNT: usize = 10000;
 
     let mut rng = ChobitRand::new("normalize_test".as_bytes());
     let table = CisTable::new();

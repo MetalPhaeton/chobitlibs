@@ -25,7 +25,7 @@
 //! | `FRAC_PI_4                          `    | `1024 == (8192 >> 3)`                                         |
 //! | `FRAC_PI_2`                              | `2048 == (8192 >> 2)`                                         |
 //! | `PI`                                     | `4096 == (8192 >> 1)`                                         |
-//! | `TAU`                                    | `8192 == Complex::full_circle_angle()`                        |
+//! | `TAU`                                    | `8192 == CisTable::full_circle_angle()`                        |
 //! | `rad % TAU`                              | `angle & (8192 - 1) == Complex::normalize_angle(angle)` |
 //!
 //! ### CisTable example
@@ -37,7 +37,7 @@
 //! let table = CisTable::new();
 //!
 //! let z_1 = Complex::new(FRAC_PI_4.cos(), FRAC_PI_4.sin());
-//! let z_2 = table[Complex::full_circle_angle() >> 3];
+//! let z_2 = table[CisTable::full_circle_angle() >> 3];
 //!
 //! assert_eq!(z_1, z_2);
 //! ```
@@ -51,12 +51,12 @@
 //! let table = CisTable::new();
 //!
 //! // 2 laps.
-//! for angle in 0..(Complex::full_circle_angle() * 2) {
+//! for angle in 0..(CisTable::full_circle_angle() * 2) {
 //!     println!("{}", z * table[angle])
 //! }
 //!
 //! // 2 laps in contra-rotating.
-//! for angle in 0..(Complex::full_circle_angle() * 2) {
+//! for angle in 0..(CisTable::full_circle_angle() * 2) {
 //!     let angle = 0usize.wrapping_sub(angle);
 //!
 //!     println!("{}", z * table[angle])
@@ -590,7 +590,9 @@ const QUADRANT_1: Complex = Complex::new(0.0, 1.0);
 const QUADRANT_2: Complex = Complex::new(-1.0, 0.0);
 const QUADRANT_3: Complex = Complex::new(0.0, -1.0);
 
-/// Constant functions of chobit_complex.
+/// Lookup table of imaginary exponential function. (`cis(x) = exp(ix)`)
+///
+/// It contains 8192 complex numbers.
 ///
 /// In chobit_complex, Angle is not radian. That is unsigned integral number.  
 /// Full circle angle is `8192` that is 2 to the 13th power, because it can calculate angle faster than radian. For example...
@@ -603,12 +605,12 @@ const QUADRANT_3: Complex = Complex::new(0.0, -1.0);
 ///
 /// // Normalizes big angle.
 /// let angle: usize = 1234 + 8192;
-/// let normalized_angle = angle & (8192 - 1);
+/// let normalized_angle = angle & (8192 - 1);  // == CisTable::normalized_angle(angle)
 /// assert_eq!(normalized_angle, 1234);
 ///
 /// // Normalizes negative angle.
 /// let angle: usize = 0usize.wrapping_sub(1234);
-/// let normalized_angle = angle & (8192 - 1);
+/// let normalized_angle = angle & (8192 - 1);  // == CisTable::normalized_angle(angle)
 /// assert_eq!(normalized_angle, 8192 - 1234);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -619,7 +621,7 @@ pub struct CisTable {
 impl CisTable {
     /// Returns `8192`.
     ///
-    /// __Return__ : `8192`.
+    /// * __Return__ : `8192`.
     #[inline]
     pub const fn full_circle_angle() -> usize {
         const ANGLE: usize = 1 << (BASE_LEN + 2);
@@ -627,12 +629,20 @@ impl CisTable {
         ANGLE
     }
 
+    /// Normalizes any angle into [0, 8192).
+    ///
+    /// * `angle` : Angle.
+    /// * __Return__ : Normalized angle.
     #[inline]
     pub const fn normalize_angle(angle: usize) -> usize {
         const MASK: usize = CisTable::full_circle_angle() - 1;
         angle & MASK
     }
 
+    /// Converts from radian to angle.
+    ///
+    /// * `rad` : Radian.
+    /// * __Return__ : Angle.
     #[inline]
     pub fn radian_to_angle(rad: f32) -> usize {
         const MAX_ANGLE: f32 = CisTable::full_circle_angle() as f32;
@@ -642,6 +652,10 @@ impl CisTable {
         Self::normalize_angle(angle as usize)
     }
 
+    /// Converts from angle to radian.
+    ///
+    /// * `rad` : Angle.
+    /// * __Return__ : Radian.
     #[inline]
     pub fn angle_to_radian(angle: usize) -> f32 {
         const MAX_ANGLE: f32 = CisTable::full_circle_angle() as f32;
@@ -649,6 +663,9 @@ impl CisTable {
         ((Self::normalize_angle(angle) as f32) * TAU) / MAX_ANGLE 
     }
 
+    /// Creates CisTable.
+    ///
+    /// * __Return__ : Instance.
     pub fn new() -> Self {
         const QUADRANT_0_ANGLE: usize = 0;
         const QUADRANT_1_ANGLE: usize = CisTable::full_circle_angle() >> 2;
@@ -695,17 +712,33 @@ impl CisTable {
             angle >>= 1;
         }
 
-        ret
+        ret.normalize()
     }
 
+    /// Gets complex number.
+    ///
+    /// * `angle` : angle.
+    /// * __Return__ : Returns complex number but if angle is greater than 8192, returns None.
     #[inline]
-    pub fn get(&self, index: usize) -> Option<&Complex> {
-        self.body.get(index)
+    pub fn get(&self, angle: usize) -> Option<&Complex> {
+        self.body.get(angle)
     }
 
+    /// Gets complex number.
+    ///
+    /// * `angle` : angle.
+    /// * __Return__ : Returns complex number.
     #[inline]
-    pub unsafe fn get_unchecked(&self, index: usize) -> &Complex {
-        self.body.get_unchecked(index)
+    pub unsafe fn get_unchecked(&self, angle: usize) -> &Complex {
+        self.body.get_unchecked(angle)
+    }
+
+    /// Gets self as slice.
+    ///
+    /// * __Return__ : Self as slice.
+    #[inline]
+    pub fn as_slice(&self) -> &[Complex] {
+        self.body.as_slice()
     }
 }
 
@@ -728,11 +761,6 @@ impl Index<Range<usize>> for CisTable {
 }
 
 impl Complex {
-    #[inline]
-    pub fn from_polar(table: &CisTable, mag: f32, phase: usize) -> Self {
-        table[phase] * mag
-    }
-
     fn polar_core(
         table: &CisTable,
         cis: &Complex,
@@ -759,6 +787,10 @@ impl Complex {
         middle_angle
     }
 
+    /// Gets magnitude and phase.
+    ///
+    /// * `table` : CisTable to calculate phase.
+    /// * __Return__ : (magnitude, phase)
     #[inline]
     pub fn polar(&self, table: &CisTable) -> (f32, usize) {
         const MIN_ANGLE: usize = 0;
