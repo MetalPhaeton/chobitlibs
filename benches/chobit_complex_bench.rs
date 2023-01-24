@@ -6,8 +6,8 @@ fn chobit_complex_cos_bench(c: &mut Criterion) {
 
     let mut total: f32 = 0.0;
     c.bench_function("chobit_complex_cos_bench", |b| b.iter(|| {
-        for angle in 0..Complex::full_circle_angle() {
-            let radian = Complex::angle_to_radian(angle);
+        for angle in 0..CisTable::full_circle_angle() {
+            let radian = CisTable::angle_to_radian(angle);
             let a = cis_table[angle];
 
             total += radian + a.re + a.im;
@@ -20,8 +20,8 @@ fn chobit_complex_cos_bench(c: &mut Criterion) {
 fn rust_cos_bench(c: &mut Criterion) {
     let mut total: f32 = 0.0;
     c.bench_function("rust_cos_bench", |b| b.iter(|| {
-        for angle in 0..Complex::full_circle_angle() {
-            let radian = Complex::angle_to_radian(angle);
+        for angle in 0..CisTable::full_circle_angle() {
+            let radian = CisTable::angle_to_radian(angle);
             let a = radian.cos() + radian.sin();
 
             total += radian + a;
