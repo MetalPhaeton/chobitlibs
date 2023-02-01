@@ -189,12 +189,11 @@ fn abs(x: f32) -> f32 {
 
 #[inline]
 fn sqrt(x: f32) -> f32 {
-    const MAGIC_32: u32 = 0x5f3759df;
+    const MAGIC_32: u32 = 0x5f1ffff9;
 
-    let a = x * 0.5;
     let y = f32::from_bits(MAGIC_32 - (x.to_bits() >> 1));
 
-    y * (1.5 - (a * y * y)) * x
+    y * (0.703952253 * (2.38924456 - (x * y * y))) * x
 }
 
 macro_rules! pointwise_op {
