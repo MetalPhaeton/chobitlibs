@@ -88,11 +88,13 @@ use core::{
 
 #[inline]
 fn sqrt(x: f32) -> f32 {
-    const MAGIC_32: u32 = 0x5f1ffff9;
+    const MAGIC_1: u32 = 0x5f1ffff9;
+    const MAGIC_2: f32 = 0.703952253;
+    const MAGIC_3: f32 = 2.38924456;
 
-    let y = f32::from_bits(MAGIC_32 - (x.to_bits() >> 1));
+    let y = f32::from_bits(MAGIC_1 - (x.to_bits() >> 1));
 
-    y * (0.703952253 * (2.38924456 - (x * y * y))) * x
+    y * (MAGIC_2 * (MAGIC_3 - (x * y * y))) * x
 }
 
 /// Complex number.
