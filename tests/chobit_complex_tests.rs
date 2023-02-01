@@ -190,6 +190,21 @@ fn div_test() {
 }
 
 #[test]
+fn cis_table_test() {
+    let table = CisTable::new();
+
+    for angle in 0..CisTable::full_circle_angle() {
+        let rad = CisTable::angle_to_radian(angle);
+        let complex = Complex::new(rad.cos(), rad.sin());
+
+        let diff = table[angle] - complex;
+
+        assert!(diff.re.abs() < 0.0008);
+        assert!(diff.im.abs() < 0.0008);
+    }
+}
+
+#[test]
 fn rad_to_angle_test() {
     for angle in 0..CisTable::full_circle_angle() {
         let rad = CisTable::angle_to_radian(angle);
@@ -215,8 +230,8 @@ fn rot_test() {
         let diff_re = (y.re - rad.cos()).abs();
         let diff_im = (y.im - rad.sin()).abs();
 
-        assert!(diff_re < 0.002);
-        assert!(diff_im < 0.002);
+        assert!(diff_re < 0.0008);
+        assert!(diff_im < 0.0008);
     }
 }
 
@@ -233,7 +248,7 @@ fn polar_test() {
         let y = table[phase] * mag;
 
         let diff = (x - y).abs();
-        assert!(diff < 0.025);
+        assert!(diff < 0.015);
     }
 }
 
@@ -299,7 +314,7 @@ fn normalize_test() {
 
         let diff = (y - cis).abs();
 
-        assert!(diff < 0.002);
+        assert!(diff < 0.0015);
     }
 }
 
@@ -318,7 +333,7 @@ fn cis_table_slice_test() {
 }
 
 #[test]
-fn rem_full_circle_angle_test() {
+fn normalize_angle_test() {
     const QUADRANT_0_ANGLE: usize = 0;
     const QUADRANT_1_ANGLE: usize = CisTable::full_circle_angle() >> 2;
     const QUADRANT_2_ANGLE: usize = CisTable::full_circle_angle() >> 1;
