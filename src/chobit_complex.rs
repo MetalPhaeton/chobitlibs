@@ -1729,15 +1729,16 @@ impl Complex {
         mut min_angle: usize,
         mut max_angle: usize
     ) -> usize {
-        loop {
-            let middle_angle = (min_angle + max_angle) >> 1;
-            if (min_angle == middle_angle) || (max_angle == middle_angle) {
-                break middle_angle;
-            }
+        const COUNT: u32 =
+            (CisTable::full_circle_angle() - 1).count_ones() + 1;
+
+        let mut middle_angle = 0;
+
+        for _ in 0..COUNT {
+            middle_angle = (min_angle + max_angle) >> 1;
 
             let min_d = (*cis - table[min_angle]).abs_sq();
             let max_d = (*cis - table[max_angle]).abs_sq();
-
 
             if min_d < max_d {
                 max_angle = middle_angle;
@@ -1745,6 +1746,8 @@ impl Complex {
                 min_angle = middle_angle;
             }
         }
+
+        middle_angle
     }
 
     /// Gets magnitude and phase.
