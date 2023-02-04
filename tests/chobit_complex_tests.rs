@@ -236,8 +236,21 @@ fn rot_test() {
 }
 
 #[test]
-fn polar_test() {
-    const COUNT: usize = 10000;
+fn polar_test_1() {
+    let table = CisTable::new();
+
+    for angle in 0..CisTable::full_circle_angle() {
+        let complex = table[angle];
+        let (_, phase) = complex.polar(&table);
+
+        let diff = ((phase as i32) - angle as i32).abs();
+        assert!(diff <= 1);
+    }
+}
+
+#[test]
+fn polar_test_2() {
+    const COUNT: usize = 20000;
 
     let mut rng = ChobitRand::new("polar_test".as_bytes());
     let table = CisTable::new();

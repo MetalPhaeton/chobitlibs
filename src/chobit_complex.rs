@@ -1740,7 +1740,7 @@ impl Complex {
             let min_d = (*cis - table[min_angle]).abs_sq();
             let max_d = (*cis - table[max_angle]).abs_sq();
 
-            if min_d < max_d {
+            if min_d <= max_d {
                 max_angle = middle_angle;
             } else {
                 min_angle = middle_angle;
