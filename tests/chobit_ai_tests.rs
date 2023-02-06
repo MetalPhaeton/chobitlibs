@@ -211,485 +211,575 @@ fn math_vec_test_5() {
 
 #[test]
 fn weights_test_1() {
+    const OUT: usize = 7;
+    const IN: usize = 13;
+    const BIAS_LEN: usize = OUT;
+    const INPUT_WEIGHTS_LEN: usize = OUT * IN;
+    const STATE_WEIGHTS_LEN: usize = OUT * OUT;
+    const LENGTH: usize = BIAS_LEN + INPUT_WEIGHTS_LEN + STATE_WEIGHTS_LEN;
+
     {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
-        let mut weights_1 = Weights::new(vec_1, 1.0);
+        let mut weights = Weights::<OUT, IN>::new();
+        assert_eq!(weights.as_slice().len(), LENGTH);
+        assert_eq!(weights.as_mut_slice().len(), LENGTH);
 
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_2 = Weights::new(vec_2, 2.0);
+        let len_b_1 = weights.bias().len();
+        let len_b_2 = weights.bias_mut().len();
+        assert_eq!(len_b_1, BIAS_LEN);
+        assert_eq!(len_b_2, BIAS_LEN);
 
-        let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let weights_3 = Weights::new(vec_3, 3.0);
+        let len_i_1 = weights.input_weights().len();
+        let len_i_2 = weights.input_weights_mut().len();
+        assert_eq!(len_i_1, OUT);
+        assert_eq!(len_i_2, OUT);
 
-        let weights_4 = &weights_1 + &weights_2;
-        assert_eq!(weights_3, weights_4);
+        let len_i_1 = len_i_1 * weights.input_weights()[0].len();
+        let len_i_2 = len_i_2 * weights.input_weights_mut()[0].len();
+        assert_eq!(len_i_1, INPUT_WEIGHTS_LEN);
+        assert_eq!(len_i_2, INPUT_WEIGHTS_LEN);
 
-        weights_1 +=  &weights_2;
-        assert_eq!(weights_1, weights_4);
+        let len_s_1 = weights.state_weights().len();
+        let len_s_2 = weights.state_weights_mut().len();
+        assert_eq!(len_s_1, OUT);
+        assert_eq!(len_s_2, OUT);
+
+        let len_s_1 = len_s_1 * weights.state_weights()[0].len();
+        let len_s_2 = len_s_2 * weights.state_weights_mut()[0].len();
+        assert_eq!(len_s_1, STATE_WEIGHTS_LEN);
+        assert_eq!(len_s_2, STATE_WEIGHTS_LEN);
+
+        assert_eq!(len_b_1 + len_i_1 + len_s_1, LENGTH);
+        assert_eq!(len_b_2 + len_i_2 + len_s_2, LENGTH);
     }
     {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let mut weights_1 = Weights::new(vec_1, 3.0);
+        let mut weights = Weights::<OUT, IN>::new();
 
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
-        let weights_2 = Weights::new(vec_2, 1.0);
+        let ptr_1 = weights.bias().as_ptr();
+        let ptr_2 = weights.bias_mut().as_ptr();
+        assert_eq!(ptr_1, ptr_2);
 
-        let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_3 = Weights::new(vec_3, 2.0);
+        let ptr_1 = weights.input_weights().as_ptr();
+        let ptr_2 = weights.input_weights_mut().as_ptr();
+        assert_eq!(ptr_1, ptr_2);
 
-        let weights_4 = &weights_1 - &weights_2;
-        assert_eq!(weights_3, weights_4);
+        let ptr_1 = weights.state_weights().as_ptr();
+        let ptr_2 = weights.state_weights_mut().as_ptr();
+        assert_eq!(ptr_1, ptr_2);
+    }
+    {
+        let weights = Weights::<OUT, IN>::new();
+        let whole = weights.as_slice();
 
-        weights_1 -=  &weights_2;
-        assert_eq!(weights_1, weights_4);
+        let bias = weights.bias();
+        let input_weights = weights.input_weights();
+        let state_weights = weights.state_weights();
+
+        let whole_ptr = whole.as_ptr();
+        let bias_ptr = bias.as_ptr();
+        let input_weights_ptr = input_weights.as_ptr() as *const f32;
+        let state_weights_ptr = state_weights.as_ptr() as *const f32;
+
+        assert_eq!(whole_ptr, bias_ptr);
+        assert_eq!(unsafe {whole_ptr.add(BIAS_LEN)}, input_weights_ptr);
+        assert_eq!(unsafe {bias_ptr.add(BIAS_LEN)}, input_weights_ptr);
+        assert_eq!(
+            unsafe {whole_ptr.add(BIAS_LEN + INPUT_WEIGHTS_LEN)},
+            state_weights_ptr
+        );
+        assert_eq!(
+            unsafe {input_weights_ptr.add(INPUT_WEIGHTS_LEN)},
+            state_weights_ptr
+        );
+        assert_eq!(
+            unsafe {whole_ptr.add(LENGTH)},
+            unsafe {state_weights_ptr.add(STATE_WEIGHTS_LEN)}
+        );
+
+        let weights_2 = weights.clone();
+        let whole_2 = weights_2.as_slice();
+        assert_eq!(whole_2, whole);
+        assert!(
+            if (whole_2.as_ptr() as usize) < (whole.as_ptr() as usize) {
+                unsafe {
+                    (whole_2.as_ptr().add(LENGTH) as usize)
+                        < (whole.as_ptr() as usize)
+                }
+            } else if (whole_2.as_ptr() as usize) > (whole.as_ptr() as usize) {
+                unsafe {
+                    (whole.as_ptr().add(LENGTH) as usize)
+                        < (whole_2.as_ptr() as usize)
+                }
+            } else {
+                false
+            }
+        );
+    }
+    {
+        let weights = Weights::<OUT, IN>::new();
+
+        let weights_2 = weights.clone();
+        let whole = weights_2.as_slice();
+
+        let bias = weights_2.bias();
+        let input_weights = weights_2.input_weights();
+        let state_weights = weights_2.state_weights();
+
+        let whole_ptr = whole.as_ptr();
+        let bias_ptr = bias.as_ptr();
+        let input_weights_ptr = input_weights.as_ptr() as *const f32;
+        let state_weights_ptr = state_weights.as_ptr() as *const f32;
+
+        assert_eq!(whole_ptr, bias_ptr);
+        assert_eq!(unsafe {whole_ptr.add(BIAS_LEN)}, input_weights_ptr);
+        assert_eq!(unsafe {bias_ptr.add(BIAS_LEN)}, input_weights_ptr);
+        assert_eq!(
+            unsafe {whole_ptr.add(BIAS_LEN + INPUT_WEIGHTS_LEN)},
+            state_weights_ptr
+        );
+        assert_eq!(
+            unsafe {input_weights_ptr.add(INPUT_WEIGHTS_LEN)},
+            state_weights_ptr
+        );
+        assert_eq!(
+            unsafe {whole_ptr.add(LENGTH)},
+            unsafe {state_weights_ptr.add(STATE_WEIGHTS_LEN)}
+        );
     }
 }
 
 #[test]
 fn weights_test_2() {
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let mut weights_1 = Weights::new(vec_1, 3.0);
+    const OUT: usize = 7;
+    const IN: usize = 13;
 
-        let scalar: f32 = 2.0;
+    const WEIGHT_B: f32 = 1.0;
+    const WEIGHT_I: f32 = 2.0;
+    const WEIGHT_S: f32 = 3.0;
 
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
-        let weights_2 = Weights::new(vec_2, 6.0);
+    let mut weights = Weights::<OUT, IN>::new();
+    weights.bias_mut().iter_mut().for_each(|val| *val = WEIGHT_B);
 
-        let weights_3 = &weights_1 * scalar;
-        assert_eq!(weights_2, weights_3);
-
-        weights_1 *= scalar;
-        assert_eq!(weights_1, weights_3);
+    let mut weight = WEIGHT_I;
+    for weights in weights.input_weights_mut() {
+        weights.iter_mut().for_each(|val| *val = weight);
+        weight += 0.1;
     }
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
-        let mut weights_1 = Weights::new(vec_1, 6.0);
 
-        let scalar: f32 = 2.0;
-
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let weights_2 = Weights::new(vec_2, 3.0);
-
-        let weights_3 = &weights_1 / scalar;
-        assert_eq!(weights_2, weights_3);
-
-        weights_1 /= scalar;
-        assert_eq!(weights_1, weights_3);
+    let mut weight = WEIGHT_S;
+    for weights in weights.state_weights_mut() {
+        weights.iter_mut().for_each(|val| *val = weight);
+        weight += 0.1;
     }
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0});
-        let mut weights_1 = Weights::new(vec_1, 12.0);
 
-        let scalar: f32 = 10.0;
+    const VALUE_I: f32 = 5.0;
+    const VALUE_S: f32 = 7.0;
+    let mut input = MathVec::<IN>::new();
+    input.iter_mut().for_each(|val| *val = VALUE_I);
 
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_2 = Weights::new(vec_2, 2.0);
+    let mut state = MathVec::<OUT>::new();
+    state.iter_mut().for_each(|val| *val = VALUE_S);
 
-        let weights_3 = &weights_1 % scalar;
-        assert_eq!(weights_2, weights_3);
+    let mut output = MathVec::<OUT>::new();
 
-        weights_1 %= scalar;
-        assert_eq!(weights_1, weights_3);
+    weights.calc(&input, Some(&state), &mut output);
+
+    let mut weight_i = WEIGHT_I;
+    let mut weight_s = WEIGHT_S;
+    for output_val in output.as_slice() {
+        let output_val = ((*output_val) * 10.0).round();
+
+        let val_i = weight_i * VALUE_I * (IN as f32);
+        let val_s = weight_s * VALUE_S * (OUT as f32);
+
+        let val = val_i + val_s + WEIGHT_B;
+        let val = (val * 10.0).round();
+
+        assert_eq!(output_val, val);
+
+        weight_i += 0.1;
+        weight_s += 0.1;
     }
 }
 
 #[test]
 fn weights_test_3() {
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_1 = Weights::new(vec_1, 2.0);
+    const OUT: usize = 7;
+    const IN: usize = 13;
 
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let weights_2 = Weights::new(vec_2, 3.0);
+    const WEIGHT_B: f32 = 1.0;
+    const WEIGHT_I: f32 = 2.0;
+    const WEIGHT_S: f32 = 3.0;
 
-        let scalar_1: f32 = 2.0 * 3.0 * 11.0;
+    let mut weights = Weights::<OUT, IN>::new();
 
-        let scalar_2 = &weights_1 * &weights_2;
-        assert_eq!(scalar_2, scalar_1);
+    weights.bias_mut().iter_mut().for_each(|val| *val = WEIGHT_B);
+
+    let mut weight = WEIGHT_I;
+    for weights in weights.input_weights_mut() {
+        weights.iter_mut().for_each(|val| *val = weight);
+        weight += 0.1;
+    }
+
+    let mut weight = WEIGHT_S;
+    for weights in weights.state_weights_mut() {
+        weights.iter_mut().for_each(|val| *val = weight);
+        weight += 0.1;
+    }
+
+    const VALUE_I: f32 = 5.0;
+    const VALUE_S: f32 = 7.0;
+    let mut input = MathVec::<IN>::new();
+    input.iter_mut().for_each(|val| *val = VALUE_I);
+
+    let mut state = MathVec::<OUT>::new();
+    state.iter_mut().for_each(|val| *val = VALUE_S);
+
+    let mut feedback = MathVec::<OUT>::new();
+    let mut v: f32 = 1.0;
+    for feedback_val in feedback.as_mut_slice() {
+        *feedback_val = v;
+
+        v += 1.0;
     }
     {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_1 = Weights::new(vec_1, 2.0);
+        let mut grad = MathVec::<IN>::new();
 
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
+        weights.grad_with_input(&feedback, &mut grad);
 
-        let scalar_1: f32 = (2.0 * 3.0 * 10.0) + 2.0;
+        for i in 0..grad.len() {
+            let mut check: f32 = 0.0;
+            for j in 0..feedback.len() {
+                check += feedback[j] * weights.input_weights()[j][i];
+            }
 
-        let scalar_2 = &weights_1 * &vec_2;
-        assert_eq!(scalar_2, scalar_1);
-
-        let scalar_3 = &vec_2 * &weights_1;
-        assert_eq!(scalar_3, scalar_1);
-    }
-}
-
-#[test]
-fn weights_test_4() {
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let mut weights_1 = Weights::new(vec_1, 2.0);
-
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let weights_2 = Weights::new(vec_2, 3.0);
-
-        let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
-        let weights_3 = Weights::new(vec_3, 6.0);
-
-        let weights_4 = weights_1.pointwise_mul(&weights_2);
-        assert_eq!(weights_4, weights_3);
-
-        weights_1.pointwise_mul_assign(&weights_2);
-        assert_eq!(weights_1, weights_3);
-    }
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0});
-        let mut weights_1 = Weights::new(vec_1, 6.0);
-
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_2 = Weights::new(vec_2, 2.0);
-
-        let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let weights_3 = Weights::new(vec_3, 3.0);
-
-        let weights_4 = weights_1.pointwise_div(&weights_2);
-        assert_eq!(weights_4, weights_3);
-
-        weights_1.pointwise_div_assign(&weights_2);
-        assert_eq!(weights_1, weights_3);
-    }
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0});
-        let mut weights_1 = Weights::new(vec_1, 12.0);
-
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 10.0});
-        let weights_2 = Weights::new(vec_2, 10.0);
-
-        let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0});
-        let weights_3 = Weights::new(vec_3, 2.0);
-
-        let weights_4 = weights_1.pointwise_rem(&weights_2);
-        assert_eq!(weights_4, weights_3);
-
-        weights_1.pointwise_rem_assign(&weights_2);
-        assert_eq!(weights_1, weights_3);
-    }
-}
-
-#[test]
-fn weights_test_5() {
-    {
-        let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0});
-        let mut weights_1 = Weights::new(vec_1, 2.0);
-
-        let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0});
-        let weights_2 = Weights::new(vec_2, 4.0);
-
-        weights_1.copy_from(&weights_2);
-        assert_eq!(weights_1, weights_2);
-    }
-}
-
-#[inline]
-fn rand_num(rng: &mut ChobitRand) -> f32 {
-    ((rng.next_f64() * 2.0) - 1.0) as f32
-}
-
-fn gen_neuron<const N: usize>(
-    rng: &mut ChobitRand,
-) -> Neuron<N> {
-    let mut ret = Neuron::<N>::new(Activation::SoftSign);
-
-    ret.weights_mut().w_mut().iter_mut().for_each(|w| *w = rand_num(rng));
-    *ret.weights_mut().b_mut() = rand_num(rng);
-
-    ret
-}
-
-fn gen_data_set_1<const N: usize>(
-    rng: &mut ChobitRand,
-    size: usize
-) -> Vec<(f32, MathVec<N>)> {
-    let mut param = MathVec::<N>::new();
-    param.iter_mut().for_each(|x| *x = rand_num(rng));
-
-    let mut ret = Vec::<(f32, MathVec<N>)>::with_capacity(size);
-
-    let activation = Activation::SoftSign;
-
-    for _ in 0..size {
-        let mut v = MathVec::<N>::new();
-        v.iter_mut().for_each(|x| *x = rand_num(rng));
-
-        let ans = activation.activate(&param * &v);
-
-        ret.push((ans, v))
-    }
-
-    ret
-}
-
-#[test]
-fn neuron_test() {
-    const N: usize = 10;
-    const DATA_SET_SIZE: usize = 200;
-
-    let mut rng = ChobitRand::new("neuron_test".as_bytes());
-
-    let mut data_set = gen_data_set_1::<N>(&mut rng, DATA_SET_SIZE);
-
-    let mut neuron = gen_neuron::<N>(&mut rng);
-
-    fn print(data_set: &Vec<(f32, MathVec<N>)>, neuron: &mut Neuron<N>) {
-        let mut total: f32 = 0.0;
-
-        for data in data_set {
-            let output = neuron.calc(&data.1);
-
-            let diff = output - data.0;
-
-            total += diff.max(-diff)
+            assert_eq!(
+                (grad[i] * 10.0).round(),
+                (check * 10.0).round()
+            );
         }
-
-        println!("loss: {}", total / (data_set.len() as f32));
-        println!("----------");
     }
+    {
+        let mut grad = MathVec::<OUT>::new();
 
-    print(&data_set, &mut neuron);
+        weights.grad_with_state(&feedback, &mut grad);
 
-    const EPOCH: usize = 3000;
-    const RATE: f32 = 0.01;
+        for i in 0..grad.len() {
+            let mut check: f32 = 0.0;
+            for j in 0..feedback.len() {
+                check += feedback[j] * weights.state_weights()[j][i];
+            }
 
-    for _ in 0..EPOCH {
-        rng.shuffle(&mut data_set);
-
-        for data in &data_set {
-            let output = neuron.calc(&data.1);
-
-            let diff = output - data.0;
-
-            let _ = neuron.study(diff);
+            assert_eq!(
+                (grad[i] * 10.0).round(),
+                (check * 10.0).round()
+            );
         }
-
-        neuron.update(RATE);
     }
+    {
+        let mut grad = Weights::<OUT, IN>::new();
 
-    print(&data_set, &mut neuron);
-}
+        Weights::grad_with_weights(&feedback, &input, Some(&state), &mut grad);
 
-fn gen_matrix<const OUT: usize, const IN: usize>(
-    rng: &mut ChobitRand,
-) -> Vec<MathVec<IN>> {
-    let mut ret = Vec::<MathVec<IN>>::with_capacity(OUT);
-
-    for _ in 0..OUT {
-        let mut vec = MathVec::<IN>::new();
-        vec.iter_mut().for_each(|x| *x = rand_num(rng));
-
-        ret.push(vec);
-    }
-
-    ret
-}
-
-fn gen_data_set_2<const OUT: usize, const IN: usize>(
-    rng: &mut ChobitRand,
-    size: usize
-) -> Vec<(MathVec<OUT>, MathVec<IN>)> {
-    let mut ret = Vec::<(MathVec<OUT>, MathVec<IN>)>::with_capacity(size);
-
-    let param = gen_matrix::<OUT, IN>(rng);
-
-    let activation = Activation::SoftSign;
-
-    for _ in 0..size {
-        let mut train_in = MathVec::<IN>::new();
-        train_in.iter_mut().for_each(|x| *x = rand_num(rng));
-
-        let mut train_out = MathVec::<OUT>::new();
+        assert_eq!(grad.bias(), feedback.as_slice());
 
         for i in 0..OUT {
-            train_out[i] = activation.activate(&param[i] * &train_in);
-        }
-
-        ret.push((train_out, train_in));
-    }
-
-    ret
-}
-
-fn gen_layer<const OUT: usize, const IN: usize>(
-    rng: &mut ChobitRand
-) -> Layer<OUT, IN> {
-    let mut ret = Layer::new(Activation::SoftSign);
-
-    ret.neurons_mut().iter_mut().for_each(
-        |neuron| {
-            neuron.weights_mut().w_mut().iter_mut().for_each(
-                |x| *x = rand_num(rng)
-            );
-
-            *neuron.weights_mut().b_mut() = rand_num(rng);
-        }
-    );
-
-    ret
-}
-
-#[test]
-fn layer_test() {
-    const OUT: usize = 15;
-    const IN: usize = 10;
-    const DATA_SET_SIZE: usize = 50;
-
-    let mut rng = ChobitRand::new("layer_test".as_bytes());
-
-    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
-
-    let mut layer = gen_layer::<OUT, IN>(&mut rng);
-
-    fn print(
-        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
-        layer: &mut Layer<OUT, IN>
-    ) {
-        let mut total: f32 = 0.0;
-        let mut output = MathVec::<OUT>::new();
-
-        for data in data_set {
-            output.copy_from(layer.calc(&data.1));
-
-            output -= &data.0;
-            output.iter().for_each(|x| total += (*x).max(-(*x)));
-        }
-
-        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
-        println!("----------");
-    }
-
-    print(&data_set, &mut layer);
-
-    const EPOCH: usize = 5000;
-    const RATE: f32 = 0.01;
-
-    let mut output = MathVec::<OUT>::new();
-    for _ in 0..EPOCH {
-        rng.shuffle(&mut data_set);
-
-        for data in &data_set {
-            output.copy_from(layer.calc(&data.1));
-
-            output -= &data.0;
-
-            let _ = layer.study(&output);
-        }
-
-        layer.update(RATE);
-    }
-
-    print(&data_set, &mut layer);
-}
-
-fn gen_ai<const OUT: usize, const MIDDLE: usize, const IN: usize>(
-    rng: &mut ChobitRand
-) -> ChobitAI<OUT, MIDDLE, IN> {
-    let mut ret = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-
-    {
-        ret.output_layer_mut().neurons_mut().iter_mut().for_each(
-            |neuron| {
-                let weights = neuron.weights_mut();
-                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
-                *weights.b_mut() = rand_num(rng);
+            for j in 0..IN {
+                let check = feedback[i] * input[j];
+                println!("{}, {}", i, j);
+                assert_eq!(
+                    (grad.input_weights()[i][j] * 10.0).round(),
+                    (check * 10.0).round()
+                );
             }
-        );
-    }
+        }
 
-    {
-        ret.middle_layer_mut().neurons_mut().iter_mut().for_each(
-            |neuron| {
-                let weights = neuron.weights_mut();
-                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
-                *weights.b_mut() = rand_num(rng);
+        for i in 0..OUT {
+            for j in 0..OUT {
+                let check = feedback[i] * state[j];
+                println!("{}, {}", i, j);
+                assert_eq!(
+                    (grad.state_weights()[i][j] * 10.0).round(),
+                    (check * 10.0).round()
+                );
             }
-        );
+        }
     }
-
-    ret
 }
 
-#[test]
-fn ai_test() {
-    const OUT: usize = 15;
-    const MIDDLE: usize = 20;
-    const IN: usize = 10;
-    const DATA_SET_SIZE: usize = 50;
-
-    let mut rng = ChobitRand::new("ai_test".as_bytes());
-
-    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
-
-    let mut ai = gen_ai::<OUT, MIDDLE, IN>(&mut rng);
-
-    fn print(
-        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
-        ai: &mut ChobitAI<OUT, MIDDLE, IN>
-    ) {
-        let mut total: f32 = 0.0;
-        let mut output = MathVec::<OUT>::new();
-
-        for data in data_set {
-            output.copy_from(ai.calc(&data.1));
-
-            output -= &data.0;
-            output.iter().for_each(|x| total += (*x).max(-(*x)));
-        }
-
-        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
-        println!("----------");
-    }
-
-    print(&data_set, &mut ai);
-
-    const EPOCH: usize = 2500;
-    const RATE: f32 = 0.02;
-
-    for _ in 0..EPOCH {
-        rng.shuffle(&mut data_set);
-
-        for data in &data_set {
-            let _ = ai.study(&data.0, &data.1);
-        }
-
-        ai.update(RATE);
-    }
-
-    print(&data_set, &mut ai);
-}
-
+//
+//#[inline]
+//fn rand_num(rng: &mut ChobitRand) -> f32 {
+//    ((rng.next_f64() * 2.0) - 1.0) as f32
+//}
+//
+//fn gen_neuron<const N: usize>(
+//    rng: &mut ChobitRand,
+//) -> Neuron<N> {
+//    let mut ret = Neuron::<N>::new(Activation::SoftSign);
+//
+//    ret.weights_mut().w_mut().iter_mut().for_each(|w| *w = rand_num(rng));
+//    *ret.weights_mut().b_mut() = rand_num(rng);
+//
+//    ret
+//}
+//
+//fn gen_data_set_1<const N: usize>(
+//    rng: &mut ChobitRand,
+//    size: usize
+//) -> Vec<(f32, MathVec<N>)> {
+//    let mut param = MathVec::<N>::new();
+//    param.iter_mut().for_each(|x| *x = rand_num(rng));
+//
+//    let mut ret = Vec::<(f32, MathVec<N>)>::with_capacity(size);
+//
+//    let activation = Activation::SoftSign;
+//
+//    for _ in 0..size {
+//        let mut v = MathVec::<N>::new();
+//        v.iter_mut().for_each(|x| *x = rand_num(rng));
+//
+//        let ans = activation.activate(&param * &v);
+//
+//        ret.push((ans, v))
+//    }
+//
+//    ret
+//}
+//
+//#[test]
+//fn neuron_test() {
+//    const N: usize = 10;
+//    const DATA_SET_SIZE: usize = 200;
+//
+//    let mut rng = ChobitRand::new("neuron_test".as_bytes());
+//
+//    let mut data_set = gen_data_set_1::<N>(&mut rng, DATA_SET_SIZE);
+//
+//    let mut neuron = gen_neuron::<N>(&mut rng);
+//
+//    fn print(data_set: &Vec<(f32, MathVec<N>)>, neuron: &mut Neuron<N>) {
+//        let mut total: f32 = 0.0;
+//
+//        for data in data_set {
+//            let output = neuron.calc(&data.1);
+//
+//            let diff = output - data.0;
+//
+//            total += diff.max(-diff)
+//        }
+//
+//        println!("loss: {}", total / (data_set.len() as f32));
+//        println!("----------");
+//    }
+//
+//    print(&data_set, &mut neuron);
+//
+//    const EPOCH: usize = 3000;
+//    const RATE: f32 = 0.01;
+//
+//    for _ in 0..EPOCH {
+//        rng.shuffle(&mut data_set);
+//
+//        for data in &data_set {
+//            let output = neuron.calc(&data.1);
+//
+//            let diff = output - data.0;
+//
+//            let _ = neuron.study(diff);
+//        }
+//
+//        neuron.update(RATE);
+//    }
+//
+//    print(&data_set, &mut neuron);
+//}
+//
+//fn gen_matrix<const OUT: usize, const IN: usize>(
+//    rng: &mut ChobitRand,
+//) -> Vec<MathVec<IN>> {
+//    let mut ret = Vec::<MathVec<IN>>::with_capacity(OUT);
+//
+//    for _ in 0..OUT {
+//        let mut vec = MathVec::<IN>::new();
+//        vec.iter_mut().for_each(|x| *x = rand_num(rng));
+//
+//        ret.push(vec);
+//    }
+//
+//    ret
+//}
+//
+//fn gen_data_set_2<const OUT: usize, const IN: usize>(
+//    rng: &mut ChobitRand,
+//    size: usize
+//) -> Vec<(MathVec<OUT>, MathVec<IN>)> {
+//    let mut ret = Vec::<(MathVec<OUT>, MathVec<IN>)>::with_capacity(size);
+//
+//    let param = gen_matrix::<OUT, IN>(rng);
+//
+//    let activation = Activation::SoftSign;
+//
+//    for _ in 0..size {
+//        let mut train_in = MathVec::<IN>::new();
+//        train_in.iter_mut().for_each(|x| *x = rand_num(rng));
+//
+//        let mut train_out = MathVec::<OUT>::new();
+//
+//        for i in 0..OUT {
+//            train_out[i] = activation.activate(&param[i] * &train_in);
+//        }
+//
+//        ret.push((train_out, train_in));
+//    }
+//
+//    ret
+//}
+//
+//fn gen_layer<const OUT: usize, const IN: usize>(
+//    rng: &mut ChobitRand
+//) -> Layer<OUT, IN> {
+//    let mut ret = Layer::new(Activation::SoftSign);
+//
+//    ret.neurons_mut().iter_mut().for_each(
+//        |neuron| {
+//            neuron.weights_mut().w_mut().iter_mut().for_each(
+//                |x| *x = rand_num(rng)
+//            );
+//
+//            *neuron.weights_mut().b_mut() = rand_num(rng);
+//        }
+//    );
+//
+//    ret
+//}
+//
+//#[test]
+//fn layer_test() {
+//    const OUT: usize = 15;
+//    const IN: usize = 10;
+//    const DATA_SET_SIZE: usize = 50;
+//
+//    let mut rng = ChobitRand::new("layer_test".as_bytes());
+//
+//    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
+//
+//    let mut layer = gen_layer::<OUT, IN>(&mut rng);
+//
+//    fn print(
+//        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
+//        layer: &mut Layer<OUT, IN>
+//    ) {
+//        let mut total: f32 = 0.0;
+//        let mut output = MathVec::<OUT>::new();
+//
+//        for data in data_set {
+//            output.copy_from(layer.calc(&data.1));
+//
+//            output -= &data.0;
+//            output.iter().for_each(|x| total += (*x).max(-(*x)));
+//        }
+//
+//        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
+//        println!("----------");
+//    }
+//
+//    print(&data_set, &mut layer);
+//
+//    const EPOCH: usize = 5000;
+//    const RATE: f32 = 0.01;
+//
+//    let mut output = MathVec::<OUT>::new();
+//    for _ in 0..EPOCH {
+//        rng.shuffle(&mut data_set);
+//
+//        for data in &data_set {
+//            output.copy_from(layer.calc(&data.1));
+//
+//            output -= &data.0;
+//
+//            let _ = layer.study(&output);
+//        }
+//
+//        layer.update(RATE);
+//    }
+//
+//    print(&data_set, &mut layer);
+//}
+//
+//fn gen_ai<const OUT: usize, const MIDDLE: usize, const IN: usize>(
+//    rng: &mut ChobitRand
+//) -> ChobitAI<OUT, MIDDLE, IN> {
+//    let mut ret = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//
+//    {
+//        ret.output_layer_mut().neurons_mut().iter_mut().for_each(
+//            |neuron| {
+//                let weights = neuron.weights_mut();
+//                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
+//                *weights.b_mut() = rand_num(rng);
+//            }
+//        );
+//    }
+//
+//    {
+//        ret.middle_layer_mut().neurons_mut().iter_mut().for_each(
+//            |neuron| {
+//                let weights = neuron.weights_mut();
+//                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
+//                *weights.b_mut() = rand_num(rng);
+//            }
+//        );
+//    }
+//
+//    ret
+//}
+//
+//#[test]
+//fn ai_test() {
+//    const OUT: usize = 15;
+//    const MIDDLE: usize = 20;
+//    const IN: usize = 10;
+//    const DATA_SET_SIZE: usize = 50;
+//
+//    let mut rng = ChobitRand::new("ai_test".as_bytes());
+//
+//    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
+//
+//    let mut ai = gen_ai::<OUT, MIDDLE, IN>(&mut rng);
+//
+//    fn print(
+//        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
+//        ai: &mut ChobitAI<OUT, MIDDLE, IN>
+//    ) {
+//        let mut total: f32 = 0.0;
+//        let mut output = MathVec::<OUT>::new();
+//
+//        for data in data_set {
+//            output.copy_from(ai.calc(&data.1));
+//
+//            output -= &data.0;
+//            output.iter().for_each(|x| total += (*x).max(-(*x)));
+//        }
+//
+//        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
+//        println!("----------");
+//    }
+//
+//    print(&data_set, &mut ai);
+//
+//    const EPOCH: usize = 2500;
+//    const RATE: f32 = 0.02;
+//
+//    for _ in 0..EPOCH {
+//        rng.shuffle(&mut data_set);
+//
+//        for data in &data_set {
+//            let _ = ai.study(&data.0, &data.1);
+//        }
+//
+//        ai.update(RATE);
+//    }
+//
+//    print(&data_set, &mut ai);
+//}
+//
