@@ -910,7 +910,7 @@ impl Activation {
 }
 
 pub struct Cache<const OUT: usize, const IN: usize> {
-    completed: bool,
+    is_calcurated: bool,
 
     input: MathVec<IN>,
     state: MathVec<OUT>,
@@ -925,7 +925,7 @@ impl<const OUT: usize, const IN: usize> Cache<OUT, IN> {
     #[inline]
     pub fn new() -> Self {
         Self {
-            completed: false,
+            is_calcurated: false,
 
             input: MathVec::<IN>::new(),
             state: MathVec::<OUT>::new(),
@@ -938,12 +938,15 @@ impl<const OUT: usize, const IN: usize> Cache<OUT, IN> {
     }
 
     #[inline]
+    pub fn is_calcurated(&self) -> bool {self.is_calcurated}
+
+    #[inline]
     pub fn calc_feedback(
         &self,
         train_out: &MathVec<OUT>,
         feedback: &mut MathVec<OUT>
     ) {
-        if self.completed {
+        if self.is_calcurated {
             feedback.copy_from(&self.output);
             *feedback -= train_out;
         }
@@ -951,24 +954,99 @@ impl<const OUT: usize, const IN: usize> Cache<OUT, IN> {
 
     #[inline]
     pub fn input(&self) -> Option<&MathVec<IN>> {
-        self.completed.then(|| &self.input)
+        self.is_calcurated.then(|| &self.input)
     }
 
     #[inline]
-    pub fn state(&self) -> Option<&MathVec<OUT>> {
-        (self.completed && self.has_state).then(|| &self.state)
+    pub fn state(&self) -> Option<Option<&MathVec<OUT>>> {
+        self.is_calcurated.then(|| self.has_state.then(|| &self.state))
     }
 
     #[inline]
     pub fn middle_value(&self) -> Option<&MathVec<OUT>> {
-        self.completed.then(|| &self.middle_value)
+        self.is_calcurated.then(|| &self.middle_value)
     }
 
     #[inline]
     pub fn output(&self) -> Option<&MathVec<OUT>> {
-        self.completed.then(|| &self.output)
+        self.is_calcurated.then(|| &self.output)
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Layer<const OUT: usize, const IN: usize> {
+    weights: Weights<OUT, IN>,
+    activation: Activation
+}
+
+impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
+    /// Creates Neuron.
+    ///
+    /// * `activation` : Activation function.
+    /// * _Return_ : Neuron.
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            weights: Weights::<OUT, IN>::default(),
+            activation: activation
+        }
+    }
+
+    #[inline]
+    pub fn weights(&self) -> &Weights<OUT, IN> {&self.weights}
+
+    #[inline]
+    pub fn mut_weights(&mut self) -> &mut Weights<OUT, IN> {&mut self.weights}
+
+    #[inline]
+    pub fn activation(&self) -> &Activation {&self.activation}
+
+    #[inline]
+    pub fn mut_activation(&mut self) -> &mut Activation {&mut self.activation}
+
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        state: Option<&MathVec<OUT>>,
+        output: &mut MathVec<OUT>
+    ) {
+        self.weights.calc(input, state, output);
+
+        output.iter_mut().for_each(
+            |val| {*val = self.activation.activate(*val);}
+        );
+    }
+}
+
+pub struct MLLayer<const OUT: usize, const IN: usize> {
+    layer: Layer<OUT, IN>,
+
+    total_grad: Weights<OUT, IN>,
+    momentum_1: Weights<OUT, IN>,
+    momentum_2: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
+    /// Creates Neuron.
+    ///
+    /// * `activation` : Activation function.
+    /// * _Return_ : Neuron.
+    #[inline]
+    pub fn new(layer: Layer<OUT, IN>) -> Self {
+        Self {
+            layer: layer,
+
+            total_grad: Weights::<OUT, IN>::default(),
+            momentum_1: Weights::<OUT, IN>::default(),
+            momentum_2: MathVec::<OUT>::default()
+        }
+    }
+
+    #[inline]
+    pub fn drop(self) -> Layer<OUT, IN> {self.layer}
+}
+
 
 ///// Neuron that is a part of AI.
 /////
