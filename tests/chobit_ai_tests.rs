@@ -4,6 +4,13 @@ use chobitlibs::chobit_ai::*;
 use chobitlibs::chobit_rand::*;
 
 use std::mem::size_of;
+
+#[inline]
+fn rand_num(rng: &mut ChobitRand) -> f32 {
+    ((rng.next_f64() * 2.0) - 1.0) as f32
+}
+
+
 #[test]
 fn to_from_label_test() {
     const COUNT: usize = 100;
@@ -206,6 +213,26 @@ fn math_vec_test_5() {
 
         vec_1.copy_from(&vec_2);
         assert_eq!(vec_1, vec_2);
+    }
+}
+
+#[test]
+fn math_vec_test_6() {
+    const COUNT: usize = 10000;
+
+    let mut rng = ChobitRand::new("math_vec_test_6".as_bytes());
+
+    for _ in 0..COUNT {
+        let mut vec_1 = MathVec::<10>::new();
+        vec_1.as_mut_slice().iter_mut().for_each(|x| *x = rand_num(&mut rng));
+
+        let mut bytes = Vec::<u8>::new();
+        assert!(vec_1.write_bytes(&mut bytes).is_some());
+
+        let mut vec_2 = MathVec::<10>::new();
+        assert!(vec_2.read_bytes(&bytes).is_some());
+
+        assert_eq!(vec_2, vec_1);
     }
 }
 
@@ -503,6 +530,31 @@ fn weights_test_3() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn weights_test_4() {
+    const OUT: usize = 7;
+    const IN: usize = 13;
+
+    const COUNT: usize = 10000;
+
+    let mut rng = ChobitRand::new("weights_test_4".as_bytes());
+
+    for _ in 0..COUNT {
+        let mut weights_1 = Weights::<OUT, IN>::new();
+        weights_1.as_mut_slice().iter_mut().for_each(
+            |x| *x = rand_num(&mut rng)
+        );
+
+        let mut bytes = Vec::<u8>::new();
+        assert!(weights_1.write_bytes(&mut bytes).is_some());
+
+        let mut weights_2 = Weights::<OUT, IN>::new();
+        assert!(weights_2.read_bytes(&bytes).is_some());
+
+        assert_eq!(weights_2, weights_1);
     }
 }
 

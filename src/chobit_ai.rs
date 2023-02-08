@@ -21,7 +21,7 @@
 //! # Example
 //!
 
-use alloc::{boxed::Box, vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 
 use core::{
     default::Default,
@@ -39,7 +39,8 @@ use core::{
         Deref,
         DerefMut
     },
-    slice::{from_raw_parts, from_raw_parts_mut}
+    slice::{from_raw_parts, from_raw_parts_mut},
+    mem::size_of
 };
 
 #[inline]
@@ -77,6 +78,54 @@ macro_rules! scalar_op {
             }
         }
     }};
+}
+
+const SIZE_OF_U32: usize = size_of::<u32>();
+
+fn u8_slice_to_f32_slice(
+    u8_slice: &[u8],
+    f32_slice: &mut [f32]
+) -> Option<()> {
+    let f32_len = f32_slice.len();
+
+    if (f32_len * SIZE_OF_U32) != u8_slice.len() {return None;}
+
+    for i in 0..f32_len {
+        let u8_start = i * SIZE_OF_U32;
+        let u8_end = u8_start + SIZE_OF_U32;
+
+        let val = u32::from_le_bytes(
+            u8_slice[u8_start..u8_end].try_into().ok()?
+        );
+        let val = f32::from_bits(val);
+
+        *(f32_slice.get_mut(i)?) = val;
+    }
+
+    Some(())
+}
+
+fn f32_slice_to_u8_slice(
+    f32_slice: &[f32],
+    u8_slice: &mut [u8]
+) -> Option<()> {
+    let f32_len = f32_slice.len();
+
+    if (f32_len * SIZE_OF_U32) != u8_slice.len() {return None;}
+
+    for i in 0..f32_len {
+        let u8_start = i * SIZE_OF_U32;
+        let u8_end = u8_start + SIZE_OF_U32;
+
+        let val = *(f32_slice.get(i)?);
+        let val = val.to_bits();
+
+        u8_slice[u8_start..u8_end].copy_from_slice(
+            val.to_le_bytes().as_slice()
+        );
+    }
+
+    Some(())
 }
 
 /// Vector for mathematics.
@@ -189,6 +238,18 @@ impl<const N: usize> MathVec<N> {
     #[inline]
     pub fn copy_to(&self, other: &mut Self) {
         other.body.copy_from_slice(self.as_slice());
+    }
+
+    #[inline]
+    pub fn read_bytes(&mut self, bytes: &[u8]) -> Option<()> {
+        u8_slice_to_f32_slice(bytes, &mut self.body)
+    }
+
+    #[inline]
+    pub fn write_bytes(&self, buffer: &mut Vec<u8>) -> Option<()> {
+        buffer.resize(self.body.len() * SIZE_OF_U32, 0);
+
+        f32_slice_to_u8_slice(&self.body, buffer.as_mut_slice())
     }
 }
 
@@ -714,6 +775,18 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     pub fn copy_to(&self, other: &mut Self) {
         other.as_mut_slice().copy_from_slice(self.as_slice());
     }
+
+    #[inline]
+    pub fn read_bytes(&mut self, bytes: &[u8]) -> Option<()> {
+        u8_slice_to_f32_slice(bytes, &mut self.body)
+    }
+
+    #[inline]
+    pub fn write_bytes(&self, buffer: &mut Vec<u8>) -> Option<()> {
+        buffer.resize(self.body.len() * SIZE_OF_U32, 0);
+
+        f32_slice_to_u8_slice(&self.body, buffer.as_mut_slice())
+    }
 }
 
 impl<const OUT: usize, const IN: usize> Default for Weights<OUT, IN> {
@@ -833,6 +906,67 @@ impl Activation {
     #[inline]
     fn d_sigmoid(x: f32) -> f32 {
         Self::d_softsign(x) * 0.5
+    }
+}
+
+pub struct Cache<const OUT: usize, const IN: usize> {
+    completed: bool,
+
+    input: MathVec<IN>,
+    state: MathVec<OUT>,
+    has_state: bool,
+
+    middle_value: MathVec<OUT>,
+
+    output: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> Cache<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            completed: false,
+
+            input: MathVec::<IN>::new(),
+            state: MathVec::<OUT>::new(),
+            has_state: false,
+
+            middle_value: MathVec::<OUT>::new(),
+
+            output: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn calc_feedback(
+        &self,
+        train_out: &MathVec<OUT>,
+        feedback: &mut MathVec<OUT>
+    ) {
+        if self.completed {
+            feedback.copy_from(&self.output);
+            *feedback -= train_out;
+        }
+    }
+
+    #[inline]
+    pub fn input(&self) -> Option<&MathVec<IN>> {
+        self.completed.then(|| &self.input)
+    }
+
+    #[inline]
+    pub fn state(&self) -> Option<&MathVec<OUT>> {
+        (self.completed && self.has_state).then(|| &self.state)
+    }
+
+    #[inline]
+    pub fn middle_value(&self) -> Option<&MathVec<OUT>> {
+        self.completed.then(|| &self.middle_value)
+    }
+
+    #[inline]
+    pub fn output(&self) -> Option<&MathVec<OUT>> {
+        self.completed.then(|| &self.output)
     }
 }
 
