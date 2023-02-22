@@ -1170,19 +1170,29 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
                 let rate_2 = rate
                     / (sqrt(*self.momentum_2.get_unchecked(i)) + f32::EPSILON);
 
-                self.total_grad
-                    .input_weights_mut()
-                    .get_unchecked_mut(i)
-                    .iter_mut()
-                    .for_each(|val| *val *= rate_2);
+                *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate_2;
 
-                self.total_grad
-                    .state_weights_mut()
-                    .get_unchecked_mut(i)
-                    .iter_mut()
-                    .for_each(|val| *val *= rate_2);
+                debug_assert_eq!(
+                    self.total_grad.input_weights().get_unchecked(i).len(),
+                    IN
+                );
+                for j in 0..IN {
+                    *self.total_grad
+                        .input_weights_mut()
+                        .get_unchecked_mut(i)
+                        .get_unchecked_mut(j) *= rate_2;
+                }
 
-                *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate;
+                debug_assert_eq!(
+                    self.total_grad.state_weights().get_unchecked(i).len(),
+                    OUT
+                );
+                for j in 0..OUT {
+                    *self.total_grad
+                        .state_weights_mut()
+                        .get_unchecked_mut(i)
+                        .get_unchecked_mut(j) *= rate_2;
+                }
             }
         }
 
@@ -1227,19 +1237,34 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
             let mut dot_product: f32 = 0.0;
 
             unsafe {
-                self.layer.weights
-                    .input_weights()
-                    .get_unchecked(i)
-                    .iter()
-                    .for_each(|val| {dot_product += *val * *val;});
+                let bias = *self.total_grad.bias().get_unchecked(i);
+                dot_product += bias * bias;
 
-                self.layer.weights
-                    .state_weights()
-                    .get_unchecked(i)
-                    .iter()
-                    .for_each(|val| {dot_product += *val * *val;});
+                debug_assert_eq!(
+                    self.total_grad.input_weights().get_unchecked(i).len(),
+                    IN
+                );
+                for j in 0..IN {
+                    let val = *self.total_grad
+                        .input_weights()
+                        .get_unchecked(i)
+                        .get_unchecked(j);
 
-                dot_product += self.layer.weights.bias().get_unchecked(i);
+                    dot_product += val * val;
+                }
+
+                debug_assert_eq!(
+                    self.total_grad.state_weights().get_unchecked(i).len(),
+                    OUT
+                );
+                for j in 0..OUT {
+                    let val = *self.total_grad
+                        .state_weights()
+                        .get_unchecked(i)
+                        .get_unchecked(j);
+
+                    dot_product += val * val;
+                }
 
                 *self.momentum_2.get_unchecked_mut(i) =
                     (BETA * *self.momentum_2.get_unchecked(i))

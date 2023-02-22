@@ -607,7 +607,7 @@ fn layer_test_1() {
     // machine learning.
     const EPOCH: usize = 1000;
     const BATCH_SIZE: usize = 10;
-    const RATE: f32 = 0.01;
+    const RATE: f32 = 0.1;
 
     let mut ml_layer = MLLayer::new(layer_2);
     let mut cache = MLCache::new();
@@ -637,7 +637,85 @@ fn layer_test_1() {
     layer_2.calc(&input, Some(&state), &mut output_2);
 
     // checks after machine learning.
-    const EPSILON_2: f32 = 0.0001;
+    const EPSILON_2: f32 = 0.000001;
+    for i in 0..OUT {
+        let diff = (output_1[i] - output_2[i]).abs();
+        assert!(diff < EPSILON_2);
+    }
+}
+
+#[test]
+fn layer_test_2() {
+    const OUT: usize = 7;
+    const IN: usize = 13;
+
+    // ready
+    let mut rng = ChobitRand::new("layer_test_2".as_bytes());
+
+    let mut layer_1 = Layer::<OUT, IN>::new(Activation::SoftSign);
+
+    layer_1.mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    let mut layer_2 = Layer::<OUT, IN>::new(Activation::SoftSign);
+    layer_2.mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(layer_1, layer_2);
+
+    let mut input = MathVec::<IN>::new();
+    input.iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    let mut output_1 = MathVec::<OUT>::new();
+    let mut output_2 = MathVec::<OUT>::new();
+
+    layer_1.calc(&input, None, &mut output_1);
+    layer_2.calc(&input, None, &mut output_2);
+
+    // checks before machine learning.
+    const EPSILON_1: f32 = 0.05;
+    for i in 0..OUT {
+        let diff = (output_1[i] - output_2[i]).abs();
+        assert!(diff > EPSILON_1);
+    }
+
+    // machine learning.
+    const EPOCH: usize = 1000;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.1;
+
+    let mut ml_layer = MLLayer::new(layer_2);
+    let mut cache = MLCache::new();
+    let mut feedback = MathVec::<OUT>::new();
+    let mut next_feedback_for_input = MathVec::<IN>::new();
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            ml_layer.ready(&input, None, &mut cache);
+            cache.calc_feedback(&output_1, &mut feedback);
+
+            ml_layer.study(
+                &feedback,
+                &cache,
+                &mut next_feedback_for_input,
+                None
+            );
+        }
+
+        ml_layer.update(RATE);
+    }
+
+    let layer_2 = ml_layer.drop();
+
+    layer_1.calc(&input, None, &mut output_1);
+    layer_2.calc(&input, None, &mut output_2);
+
+    // checks after machine learning.
+    const EPSILON_2: f32 = 0.000001;
     for i in 0..OUT {
         let diff = (output_1[i] - output_2[i]).abs();
         assert!(diff < EPSILON_2);
