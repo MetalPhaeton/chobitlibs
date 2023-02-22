@@ -633,7 +633,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     #[inline]
     fn init_output_with_bias(&self, output: &mut MathVec<OUT>) {
         unsafe {
-            output.as_mut_ptr().copy_from(self.ptr_b, OUT)
+            output.as_mut_ptr().copy_from(self.ptr_b, OUT);
         }
     }
 
@@ -646,7 +646,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
                 unsafe {
                     *output.get_unchecked_mut(i) +=
                         *weights.get_unchecked(j)
-                        * *input.get_unchecked(j)
+                        * *input.get_unchecked(j);
                 }
             }
         }
@@ -834,6 +834,18 @@ impl<const OUT: usize, const IN: usize> PartialEq for Weights<OUT, IN> {
     }
 }
 
+impl<const OUT: usize, const IN: usize> Deref for Weights<OUT, IN> {
+    type Target = [f32];
+
+    #[inline]
+    fn deref(&self) -> &[f32] {&*self.body}
+}
+
+impl<const OUT: usize, const IN: usize> DerefMut for Weights<OUT, IN> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut [f32] {&mut *self.body}
+}
+
 /// Activation function for Neuron.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Activation {
@@ -909,70 +921,6 @@ impl Activation {
     }
 }
 
-pub struct Cache<const OUT: usize, const IN: usize> {
-    is_calcurated: bool,
-
-    input: MathVec<IN>,
-    state: MathVec<OUT>,
-    has_state: bool,
-
-    middle_value: MathVec<OUT>,
-
-    output: MathVec<OUT>
-}
-
-impl<const OUT: usize, const IN: usize> Cache<OUT, IN> {
-    #[inline]
-    pub fn new() -> Self {
-        Self {
-            is_calcurated: false,
-
-            input: MathVec::<IN>::new(),
-            state: MathVec::<OUT>::new(),
-            has_state: false,
-
-            middle_value: MathVec::<OUT>::new(),
-
-            output: MathVec::<OUT>::new()
-        }
-    }
-
-    #[inline]
-    pub fn is_calcurated(&self) -> bool {self.is_calcurated}
-
-    #[inline]
-    pub fn calc_feedback(
-        &self,
-        train_out: &MathVec<OUT>,
-        feedback: &mut MathVec<OUT>
-    ) {
-        if self.is_calcurated {
-            feedback.copy_from(&self.output);
-            *feedback -= train_out;
-        }
-    }
-
-    #[inline]
-    pub fn input(&self) -> Option<&MathVec<IN>> {
-        self.is_calcurated.then(|| &self.input)
-    }
-
-    #[inline]
-    pub fn state(&self) -> Option<Option<&MathVec<OUT>>> {
-        self.is_calcurated.then(|| self.has_state.then(|| &self.state))
-    }
-
-    #[inline]
-    pub fn middle_value(&self) -> Option<&MathVec<OUT>> {
-        self.is_calcurated.then(|| &self.middle_value)
-    }
-
-    #[inline]
-    pub fn output(&self) -> Option<&MathVec<OUT>> {
-        self.is_calcurated.then(|| &self.output)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer<const OUT: usize, const IN: usize> {
     weights: Weights<OUT, IN>,
@@ -1019,12 +967,65 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLCache<const OUT: usize, const IN: usize> {
+    input: MathVec<IN>,
+    state: MathVec<OUT>,
+    has_state: bool,
+
+    middle_value: MathVec<OUT>,
+
+    output: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            input: MathVec::<IN>::new(),
+            state: MathVec::<OUT>::new(),
+            has_state: false,
+
+            middle_value: MathVec::<OUT>::new(),
+
+            output: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn calc_feedback(
+        &self,
+        train_out: &MathVec<OUT>,
+        feedback: &mut MathVec<OUT>
+    ) {
+        feedback.copy_from(&self.output);
+        *feedback -= train_out;
+    }
+
+    #[inline]
+    pub fn input(&self) -> &MathVec<IN> {&self.input}
+
+    #[inline]
+    pub fn state(&self) -> Option<&MathVec<OUT>> {
+        self.has_state.then(|| &self.state)
+    }
+
+    #[inline]
+    pub fn middle_value(&self) -> &MathVec<OUT> {&self.middle_value}
+
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {&self.output}
+}
+
 pub struct MLLayer<const OUT: usize, const IN: usize> {
     layer: Layer<OUT, IN>,
 
     total_grad: Weights<OUT, IN>,
     momentum_1: Weights<OUT, IN>,
-    momentum_2: MathVec<OUT>
+    momentum_2: MathVec<OUT>,
+
+    tmp_feedback: MathVec<OUT>,
+    tmp_grad: Weights<OUT, IN>
 }
 
 impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
@@ -1039,523 +1040,213 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
             total_grad: Weights::<OUT, IN>::default(),
             momentum_1: Weights::<OUT, IN>::default(),
-            momentum_2: MathVec::<OUT>::default()
+            momentum_2: MathVec::<OUT>::default(),
+
+            tmp_feedback: MathVec::<OUT>::default(),
+            tmp_grad: Weights::<OUT, IN>::default()
         }
     }
 
     #[inline]
+    pub fn layer(&self) -> &Layer<OUT, IN> {&self.layer}
+
+    #[inline]
     pub fn drop(self) -> Layer<OUT, IN> {self.layer}
+
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.total_grad.clear();
+        self.momentum_1.clear();
+        self.momentum_2.clear();
+    }
+
+    pub fn ready(
+        &self,
+        input: &MathVec<IN>,
+        state: Option<&MathVec<OUT>>,
+        cache: &mut MLCache<OUT, IN>
+    ) {
+        cache.input.copy_from(input);
+        match state {
+            Some(state) => {
+                cache.state.copy_from(state);
+                cache.has_state = true;
+            },
+
+            None => {
+                cache.has_state = false;
+            }
+        }
+
+        self.layer.weights.calc(input, state, &mut cache.middle_value);
+
+        debug_assert_eq!(cache.output.len(), OUT);
+        debug_assert_eq!(cache.middle_value.len(), OUT);
+
+        for i in 0..OUT {
+            unsafe {
+                *cache.output.get_unchecked_mut(i) =
+                    self.layer.activation.activate(
+                        *cache.middle_value.get_unchecked(i)
+                    );
+            }
+        }
+    }
+
+    pub fn study(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        cache: &MLCache<OUT, IN>,
+        next_feedback_for_input: &mut MathVec<IN>,
+        next_feedback_for_state: Option<&mut MathVec<OUT>>
+    ) {
+        self.calc_tmp_feedback(feedback, cache);
+
+        // add self.total_grad ----------
+        Weights::grad_with_weights(
+            &self.tmp_feedback,
+            &cache.input,
+            cache.has_state.then(|| &cache.state),
+            &mut self.tmp_grad
+        );
+
+        for i in 0..self.total_grad.len() {
+            unsafe {
+                *self.total_grad.get_unchecked_mut(i) +=
+                    *self.tmp_grad.get_unchecked(i);
+            }
+        }
+
+        // calc feedbacks ----------
+        self.layer.weights.grad_with_input(
+            &self.tmp_feedback,
+            next_feedback_for_input
+        );
+
+        if let Some(next_feedback_for_state) = next_feedback_for_state {
+            if cache.has_state {
+                self.layer.weights.grad_with_state(
+                    &self.tmp_feedback,
+                    next_feedback_for_state
+                );
+            }
+        }
+    }
+
+    #[inline]
+    fn calc_tmp_feedback(
+        &mut self,
+        feedback: &MathVec<OUT>,
+        cache: &MLCache<OUT, IN>
+    ) {
+        debug_assert_eq!(feedback.len(), OUT);
+        debug_assert_eq!(self.tmp_feedback.len(), OUT);
+        debug_assert_eq!(cache.middle_value.len(), OUT);
+
+        for i in 0..OUT {
+            unsafe {
+                *self.tmp_feedback.get_unchecked_mut(i) =
+                    *feedback.get_unchecked(i)
+                    * self.layer.activation.d_activate(
+                        *cache.middle_value.get_unchecked(i)
+                    )
+            }
+        }
+    }
+
+    pub fn update(&mut self, rate: f32) {
+        self.next_momentum_1();
+        self.next_momentum_2();
+
+        self.total_grad.copy_from(&self.momentum_1);
+
+        // calc delta weights.
+        debug_assert_eq!(self.momentum_2.len(), OUT);
+        debug_assert_eq!(self.total_grad.input_weights().len(), OUT);
+        debug_assert_eq!(self.total_grad.state_weights().len(), OUT);
+        debug_assert_eq!(self.total_grad.bias().len(), OUT);
+        for i in 0..OUT {
+            unsafe {
+                let rate_2 = rate
+                    / (sqrt(*self.momentum_2.get_unchecked(i)) + f32::EPSILON);
+
+                self.total_grad
+                    .input_weights_mut()
+                    .get_unchecked_mut(i)
+                    .iter_mut()
+                    .for_each(|val| *val *= rate_2);
+
+                self.total_grad
+                    .state_weights_mut()
+                    .get_unchecked_mut(i)
+                    .iter_mut()
+                    .for_each(|val| *val *= rate_2);
+
+                *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate;
+            }
+        }
+
+        // updates weights.
+        debug_assert_eq!(self.layer.weights.len(), self.total_grad.len());
+        for i in 0..self.layer.weights.len() {
+            unsafe {
+                *self.layer.weights.get_unchecked_mut(i) -=
+                    *self.total_grad.get_unchecked(i);
+            }
+        }
+
+        self.total_grad.clear();
+    }
+
+    #[inline]
+    fn next_momentum_1(&mut self) {
+        const BETA: f32 = 0.9;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        debug_assert_eq!(self.momentum_1.len(), self.total_grad.len());
+        for i in 0..self.momentum_1.len() {
+            unsafe {
+                *self.momentum_1.get_unchecked_mut(i) =
+                    (BETA * *self.momentum_1.get_unchecked(i))
+                    + (BETA_INV * *self.total_grad.get_unchecked(i));
+            }
+        }
+    }
+
+    #[inline]
+    fn next_momentum_2(&mut self) {
+        const BETA: f32 = 0.999;
+        const BETA_INV: f32 = 1.0 - BETA;
+
+        debug_assert_eq!(self.momentum_2.len(), OUT);
+        debug_assert_eq!(self.total_grad.input_weights().len(), OUT);
+        debug_assert_eq!(self.total_grad.state_weights().len(), OUT);
+        debug_assert_eq!(self.total_grad.bias().len(), OUT);
+
+        for i in 0..OUT {
+            let mut dot_product: f32 = 0.0;
+
+            unsafe {
+                self.layer.weights
+                    .input_weights()
+                    .get_unchecked(i)
+                    .iter()
+                    .for_each(|val| {dot_product += *val * *val;});
+
+                self.layer.weights
+                    .state_weights()
+                    .get_unchecked(i)
+                    .iter()
+                    .for_each(|val| {dot_product += *val * *val;});
+
+                dot_product += self.layer.weights.bias().get_unchecked(i);
+
+                *self.momentum_2.get_unchecked_mut(i) =
+                    (BETA * *self.momentum_2.get_unchecked(i))
+                    + (BETA_INV * dot_product);
+            }
+
+        }
+    }
 }
 
-
-///// Neuron that is a part of AI.
-/////
-///// `N` : Dimension.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct Neuron<const N: usize> {
-//    weights: Weights<N>,
-//    activation: Activation,
-//
-//    total_grad: Weights<N>,
-//    momentum_1: Weights<N>,
-//    momentum_2: f32,
-//
-//    grad_w: Weights<N>,
-//    grad_x: MathVec<N>,
-//
-//    total_grad_2: Weights<N>,
-//
-//    cache_input: MathVec<N>,
-//    cache_middle_value: f32,
-//    cache_output: f32
-//}
-//
-//impl<const N: usize> Neuron<N> {
-//    /// Creates Neuron.
-//    ///
-//    /// * `activation` : Activation function.
-//    /// * _Return_ : Neuron.
-//    #[inline]
-//    pub fn new(activation: Activation) -> Self {
-//        Self {
-//            weights: Weights::<N>::default(),
-//            activation: activation,
-//
-//            total_grad: Weights::<N>::default(),
-//            momentum_1: Weights::<N>::default(),
-//            momentum_2: 0.0,
-//
-//            grad_w: Weights::<N>::default(),
-//            grad_x: MathVec::<N>::default(),
-//
-//            total_grad_2: Weights::<N>::default(),
-//
-//            cache_input: MathVec::<N>::default(),
-//            cache_middle_value: 0.0,
-//            cache_output: 0.0
-//        }
-//    }
-//
-//    /// Gets immutable weights.
-//    ///
-//    /// * _Return_ : Weights.
-//    #[inline]
-//    pub fn weights(&self) -> &Weights<N> {&self.weights}
-//
-//    /// Gets mutable weights.
-//    ///
-//    /// * _Return_ : Weights.
-//    #[inline]
-//    pub fn weights_mut(&mut self) -> &mut Weights<N> {&mut self.weights}
-//
-//    /// Gets immutable activation function.
-//    ///
-//    /// * _Return_ : Activation function.
-//    #[inline]
-//    pub fn activation(&self) -> Activation {self.activation}
-//
-//    /// Gets mutable activation function.
-//    ///
-//    /// * _Return_ : Activation function.
-//    #[inline]
-//    pub fn activation_mut (&mut self) -> &mut Activation {&mut self.activation}
-//
-//    /// Gets immutable total gradients.
-//    ///
-//    /// * _Return_ : Total gradients.
-//    #[inline]
-//    pub fn total_grad(&self) -> &Weights<N> {&self.total_grad}
-//
-//    /// Gets mutable total gradients.
-//    ///
-//    /// * _Return_ : Total gradients.
-//    #[inline]
-//    pub fn total_grad_mut(&mut self) -> &mut Weights<N> {&mut self.total_grad}
-//
-//    /// Gets immutable momentum of gradients.
-//    ///
-//    /// * _Return_ : Momentum.
-//    #[inline]
-//    pub fn momentum_1(&self) -> &Weights<N> {&self.momentum_1}
-//
-//    /// Gets mutable momentum of gradients.
-//    ///
-//    /// * _Return_ : Momentum.
-//    #[inline]
-//    pub fn momentum_1_mut(&mut self) -> &mut Weights<N> {&mut self.momentum_1}
-//
-//    /// Gets immutable momentum for learning rate.
-//    ///
-//    /// * _Return_ : Momentum.
-//    #[inline]
-//    pub fn momentum_2(&self) -> f32 {self.momentum_2}
-//
-//    /// Sets momentum for learning rate.
-//    ///
-//    /// * 'momentum_2' : New momentum.
-//    #[inline]
-//    pub fn set_momentum_2(&mut self, momentum_2: f32) {
-//        self.momentum_2 = abs(momentum_2);
-//    }
-//
-//    /// Gets cache of input
-//    ///
-//    /// * _Return_ : Cache of input.
-//    #[inline]
-//    pub fn cache_input(&self) -> &MathVec<N> {&self.cache_input}
-//
-//    /// Gets cache of output value before activating.
-//    ///
-//    /// * _Return_ : Cache of output value before activating.
-//    #[inline]
-//    pub fn cache_middle_value(&self) -> f32 {self.cache_middle_value}
-//
-//
-//    /// Gets cache of output.
-//    ///
-//    /// * _Return_ : Cache of output.
-//    #[inline]
-//    pub fn cache_output(&self) -> f32 {self.cache_output}
-//
-//    /// Calculates input by linear function and activation function.
-//    ///
-//    /// * `input` : Input vector.
-//    /// * _Return_ : Output number.
-//    #[inline]
-//    pub fn calc(&mut self, input: &MathVec<N>) -> f32 {
-//        self.cache_input.copy_from(input);
-//        self.cache_middle_value = &self.weights * input;
-//
-//        self.cache_output = self.activation.activate(self.cache_middle_value);
-//
-//        self.cache_output
-//    }
-//
-//    /// Forgets data of gradients and momenta.
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.total_grad.clear();
-//        self.momentum_1.clear();
-//        self.momentum_2 = 0.0;
-//    }
-//
-//    /// Studies gradients by Backpropagation.
-//    ///
-//    /// It only studies gradients. It doesn't update weights yet.  
-//    /// __Note: Must call [calc](Neuron::calc) before calling this function.__
-//    ///
-//    /// * `feedback` : Gradient of loss function that is propagated back from next layer.
-//    /// * _Return_ : Gradient of loss function that should propagate to previous layer.
-//    ///
-//    /// ```text
-//    ///               feedback                      Return
-//    /// Next_Neuron ------------> This_Neuron    ------------> Previous_Neuron
-//    /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
-//    /// Next_Neuron ---|     |--> Sibling_Neuron ---|     |--> Previous_Neuron
-//    /// Next_Neuron ---/     \--> Sibling_Neuron ---/     \--> Previous_Neuron
-//    /// ```
-//    pub fn study(&mut self, feedback: f32) -> &MathVec<N> {
-//        let factor =
-//            feedback * self.activation.d_activate(self.cache_middle_value);
-//
-//        self.grad_w.w_mut().copy_from(&self.cache_input);
-//        *self.grad_w.w_mut() *= factor;
-//        *self.grad_w.b_mut() = factor;
-//
-//        self.grad_x.copy_from(self.weights.w());
-//        self.grad_x *= factor;
-//
-//        self.total_grad += &self.grad_w;
-//
-//        &self.grad_x
-//    }
-//
-//    /// Updates Weights to use studied gradients.
-//    ///
-//    /// * `rate` : Learning rate.
-//    pub fn update(&mut self, rate: f32) {
-//        self.next_momentum_1();
-//        self.next_momentum_2();
-//
-//        let rate = self.calc_rate(rate);
-//
-//        self.total_grad.copy_from(&self.momentum_1);
-//        self.total_grad *= rate;
-//
-//        self.weights -= &self.total_grad;
-//
-//        self.total_grad.clear();
-//    }
-//
-//    #[inline]
-//    fn next_momentum_1(&mut self) {
-//        const BETA: f32 = 0.9;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        self.momentum_1 *= BETA;
-//
-//        self.total_grad_2.copy_from(&self.total_grad);
-//        self.total_grad_2 *= BETA_INV;
-//
-//        self.momentum_1 += &self.total_grad_2;
-//    }
-//
-//    #[inline]
-//    fn next_momentum_2(&mut self) {
-//        const BETA: f32 = 0.999;
-//        const BETA_INV: f32 = 1.0 - BETA;
-//
-//        self.momentum_2 *= BETA;
-//        self.momentum_2 += (&self.total_grad * &self.total_grad) * BETA_INV;
-//    }
-//
-//    #[inline]
-//    fn calc_rate(&self, rate: f32) -> f32 {
-//        rate / (sqrt(self.momentum_2) + f32::EPSILON)
-//    }
-//}
-//
-///// Layer of AI.
-/////
-///// * `OUT` : Dimension of output
-///// * `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct Layer<const OUT: usize, const IN: usize> {
-//    neurons: Box<[Neuron<IN>]>,
-//
-//    feedback_next: MathVec<IN>,
-//
-//    cache_input: MathVec<IN>,
-//    cache_output: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
-//    /// Creates Layer.
-//    ///
-//    /// * `activation` : Activation function.
-//    /// * _Return_ : Layer.
-//    #[inline]
-//    pub fn new(acitvation: Activation) -> Self {
-//        Self {
-//            neurons:
-//                vec![Neuron::<IN>::new(acitvation); OUT].into_boxed_slice(),
-//
-//            feedback_next: MathVec::<IN>::default(),
-//
-//            cache_input: MathVec::<IN>::default(),
-//            cache_output: MathVec::<OUT>::default()
-//        }
-//    }
-//
-//    /// Gets immutable neurons.
-//    ///
-//    /// _Return_ : Neurons.
-//    #[inline]
-//    pub fn neurons(&self) -> &[Neuron<IN>] {&*self.neurons}
-//
-//    /// Gets mutable neurons.
-//    ///
-//    /// _Return_ : Neurons.
-//    #[inline]
-//    pub fn neurons_mut(&mut self) -> &mut [Neuron<IN>] {&mut *self.neurons}
-//
-//    /// Gets cache of input.
-//    ///
-//    /// * _Return_ : Cache of input.
-//    #[inline]
-//    pub fn cache_input(&self) -> &MathVec<IN> {&self.cache_input}
-//
-//    /// Gets cache of output.
-//    ///
-//    /// * _Return_ : Cache of output.
-//    #[inline]
-//    pub fn cache_output(&self) -> &MathVec<OUT> {&self.cache_output}
-//
-//    /// Calculates input.
-//    ///
-//    /// * `input` : Input vector.
-//    /// * _Return_ : Output vector.
-//    #[inline]
-//    pub fn calc(&mut self, input: &MathVec<IN>) -> &MathVec<OUT> {
-//        self.cache_input.copy_from(input);
-//
-//        for i in 0..OUT {
-//            self.cache_output[i] = self.neurons[i].calc(input);
-//        }
-//
-//        &self.cache_output
-//    }
-//
-//    /// Forgets data of gradients and momenta.
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.neurons.iter_mut().for_each(
-//            |neuron| {neuron.clear_study_data()}
-//        );
-//    }
-//
-//    /// Studies gradients.
-//    ///
-//    /// It only studies gradients. It doesn't update weights yet.  
-//    /// __Note: Must call [calc](Layer::calc) before calling this function.__
-//    ///
-//    /// See [Neuron::study] for details.
-//    ///
-//    /// * `feedback` : Feedback from next layer. See [Neuron::study] for details.
-//    /// * _Return_ : Feedback to previous layer. See [Neuron::study] for details.
-//    #[inline]
-//    pub fn study(&mut self, feedback: &MathVec<OUT>) -> &MathVec<IN> {
-//        self.feedback_next.clear();
-//
-//        for i in 0..OUT {
-//            let feedback_next_2 =
-//                self.neurons[i].study(feedback[i]);
-//
-//            self.feedback_next += feedback_next_2;
-//        }
-//
-//        &self.feedback_next
-//    }
-//
-//    /// Updates Weights to use studied gradients.
-//    ///
-//    /// * `rate` : Learning rate.
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.neurons.iter_mut().for_each(|neuron| neuron.update(rate));
-//    }
-//}
-//
-///// Neural network.
-/////
-///// * `OUT` : Dimension of output.
-///// * `MIDDLE` : Dimension of middle layer.
-///// * `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-//    output_layer: Layer<OUT, MIDDLE>,
-//    middle_layer: Layer<MIDDLE, IN>,
-//
-//    feedback_next: MathVec<IN>,
-//    feedback_2: MathVec<OUT>,
-//
-//    cache_input: MathVec<IN>,
-//    cache_middle_layer_output: MathVec<MIDDLE>,
-//    cache_output: MathVec<OUT>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitAI<OUT, MIDDLE, IN> {
-//    /// Creates ChobitAI.
-//    ///
-//    /// * `activation` : Activation function.
-//    /// * _Return_ : ChobitAI.
-//    #[inline]
-//    pub fn new(activation: Activation) -> Self {
-//        Self {
-//            output_layer: Layer::<OUT, MIDDLE>::new(activation),
-//            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU),
-//
-//            feedback_next: MathVec::<IN>::new(),
-//            feedback_2: MathVec::<OUT>::new(),
-//
-//            cache_input: MathVec::<IN>::new(),
-//            cache_middle_layer_output: MathVec::<MIDDLE>::new(),
-//            cache_output: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    /// Gets immutable output layer
-//    ///
-//    /// * _Return_ : Output layer.
-//    #[inline]
-//    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
-//
-//    /// Gets mutable output layer
-//    ///
-//    /// * _Return_ : Output layer.
-//    #[inline]
-//    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
-//        &mut self.output_layer
-//    }
-//
-//    /// Gets immutable middle layer
-//    ///
-//    /// * _Return_ : Middle layer.
-//    #[inline]
-//    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
-//
-//    /// Gets mutable middle layer
-//    ///
-//    /// * _Return_ : Middle layer.
-//    #[inline]
-//    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
-//        &mut self.middle_layer
-//    }
-//
-//    /// Gets cache of input.
-//    ///
-//    /// * _Return_ : Cache of input.
-//    #[inline]
-//    pub fn cache_input(&self) -> &MathVec<IN> {&self.cache_input}
-//
-//    /// Gets cache of output of middle layer.
-//    ///
-//    /// * _Return_ : Cache of output of middle layer.
-//    #[inline]
-//    pub fn cache_middle_layer_output(&self) -> &MathVec<MIDDLE> {
-//        &self.cache_middle_layer_output
-//    }
-//
-//    /// Gets cache of output.
-//    ///
-//    /// * _Return_ : Cache of output.
-//    #[inline]
-//    pub fn cache_output(&self) -> &MathVec<OUT> {&self.cache_output}
-//
-//    /// Calcurates input.
-//    ///
-//    /// * `input` : Input vector.
-//    /// * _Return_ : Output vector.
-//    #[inline]
-//    pub fn calc(&mut self, input: &MathVec<IN>) -> &MathVec<OUT> {
-//        self.cache_input.copy_from(input);
-//
-//        self.cache_middle_layer_output.copy_from(
-//            &self.middle_layer.calc(input)
-//        );
-//
-//        self.cache_output.copy_from(
-//            self.output_layer.calc(&self.cache_middle_layer_output)
-//        );
-//
-//        &self.cache_output
-//    }
-//
-//    /// Forgets data of gradients and momenta.
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.output_layer.clear_study_data();
-//        self.middle_layer.clear_study_data();
-//    }
-//
-//    /// Studies Gradients by feedback.
-//    ///
-//    /// It only studies gradients. It doesn't update weights yet.  
-//    /// __Note: Must call [calc](ChobitAI::calc) before calling this function.__  
-//    /// See [Neuron::study] for details.
-//    ///
-//    /// * `feedback` : Feedback from next AI.
-//    /// * _Return_ : Feedback for previous AI.
-//    pub fn study_by_feedback(
-//        &mut self,
-//        feedback: &MathVec<OUT>
-//    ) -> &MathVec<IN> {
-//        self.feedback_next.copy_from(
-//            self.middle_layer.study(
-//                self.output_layer.study(feedback)
-//            )
-//        );
-//
-//        &self.feedback_next
-//    }
-//
-//    /// Studies Gradients from train data.
-//    ///
-//    /// It only studies gradients. It doesn't update weights yet.  
-//    /// See [Neuron::study] for details.
-//    ///
-//    /// * `train_out` : Output of training data.
-//    /// * `train_in` : Input of training data.
-//    /// * _Return_ : Feedback for previous AI.
-//    pub fn study(
-//        &mut self,
-//        train_out: &MathVec<OUT>,
-//        train_in: &MathVec<IN>
-//    ) -> &MathVec<IN> {
-//        let _ = self.calc(train_in);
-//
-//        self.feedback_2.copy_from(&self.cache_output);
-//
-//        self.feedback_2 -= train_out;
-//
-//        self.feedback_next.copy_from(
-//            self.middle_layer.study(self.output_layer.study(&self.feedback_2))
-//        );
-//
-//        &self.feedback_next
-//    }
-//
-//    /// Updates Weights to use studied gradients.
-//    ///
-//    /// * `rate` : Learning rate.
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.output_layer.update(rate);
-//        self.middle_layer.update(rate);
-//    }
-//}
-//
