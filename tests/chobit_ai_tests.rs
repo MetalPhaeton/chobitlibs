@@ -722,274 +722,71 @@ fn layer_test_2() {
     }
 }
 
-//fn gen_neuron<const N: usize>(
-//    rng: &mut ChobitRand,
-//) -> Neuron<N> {
-//    let mut ret = Neuron::<N>::new(Activation::SoftSign);
-//
-//    ret.weights_mut().w_mut().iter_mut().for_each(|w| *w = rand_num(rng));
-//    *ret.weights_mut().b_mut() = rand_num(rng);
-//
-//    ret
-//}
-//
-//fn gen_data_set_1<const N: usize>(
-//    rng: &mut ChobitRand,
-//    size: usize
-//) -> Vec<(f32, MathVec<N>)> {
-//    let mut param = MathVec::<N>::new();
-//    param.iter_mut().for_each(|x| *x = rand_num(rng));
-//
-//    let mut ret = Vec::<(f32, MathVec<N>)>::with_capacity(size);
-//
-//    let activation = Activation::SoftSign;
-//
-//    for _ in 0..size {
-//        let mut v = MathVec::<N>::new();
-//        v.iter_mut().for_each(|x| *x = rand_num(rng));
-//
-//        let ans = activation.activate(&param * &v);
-//
-//        ret.push((ans, v))
-//    }
-//
-//    ret
-//}
-//
-//#[test]
-//fn neuron_test() {
-//    const N: usize = 10;
-//    const DATA_SET_SIZE: usize = 200;
-//
-//    let mut rng = ChobitRand::new("neuron_test".as_bytes());
-//
-//    let mut data_set = gen_data_set_1::<N>(&mut rng, DATA_SET_SIZE);
-//
-//    let mut neuron = gen_neuron::<N>(&mut rng);
-//
-//    fn print(data_set: &Vec<(f32, MathVec<N>)>, neuron: &mut Neuron<N>) {
-//        let mut total: f32 = 0.0;
-//
-//        for data in data_set {
-//            let output = neuron.calc(&data.1);
-//
-//            let diff = output - data.0;
-//
-//            total += diff.max(-diff)
-//        }
-//
-//        println!("loss: {}", total / (data_set.len() as f32));
-//        println!("----------");
-//    }
-//
-//    print(&data_set, &mut neuron);
-//
-//    const EPOCH: usize = 3000;
-//    const RATE: f32 = 0.01;
-//
-//    for _ in 0..EPOCH {
-//        rng.shuffle(&mut data_set);
-//
-//        for data in &data_set {
-//            let output = neuron.calc(&data.1);
-//
-//            let diff = output - data.0;
-//
-//            let _ = neuron.study(diff);
-//        }
-//
-//        neuron.update(RATE);
-//    }
-//
-//    print(&data_set, &mut neuron);
-//}
-//
-//fn gen_matrix<const OUT: usize, const IN: usize>(
-//    rng: &mut ChobitRand,
-//) -> Vec<MathVec<IN>> {
-//    let mut ret = Vec::<MathVec<IN>>::with_capacity(OUT);
-//
-//    for _ in 0..OUT {
-//        let mut vec = MathVec::<IN>::new();
-//        vec.iter_mut().for_each(|x| *x = rand_num(rng));
-//
-//        ret.push(vec);
-//    }
-//
-//    ret
-//}
-//
-//fn gen_data_set_2<const OUT: usize, const IN: usize>(
-//    rng: &mut ChobitRand,
-//    size: usize
-//) -> Vec<(MathVec<OUT>, MathVec<IN>)> {
-//    let mut ret = Vec::<(MathVec<OUT>, MathVec<IN>)>::with_capacity(size);
-//
-//    let param = gen_matrix::<OUT, IN>(rng);
-//
-//    let activation = Activation::SoftSign;
-//
-//    for _ in 0..size {
-//        let mut train_in = MathVec::<IN>::new();
-//        train_in.iter_mut().for_each(|x| *x = rand_num(rng));
-//
-//        let mut train_out = MathVec::<OUT>::new();
-//
-//        for i in 0..OUT {
-//            train_out[i] = activation.activate(&param[i] * &train_in);
-//        }
-//
-//        ret.push((train_out, train_in));
-//    }
-//
-//    ret
-//}
-//
-//fn gen_layer<const OUT: usize, const IN: usize>(
-//    rng: &mut ChobitRand
-//) -> Layer<OUT, IN> {
-//    let mut ret = Layer::new(Activation::SoftSign);
-//
-//    ret.neurons_mut().iter_mut().for_each(
-//        |neuron| {
-//            neuron.weights_mut().w_mut().iter_mut().for_each(
-//                |x| *x = rand_num(rng)
-//            );
-//
-//            *neuron.weights_mut().b_mut() = rand_num(rng);
-//        }
-//    );
-//
-//    ret
-//}
-//
-//#[test]
-//fn layer_test() {
-//    const OUT: usize = 15;
-//    const IN: usize = 10;
-//    const DATA_SET_SIZE: usize = 50;
-//
-//    let mut rng = ChobitRand::new("layer_test".as_bytes());
-//
-//    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
-//
-//    let mut layer = gen_layer::<OUT, IN>(&mut rng);
-//
-//    fn print(
-//        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
-//        layer: &mut Layer<OUT, IN>
-//    ) {
-//        let mut total: f32 = 0.0;
-//        let mut output = MathVec::<OUT>::new();
-//
-//        for data in data_set {
-//            output.copy_from(layer.calc(&data.1));
-//
-//            output -= &data.0;
-//            output.iter().for_each(|x| total += (*x).max(-(*x)));
-//        }
-//
-//        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
-//        println!("----------");
-//    }
-//
-//    print(&data_set, &mut layer);
-//
-//    const EPOCH: usize = 5000;
-//    const RATE: f32 = 0.01;
-//
-//    let mut output = MathVec::<OUT>::new();
-//    for _ in 0..EPOCH {
-//        rng.shuffle(&mut data_set);
-//
-//        for data in &data_set {
-//            output.copy_from(layer.calc(&data.1));
-//
-//            output -= &data.0;
-//
-//            let _ = layer.study(&output);
-//        }
-//
-//        layer.update(RATE);
-//    }
-//
-//    print(&data_set, &mut layer);
-//}
-//
-//fn gen_ai<const OUT: usize, const MIDDLE: usize, const IN: usize>(
-//    rng: &mut ChobitRand
-//) -> ChobitAI<OUT, MIDDLE, IN> {
-//    let mut ret = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-//
-//    {
-//        ret.output_layer_mut().neurons_mut().iter_mut().for_each(
-//            |neuron| {
-//                let weights = neuron.weights_mut();
-//                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
-//                *weights.b_mut() = rand_num(rng);
-//            }
-//        );
-//    }
-//
-//    {
-//        ret.middle_layer_mut().neurons_mut().iter_mut().for_each(
-//            |neuron| {
-//                let weights = neuron.weights_mut();
-//                weights.w_mut().iter_mut().for_each(|x| *x = rand_num(rng));
-//                *weights.b_mut() = rand_num(rng);
-//            }
-//        );
-//    }
-//
-//    ret
-//}
-//
-//#[test]
-//fn ai_test() {
-//    const OUT: usize = 15;
-//    const MIDDLE: usize = 20;
-//    const IN: usize = 10;
-//    const DATA_SET_SIZE: usize = 50;
-//
-//    let mut rng = ChobitRand::new("ai_test".as_bytes());
-//
-//    let mut data_set = gen_data_set_2::<OUT, IN>(&mut rng, DATA_SET_SIZE);
-//
-//    let mut ai = gen_ai::<OUT, MIDDLE, IN>(&mut rng);
-//
-//    fn print(
-//        data_set: &Vec<(MathVec<OUT>, MathVec<IN>)>,
-//        ai: &mut ChobitAI<OUT, MIDDLE, IN>
-//    ) {
-//        let mut total: f32 = 0.0;
-//        let mut output = MathVec::<OUT>::new();
-//
-//        for data in data_set {
-//            output.copy_from(ai.calc(&data.1));
-//
-//            output -= &data.0;
-//            output.iter().for_each(|x| total += (*x).max(-(*x)));
-//        }
-//
-//        println!("loss: {}", total / ((data_set.len() * OUT) as f32));
-//        println!("----------");
-//    }
-//
-//    print(&data_set, &mut ai);
-//
-//    const EPOCH: usize = 2500;
-//    const RATE: f32 = 0.02;
-//
-//    for _ in 0..EPOCH {
-//        rng.shuffle(&mut data_set);
-//
-//        for data in &data_set {
-//            let _ = ai.study(&data.0, &data.1);
-//        }
-//
-//        ai.update(RATE);
-//    }
-//
-//    print(&data_set, &mut ai);
-//}
-//
+#[test]
+fn chobit_ai_test() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 128;
+    const IN: usize = 32;
+
+    const COUNT: usize = 100;
+
+    let mut rng = ChobitRand::new("chobit_ai_test".as_bytes());
+
+    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut input = MathVec::<IN>::new();
+    let mut middle_value = MathVec::<MIDDLE>::new();
+    let mut output = MathVec::<OUT>::new();
+
+    ai.middle_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    ai.output_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    // before machine learning.
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u32;
+
+        input.load_u32_label(label_in);
+        ai.calc(&input, &mut middle_value, &mut output);
+
+        let label_out = output.to_u32_label();
+
+        assert_ne!(label_out, label_in);
+    }
+
+    // machine learning.
+    const EPOCH: usize = 1000;
+    const BATCH_SIZE: usize = 100;
+    const RATE: f32 = 0.01;
+
+    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            let label = rng.next_u64() as u32;
+            input.load_u32_label(label);
+            output.load_u32_label(label);
+
+            ai.study(&input, &output);
+        }
+
+        ai.update(RATE);
+    }
+
+    let ai = ai.drop();
+
+    // after machine learning.
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u32;
+
+        input.load_u32_label(label_in);
+        ai.calc(&input, &mut middle_value, &mut output);
+
+        let label_out = output.to_u32_label();
+
+        assert_eq!(label_out, label_in);
+    }
+}

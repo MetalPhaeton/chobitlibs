@@ -1275,3 +1275,127 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     }
 }
 
+pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: Layer<MIDDLE, IN>,
+    output_layer: Layer<OUT, MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitAI<OUT, MIDDLE, IN> {
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU),
+            output_layer: Layer::<OUT, MIDDLE>::new(activation)
+        }
+    }
+
+    #[inline]
+    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
+
+    #[inline]
+    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
+        &mut self.middle_layer
+    }
+
+    #[inline]
+    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
+
+    #[inline]
+    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
+        &mut self.output_layer
+    }
+
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        middle_value: &mut MathVec<MIDDLE>,
+        output: &mut MathVec<OUT>
+    ) {
+        self.middle_layer.calc(input, None, middle_value);
+        self.output_layer.calc(middle_value, None, output);
+    }
+}
+
+
+pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: MLLayer<MIDDLE, IN>,
+    output_layer: MLLayer<OUT, MIDDLE>,
+
+    middle_cache: MLCache<MIDDLE, IN>,
+    output_cache: MLCache<OUT, MIDDLE>,
+
+    input_feedback: MathVec<IN>,
+    middle_feedback: MathVec<MIDDLE>,
+    output_feedback: MathVec<OUT>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitMLAI<OUT, MIDDLE, IN> {
+    pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
+        let ChobitAI {middle_layer, output_layer} = ai;
+
+        Self {
+            middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
+            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+
+            middle_cache: MLCache::<MIDDLE, IN>::new(),
+            output_cache: MLCache::<OUT, MIDDLE>::new(),
+
+            input_feedback: MathVec::<IN>::new(),
+            middle_feedback: MathVec::<MIDDLE>::new(),
+            output_feedback: MathVec::<OUT>::new(),
+        }
+    }
+
+    pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
+        let Self {middle_layer, output_layer, ..} = self;
+
+        ChobitAI::<OUT, MIDDLE, IN> {
+            middle_layer: middle_layer.drop(),
+            output_layer: output_layer.drop()
+        }
+    }
+
+    pub fn study(&mut self, train_in: &MathVec<IN>, train_out: &MathVec<OUT>) {
+        self.middle_layer.ready(train_in, None, &mut self.middle_cache);
+
+        self.output_layer.ready(
+            &self.middle_cache.output,
+            None,
+            &mut self.output_cache
+        );
+
+        self.output_cache.calc_feedback(
+            train_out,
+            &mut self.output_feedback
+        );
+
+        self.output_layer.study(
+            &self.output_feedback,
+            &self.output_cache,
+            &mut self.middle_feedback,
+            None
+        );
+
+        self.middle_layer.study(
+            &self.middle_feedback,
+            &self.middle_cache,
+            &mut self.input_feedback,
+            None
+        );
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.middle_layer.update(rate);
+        self.output_layer.update(rate);
+    }
+}
