@@ -611,20 +611,20 @@ fn layer_test_1() {
 
     let mut ml_layer = MLLayer::new(layer_2);
     let mut cache = MLCache::new();
-    let mut feedback = MathVec::<OUT>::new();
-    let mut next_feedback_for_input = MathVec::<IN>::new();
-    let mut next_feedback_for_state = MathVec::<OUT>::new();
+    let mut error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+    let mut state_error = MathVec::<OUT>::new();
 
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
             ml_layer.ready(&input, Some(&state), &mut cache);
-            cache.calc_feedback(&output_1, &mut feedback);
+            cache.calc_error(&output_1, &mut error);
 
             ml_layer.study(
-                &feedback,
+                &error,
                 &cache,
-                &mut next_feedback_for_input,
-                Some(&mut next_feedback_for_state)
+                &mut input_error,
+                Some(&mut state_error)
             );
         }
 
@@ -690,20 +690,15 @@ fn layer_test_2() {
 
     let mut ml_layer = MLLayer::new(layer_2);
     let mut cache = MLCache::new();
-    let mut feedback = MathVec::<OUT>::new();
-    let mut next_feedback_for_input = MathVec::<IN>::new();
+    let mut error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
 
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
             ml_layer.ready(&input, None, &mut cache);
-            cache.calc_feedback(&output_1, &mut feedback);
+            cache.calc_error(&output_1, &mut error);
 
-            ml_layer.study(
-                &feedback,
-                &cache,
-                &mut next_feedback_for_input,
-                None
-            );
+            ml_layer.study(&error, &cache, &mut input_error, None);
         }
 
         ml_layer.update(RATE);
@@ -723,19 +718,78 @@ fn layer_test_2() {
 }
 
 #[test]
-fn chobit_ai_test() {
+fn chobit_ai_test_1() {
+    const OUT: usize = 8;
+    const MIDDLE: usize = 32;
+    const IN: usize = 16;
+
+    const COUNT: usize = 100;
+
+    let mut rng = ChobitRand::new("chobit_ai_test_1".as_bytes());
+
+    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut input = MathVec::<IN>::new();
+    let mut output = MathVec::<OUT>::new();
+    let mut working_buffer = MathVec::<MIDDLE>::new();
+
+    ai.middle_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    ai.output_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u16;
+
+        input.load_u16_label(label_in);
+        ai.calc(&input, &mut output, &mut working_buffer);
+    }
+
+    const EPOCH: usize = 10;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.01;
+
+    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            let label = rng.next_u64() as u32;
+            input.load_u16_label(label as u16);
+            output.load_u8_label(label as u8);
+
+            ai.study(&input, &output);
+        }
+
+        ai.update(RATE);
+    }
+
+    let ai = ai.drop();
+
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u16;
+
+        input.load_u16_label(label_in);
+        ai.calc(&input, &mut output, &mut working_buffer);
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[test]
+fn chobit_ai_test_2() {
     const OUT: usize = 32;
     const MIDDLE: usize = 128;
     const IN: usize = 32;
 
     const COUNT: usize = 100;
 
-    let mut rng = ChobitRand::new("chobit_ai_test".as_bytes());
+    let mut rng = ChobitRand::new("chobit_ai_test_2".as_bytes());
 
     let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     let mut input = MathVec::<IN>::new();
-    let mut middle_value = MathVec::<MIDDLE>::new();
     let mut output = MathVec::<OUT>::new();
+    let mut working_buffer = MathVec::<MIDDLE>::new();
 
     ai.middle_layer_mut().mut_weights().iter_mut().for_each(|val| {
         *val = rand_num(&mut rng);
@@ -750,7 +804,7 @@ fn chobit_ai_test() {
         let label_in = rng.next_u64() as u32;
 
         input.load_u32_label(label_in);
-        ai.calc(&input, &mut middle_value, &mut output);
+        ai.calc(&input, &mut output, &mut working_buffer);
 
         let label_out = output.to_u32_label();
 
@@ -758,7 +812,7 @@ fn chobit_ai_test() {
     }
 
     // machine learning.
-    const EPOCH: usize = 1000;
+    const EPOCH: usize = 2000;
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
@@ -783,10 +837,402 @@ fn chobit_ai_test() {
         let label_in = rng.next_u64() as u32;
 
         input.load_u32_label(label_in);
-        ai.calc(&input, &mut middle_value, &mut output);
+        ai.calc(&input, &mut output, &mut working_buffer);
 
         let label_out = output.to_u32_label();
 
         assert_eq!(label_out, label_in);
     }
 }
+
+//fn letter_data(
+//    rng: &mut ChobitRand,
+//    letters: &[char],
+//    data: &mut Vec<MathVec<32>>
+//) {
+//    static DUMMY: [char; 10] = [
+//        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+//    ];
+//
+//    let half_size: usize = ((rng.next_u64() % 10) + 1) as usize;
+//
+//    data.resize(half_size * 2, MathVec::<32>::new());
+//
+//    data[..half_size].iter_mut().for_each(|vec| {
+//        let letter = letters[(rng.next_u64() as usize) % letters.len()];
+//        let label = letter as u32;
+//        vec.load_u32_label(label);
+//    });
+//
+//    data[half_size..].iter_mut().for_each(|vec| {
+//        let letter = DUMMY[(rng.next_u64() as usize) % DUMMY.len()];
+//        let label = letter as u32;
+//        vec.load_u32_label(label);
+//    });
+//
+//    rng.shuffle(data);
+//}
+//
+//const JAPANESE: f32 = 1.0;
+//fn japanese_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
+//    let letters: [char; 10] = [
+//        'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
+//    ];
+//
+//    letter_data(rng, &letters, data);
+//}
+//
+//const ENGLISH: f32 = -1.0;
+//fn english_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
+//    let letters: [char; 10] = [
+//        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'
+//    ];
+//
+//    letter_data(rng, &letters, data);
+//}
+//
+//fn data_to_string(data: &Vec<MathVec<32>>) -> String {
+//    let mut ret = String::new();
+//
+//    data.iter().for_each(|vec| {
+//        let label = vec.to_u32_label();
+//        ret.push(char::from_u32(label).unwrap());
+//    });
+//
+//    ret
+//}
+//
+//fn gen_lstm<const OUT: usize, const IN: usize>(
+//    rng: &mut ChobitRand
+//) -> LSTM<OUT, IN> {
+//    let mut ret = LSTM::<OUT, IN>::new();
+//
+//    ret.f_gate_mut().mut_weights().iter_mut().for_each(|val| {
+//        *val = rand_num(rng);
+//    });
+//
+//    ret.i_gate_mut().mut_weights().iter_mut().for_each(|val| {
+//        *val = rand_num(rng);
+//    });
+//
+//    ret.o_gate_mut().mut_weights().iter_mut().for_each(|val| {
+//        *val = rand_num(rng);
+//    });
+//
+//    ret.c_gate_mut().mut_weights().iter_mut().for_each(|val| {
+//        *val = rand_num(rng);
+//    });
+//
+//    ret
+//}
+//
+//#[test]
+//fn lstm_test_1() {
+//    const OUT: usize = 1;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("lstm_test_1".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//    let mut japanese = MathVec::<OUT>::new();
+//    japanese[0] = JAPANESE;
+//    let mut english = MathVec::<OUT>::new();
+//    english[0] = ENGLISH;
+//
+//    let mut caches = vec![MLLSTMCache::<OUT, IN>::new(); 30];
+//    let mut prev_output = MathVec::<OUT>::new();
+//    let mut prev_cell = MathVec::<OUT>::new();
+//    let mut output = MathVec::<OUT>::new();
+//    let mut cell = MathVec::<OUT>::new();
+//    let mut working_buffer_1 = MathVec::<OUT>::new();
+//    let mut working_buffer_2 = MathVec::<OUT>::new();
+//
+//    const COUNT: usize = 10;
+//
+//    let lstm = gen_lstm(&mut rng);
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        prev_output.clear();
+//        prev_cell.clear();
+//
+//        for i in 0..data.len() {
+//            lstm.calc(
+//                &data[i],
+//                &prev_output,
+//                &prev_cell,
+//                &mut output,
+//                &mut cell,
+//                &mut working_buffer_1,
+//                &mut working_buffer_2
+//            );
+//
+//            prev_output.copy_from(&output);
+//            prev_cell.copy_from(&cell);
+//        }
+//    }
+//
+//    const EPOCH: usize = 10;
+//    const BATCH_SIZE: usize = 10;
+//    const RATE: f32 = 0.01;
+//
+//    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
+//
+//    let mut feedback = MathVec::<OUT>::new();
+//    let mut next_feedback_for_input = MathVec::<IN>::new();
+//    let mut next_feedback_for_prev_output = MathVec::<OUT>::new();
+//    let mut next_feedback_for_prev_cell = MathVec::<OUT>::new();
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//            prev_output.clear();
+//            prev_cell.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready(&data[i], &prev_output, &prev_cell, &mut caches[i]);
+//                prev_output.copy_from(&caches[i].output());
+//                prev_cell.copy_from(&caches[i].cell());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            caches[tail].calc_feedback(&japanese, &mut feedback);
+//            for i in 0..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study(
+//                    &feedback,
+//                    &caches[i],
+//                    &mut next_feedback_for_input,
+//                    &mut next_feedback_for_prev_output,
+//                    &mut next_feedback_for_prev_cell,
+//                );
+//
+//                feedback.copy_from(&next_feedback_for_prev_output);
+//            }
+//
+//            english_data(&mut rng, &mut data);
+//            prev_output.clear();
+//            prev_cell.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready(&data[i], &prev_output, &prev_cell, &mut caches[i]);
+//                prev_output.copy_from(&caches[i].output());
+//                prev_cell.copy_from(&caches[i].cell());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            caches[tail].calc_feedback(&english, &mut feedback);
+//            for i in 0..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study(
+//                    &feedback,
+//                    &caches[i],
+//                    &mut next_feedback_for_input,
+//                    &mut next_feedback_for_prev_output,
+//                    &mut next_feedback_for_prev_cell,
+//                );
+//
+//                feedback.copy_from(&next_feedback_for_prev_output);
+//            }
+//        }
+//
+//        lstm.update(RATE);
+//    }
+//}
+//
+//#[cfg(not(debug_assertions))]
+//#[test]
+//fn lstm_test_2() {
+//    const OUT: usize = 1;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("lstm_test_2".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//    let mut japanese = MathVec::<OUT>::new();
+//    japanese[0] = JAPANESE;
+//    let mut english = MathVec::<OUT>::new();
+//    english[0] = ENGLISH;
+//
+//    let mut caches = vec![MLLSTMCache::<OUT, IN>::new(); 30];
+//    let mut prev_output = MathVec::<OUT>::new();
+//    let mut prev_cell = MathVec::<OUT>::new();
+//    let mut output = MathVec::<OUT>::new();
+//    let mut cell = MathVec::<OUT>::new();
+//    let mut working_buffer_1 = MathVec::<OUT>::new();
+//    let mut working_buffer_2 = MathVec::<OUT>::new();
+//
+//    const COUNT: usize = 10;
+//
+//    let lstm = gen_lstm(&mut rng);
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        prev_output.clear();
+//        prev_cell.clear();
+//
+//        for i in 0..data.len() {
+//            lstm.calc(
+//                &data[i],
+//                &prev_output,
+//                &prev_cell,
+//                &mut output,
+//                &mut cell,
+//                &mut working_buffer_1,
+//                &mut working_buffer_2
+//            );
+//
+//            prev_output.copy_from(&output);
+//            prev_cell.copy_from(&cell);
+//        }
+//
+//        println!("{} : {}", data_to_string(&data), output[0]);
+//    }
+//
+//    for _ in 0..COUNT {
+//        english_data(&mut rng, &mut data);
+//        prev_output.clear();
+//        prev_cell.clear();
+//
+//        for i in 0..data.len() {
+//            lstm.calc(
+//                &data[i],
+//                &prev_output,
+//                &prev_cell,
+//                &mut output,
+//                &mut cell,
+//                &mut working_buffer_1,
+//                &mut working_buffer_2
+//            );
+//
+//            prev_output.copy_from(&output);
+//            prev_cell.copy_from(&cell);
+//        }
+//
+//        println!("{} : {}", data_to_string(&data), output[0]);
+//    }
+//
+//    const EPOCH: usize = 5000;
+//    const BATCH_SIZE: usize = 100;
+//    const RATE: f32 = 0.01;
+//
+//    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
+//
+//    let mut feedback = MathVec::<OUT>::new();
+//    let mut next_feedback_for_input = MathVec::<IN>::new();
+//    let mut next_feedback_for_prev_output = MathVec::<OUT>::new();
+//    let mut next_feedback_for_prev_cell = MathVec::<OUT>::new();
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//            prev_output.clear();
+//            prev_cell.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready(&data[i], &prev_output, &prev_cell, &mut caches[i]);
+//                prev_output.copy_from(&caches[i].output());
+//                prev_cell.copy_from(&caches[i].cell());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            caches[tail].calc_feedback(&japanese, &mut feedback);
+//            for i in 0..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study(
+//                    &feedback,
+//                    &caches[i],
+//                    &mut next_feedback_for_input,
+//                    &mut next_feedback_for_prev_output,
+//                    &mut next_feedback_for_prev_cell,
+//                );
+//
+//                feedback.copy_from(&next_feedback_for_prev_output);
+//            }
+//
+//            english_data(&mut rng, &mut data);
+//            prev_output.clear();
+//            prev_cell.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready(&data[i], &prev_output, &prev_cell, &mut caches[i]);
+//                prev_output.copy_from(&caches[i].output());
+//                prev_cell.copy_from(&caches[i].cell());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            caches[tail].calc_feedback(&english, &mut feedback);
+//            for i in 0..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study(
+//                    &feedback,
+//                    &caches[i],
+//                    &mut next_feedback_for_input,
+//                    &mut next_feedback_for_prev_output,
+//                    &mut next_feedback_for_prev_cell,
+//                );
+//
+//                feedback.copy_from(&next_feedback_for_prev_output);
+//            }
+//        }
+//
+//        lstm.update(RATE);
+//    }
+//
+//    println!("----------");
+//
+//    let lstm = lstm.drop();
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        prev_output.clear();
+//        prev_cell.clear();
+//
+//        for i in 0..data.len() {
+//            lstm.calc(
+//                &data[i],
+//                &prev_output,
+//                &prev_cell,
+//                &mut output,
+//                &mut cell,
+//                &mut working_buffer_1,
+//                &mut working_buffer_2
+//            );
+//
+//            prev_output.copy_from(&output);
+//            prev_cell.copy_from(&cell);
+//        }
+//
+//        println!("{} : {}", data_to_string(&data), output[0]);
+//    }
+//
+//    for _ in 0..COUNT {
+//        english_data(&mut rng, &mut data);
+//        prev_output.clear();
+//        prev_cell.clear();
+//
+//        for i in 0..data.len() {
+//            lstm.calc(
+//                &data[i],
+//                &prev_output,
+//                &prev_cell,
+//                &mut output,
+//                &mut cell,
+//                &mut working_buffer_1,
+//                &mut working_buffer_2
+//            );
+//
+//            prev_output.copy_from(&output);
+//            prev_cell.copy_from(&cell);
+//        }
+//
+//        println!("{} : {}", data_to_string(&data), output[0]);
+//    }
+//}
+//

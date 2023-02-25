@@ -669,7 +669,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
 
     pub fn grad_with_input(
         &self,
-        feedback: &MathVec<OUT>,
+        coefficient: &MathVec<OUT>,
         grad: &mut MathVec<IN>
     ) {
         grad.clear();
@@ -680,7 +680,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
             for j in 0..IN {
                 unsafe {
                     *grad.get_unchecked_mut(j) +=
-                        *feedback.get_unchecked(i)
+                        *coefficient.get_unchecked(i)
                         * *weights.get_unchecked(j);
                 }
             }
@@ -689,7 +689,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
 
     pub fn grad_with_state(
         &self,
-        feedback: &MathVec<OUT>,
+        coefficient: &MathVec<OUT>,
         grad: &mut MathVec<OUT>
     ) {
         grad.clear();
@@ -700,7 +700,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
             for j in 0..OUT {
                 unsafe {
                     *grad.get_unchecked_mut(j) +=
-                        *feedback.get_unchecked(i)
+                        *coefficient.get_unchecked(i)
                         * *weights.get_unchecked(j);
                 }
             }
@@ -708,29 +708,29 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     }
 
     pub fn grad_with_weights(
-        feedback: &MathVec<OUT>,
+        coefficient: &MathVec<OUT>,
         input: &MathVec<IN>,
         state: Option<&MathVec<OUT>>,
         grad: &mut Self
     ) {
         grad.clear();
 
-        Self::grad_with_weights_b(feedback, grad);
-        Self::grad_with_weights_i(feedback, input, grad);
+        Self::grad_with_weights_b(coefficient, grad);
+        Self::grad_with_weights_i(coefficient, input, grad);
 
         if let Some(state) = state {
-            Self::grad_with_weights_s(feedback, state, grad);
+            Self::grad_with_weights_s(coefficient, state, grad);
         }
     }
 
     #[inline]
-    fn grad_with_weights_b(feedback: &MathVec<OUT>, grad: &mut Self) {
-        unsafe {feedback.as_ptr().copy_to(grad.mut_ptr_b, OUT)}
+    fn grad_with_weights_b(coefficient: &MathVec<OUT>, grad: &mut Self) {
+        unsafe {coefficient.as_ptr().copy_to(grad.mut_ptr_b, OUT)}
     }
 
     #[inline]
     fn grad_with_weights_i(
-        feedback: &MathVec<OUT>,
+        coefficient: &MathVec<OUT>,
         input: &MathVec<IN>,
         grad: &mut Self
     ) {
@@ -740,7 +740,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
             for j in 0..IN {
                 unsafe {
                     *grad_slice.get_unchecked_mut(j) +=
-                        *feedback.get_unchecked(i)
+                        *coefficient.get_unchecked(i)
                         * *input.get_unchecked(j);
                 }
             }
@@ -749,7 +749,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
 
     #[inline]
     fn grad_with_weights_s(
-        feedback: &MathVec<OUT>,
+        coefficient: &MathVec<OUT>,
         state: &MathVec<OUT>,
         grad: &mut Self
     ) {
@@ -759,7 +759,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
             for j in 0..OUT {
                 unsafe {
                     *grad_slice.get_unchecked_mut(j) +=
-                        *feedback.get_unchecked(i)
+                        *coefficient.get_unchecked(i)
                         * *state.get_unchecked(j);
                 }
             }
@@ -993,13 +993,13 @@ impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
     }
 
     #[inline]
-    pub fn calc_feedback(
+    pub fn calc_error(
         &self,
         train_out: &MathVec<OUT>,
-        feedback: &mut MathVec<OUT>
+        error: &mut MathVec<OUT>
     ) {
-        feedback.copy_from(&self.output);
-        *feedback -= train_out;
+        error.copy_from(&self.output);
+        *error -= train_out;
     }
 
     #[inline]
@@ -1017,6 +1017,7 @@ impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
     pub fn output(&self) -> &MathVec<OUT> {&self.output}
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct MLLayer<const OUT: usize, const IN: usize> {
     layer: Layer<OUT, IN>,
 
@@ -1024,7 +1025,7 @@ pub struct MLLayer<const OUT: usize, const IN: usize> {
     momentum_1: Weights<OUT, IN>,
     momentum_2: MathVec<OUT>,
 
-    tmp_feedback: MathVec<OUT>,
+    tmp_error: MathVec<OUT>,
     tmp_grad: Weights<OUT, IN>
 }
 
@@ -1042,7 +1043,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
             momentum_1: Weights::<OUT, IN>::default(),
             momentum_2: MathVec::<OUT>::default(),
 
-            tmp_feedback: MathVec::<OUT>::default(),
+            tmp_error: MathVec::<OUT>::default(),
             tmp_grad: Weights::<OUT, IN>::default()
         }
     }
@@ -1067,6 +1068,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         cache: &mut MLCache<OUT, IN>
     ) {
         cache.input.copy_from(input);
+
         match state {
             Some(state) => {
                 cache.state.copy_from(state);
@@ -1080,10 +1082,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
         self.layer.weights.calc(input, state, &mut cache.middle_value);
 
-        debug_assert_eq!(cache.output.len(), OUT);
-        debug_assert_eq!(cache.middle_value.len(), OUT);
-
         for i in 0..OUT {
+            debug_assert!(cache.output.get(i).is_some());
+            debug_assert!(cache.middle_value.get(i).is_some());
+
             unsafe {
                 *cache.output.get_unchecked_mut(i) =
                     self.layer.activation.activate(
@@ -1095,16 +1097,16 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
     pub fn study(
         &mut self,
-        feedback: &MathVec<OUT>,
+        error: &MathVec<OUT>,
         cache: &MLCache<OUT, IN>,
-        next_feedback_for_input: &mut MathVec<IN>,
-        next_feedback_for_state: Option<&mut MathVec<OUT>>
+        input_error: &mut MathVec<IN>,
+        state_error: Option<&mut MathVec<OUT>>
     ) {
-        self.calc_tmp_feedback(feedback, cache);
+        self.calc_tmp_error(error, cache);
 
         // add self.total_grad ----------
         Weights::grad_with_weights(
-            &self.tmp_feedback,
+            &self.tmp_error,
             &cache.input,
             cache.has_state.then(|| &cache.state),
             &mut self.tmp_grad
@@ -1117,36 +1119,33 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
             }
         }
 
-        // calc feedbacks ----------
-        self.layer.weights.grad_with_input(
-            &self.tmp_feedback,
-            next_feedback_for_input
-        );
+        // calc errors ----------
+        self.layer.weights.grad_with_input(&self.tmp_error, input_error);
 
-        if let Some(next_feedback_for_state) = next_feedback_for_state {
+        if let Some(state_error) = state_error {
             if cache.has_state {
                 self.layer.weights.grad_with_state(
-                    &self.tmp_feedback,
-                    next_feedback_for_state
+                    &self.tmp_error,
+                    state_error
                 );
             }
         }
     }
 
     #[inline]
-    fn calc_tmp_feedback(
+    fn calc_tmp_error(
         &mut self,
-        feedback: &MathVec<OUT>,
+        error: &MathVec<OUT>,
         cache: &MLCache<OUT, IN>
     ) {
-        debug_assert_eq!(feedback.len(), OUT);
-        debug_assert_eq!(self.tmp_feedback.len(), OUT);
-        debug_assert_eq!(cache.middle_value.len(), OUT);
-
         for i in 0..OUT {
+            debug_assert!(self.tmp_error.get(i).is_some());
+            debug_assert!(error.get(i).is_some());
+            debug_assert!(cache.middle_value.get(i).is_some());
+
             unsafe {
-                *self.tmp_feedback.get_unchecked_mut(i) =
-                    *feedback.get_unchecked(i)
+                *self.tmp_error.get_unchecked_mut(i) =
+                    *error.get_unchecked(i)
                     * self.layer.activation.d_activate(
                         *cache.middle_value.get_unchecked(i)
                     )
@@ -1161,33 +1160,41 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         self.total_grad.copy_from(&self.momentum_1);
 
         // calc delta weights.
-        debug_assert_eq!(self.momentum_2.len(), OUT);
-        debug_assert_eq!(self.total_grad.input_weights().len(), OUT);
-        debug_assert_eq!(self.total_grad.state_weights().len(), OUT);
-        debug_assert_eq!(self.total_grad.bias().len(), OUT);
         for i in 0..OUT {
+            debug_assert!(self.momentum_2.get(i).is_some());
+            debug_assert!(self.total_grad.input_weights().get(i).is_some());
+            debug_assert!(self.total_grad.state_weights().get(i).is_some());
+            debug_assert!(self.total_grad.bias().get(i).is_some());
+
             unsafe {
                 let rate_2 = rate
                     / (sqrt(*self.momentum_2.get_unchecked(i)) + f32::EPSILON);
 
                 *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate_2;
 
-                debug_assert_eq!(
-                    self.total_grad.input_weights().get_unchecked(i).len(),
-                    IN
-                );
                 for j in 0..IN {
+                    debug_assert!(
+                        self.total_grad
+                            .input_weights()
+                            .get_unchecked(i)
+                            .get(j)
+                            .is_some()
+                    );
+
                     *self.total_grad
                         .input_weights_mut()
                         .get_unchecked_mut(i)
                         .get_unchecked_mut(j) *= rate_2;
                 }
 
-                debug_assert_eq!(
-                    self.total_grad.state_weights().get_unchecked(i).len(),
-                    OUT
-                );
                 for j in 0..OUT {
+                    debug_assert!(
+                        self.total_grad
+                            .state_weights()
+                            .get_unchecked(i)
+                            .get(j)
+                            .is_some()
+                    );
                     *self.total_grad
                         .state_weights_mut()
                         .get_unchecked_mut(i)
@@ -1197,8 +1204,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         }
 
         // updates weights.
-        debug_assert_eq!(self.layer.weights.len(), self.total_grad.len());
         for i in 0..self.layer.weights.len() {
+            debug_assert!(self.layer.weights.get(i).is_some());
+            debug_assert!(self.total_grad.get(i).is_some());
+
             unsafe {
                 *self.layer.weights.get_unchecked_mut(i) -=
                     *self.total_grad.get_unchecked(i);
@@ -1213,8 +1222,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         const BETA: f32 = 0.9;
         const BETA_INV: f32 = 1.0 - BETA;
 
-        debug_assert_eq!(self.momentum_1.len(), self.total_grad.len());
         for i in 0..self.momentum_1.len() {
+            debug_assert!(self.momentum_1.get(i).is_some());
+            debug_assert!(self.total_grad.get(i).is_some());
+
             unsafe {
                 *self.momentum_1.get_unchecked_mut(i) =
                     (BETA * *self.momentum_1.get_unchecked(i))
@@ -1228,23 +1239,27 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         const BETA: f32 = 0.999;
         const BETA_INV: f32 = 1.0 - BETA;
 
-        debug_assert_eq!(self.momentum_2.len(), OUT);
-        debug_assert_eq!(self.total_grad.input_weights().len(), OUT);
-        debug_assert_eq!(self.total_grad.state_weights().len(), OUT);
-        debug_assert_eq!(self.total_grad.bias().len(), OUT);
-
         for i in 0..OUT {
+            debug_assert!(self.momentum_2.get(i).is_some());
+            debug_assert!(self.total_grad.input_weights().get(i).is_some());
+            debug_assert!(self.total_grad.state_weights().get(i).is_some());
+            debug_assert!(self.total_grad.bias().get(i).is_some());
+
             let mut dot_product: f32 = 0.0;
 
             unsafe {
                 let bias = *self.total_grad.bias().get_unchecked(i);
                 dot_product += bias * bias;
 
-                debug_assert_eq!(
-                    self.total_grad.input_weights().get_unchecked(i).len(),
-                    IN
-                );
                 for j in 0..IN {
+                    debug_assert!(
+                        self.total_grad
+                            .input_weights()
+                            .get_unchecked(i)
+                            .get(j)
+                            .is_some()
+                    );
+
                     let val = *self.total_grad
                         .input_weights()
                         .get_unchecked(i)
@@ -1253,11 +1268,15 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
                     dot_product += val * val;
                 }
 
-                debug_assert_eq!(
-                    self.total_grad.state_weights().get_unchecked(i).len(),
-                    OUT
-                );
                 for j in 0..OUT {
+                    debug_assert!(
+                        self.total_grad
+                            .state_weights()
+                            .get_unchecked(i)
+                            .get(j)
+                            .is_some()
+                    );
+
                     let val = *self.total_grad
                         .state_weights()
                         .get_unchecked(i)
@@ -1275,6 +1294,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: Layer<MIDDLE, IN>,
     output_layer: Layer<OUT, MIDDLE>
@@ -1313,15 +1333,15 @@ impl<
     pub fn calc(
         &self,
         input: &MathVec<IN>,
-        middle_value: &mut MathVec<MIDDLE>,
-        output: &mut MathVec<OUT>
+        output: &mut MathVec<OUT>,
+        working_buffer: &mut MathVec<MIDDLE>
     ) {
-        self.middle_layer.calc(input, None, middle_value);
-        self.output_layer.calc(middle_value, None, output);
+        self.middle_layer.calc(input, None, working_buffer);
+        self.output_layer.calc(working_buffer, None, output);
     }
 }
 
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: MLLayer<MIDDLE, IN>,
     output_layer: MLLayer<OUT, MIDDLE>,
@@ -1329,9 +1349,9 @@ pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_cache: MLCache<MIDDLE, IN>,
     output_cache: MLCache<OUT, MIDDLE>,
 
-    input_feedback: MathVec<IN>,
-    middle_feedback: MathVec<MIDDLE>,
-    output_feedback: MathVec<OUT>
+    input_error: MathVec<IN>,
+    middle_error: MathVec<MIDDLE>,
+    output_error: MathVec<OUT>
 }
 
 impl<
@@ -1339,8 +1359,9 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > ChobitMLAI<OUT, MIDDLE, IN> {
+    #[inline]
     pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
-        let ChobitAI {middle_layer, output_layer} = ai;
+        let ChobitAI::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
 
         Self {
             middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
@@ -1349,12 +1370,13 @@ impl<
             middle_cache: MLCache::<MIDDLE, IN>::new(),
             output_cache: MLCache::<OUT, MIDDLE>::new(),
 
-            input_feedback: MathVec::<IN>::new(),
-            middle_feedback: MathVec::<MIDDLE>::new(),
-            output_feedback: MathVec::<OUT>::new(),
+            input_error: MathVec::<IN>::new(),
+            middle_error: MathVec::<MIDDLE>::new(),
+            output_error: MathVec::<OUT>::new(),
         }
     }
 
+    #[inline]
     pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
         let Self {middle_layer, output_layer, ..} = self;
 
@@ -1373,22 +1395,19 @@ impl<
             &mut self.output_cache
         );
 
-        self.output_cache.calc_feedback(
-            train_out,
-            &mut self.output_feedback
-        );
+        self.output_cache.calc_error(train_out, &mut self.output_error);
 
         self.output_layer.study(
-            &self.output_feedback,
+            &self.output_error,
             &self.output_cache,
-            &mut self.middle_feedback,
+            &mut self.middle_error,
             None
         );
 
         self.middle_layer.study(
-            &self.middle_feedback,
+            &self.middle_error,
             &self.middle_cache,
-            &mut self.input_feedback,
+            &mut self.input_error,
             None
         );
     }
@@ -1399,3 +1418,517 @@ impl<
         self.output_layer.update(rate);
     }
 }
+
+//#[derive(Debug, Clone, PartialEq)]
+//pub struct LSTM<const OUT: usize, const IN: usize> {
+//    f_gate: Layer<OUT, IN>,
+//    i_gate: Layer<OUT, IN>,
+//    o_gate: Layer<OUT, IN>,
+//    c_gate: Layer<OUT, IN>,
+//    tanh: Activation
+//}
+//
+//impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
+//    pub fn new() -> Self {
+//        Self {
+//            f_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
+//            i_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
+//            o_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
+//            c_gate: Layer::<OUT, IN>::new(Activation::SoftSign),
+//
+//            tanh: Activation::SoftSign
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn f_gate(&self) -> &Layer<OUT, IN> {&self.f_gate}
+//
+//    #[inline]
+//    pub fn f_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.f_gate}
+//
+//    #[inline]
+//    pub fn i_gate(&self) -> &Layer<OUT, IN> {&self.i_gate}
+//
+//    #[inline]
+//    pub fn i_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.i_gate}
+//
+//    #[inline]
+//    pub fn o_gate(&self) -> &Layer<OUT, IN> {&self.o_gate}
+//
+//    #[inline]
+//    pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
+//
+//    #[inline]
+//    pub fn c_gate(&self) -> &Layer<OUT, IN> {&self.c_gate}
+//
+//    #[inline]
+//    pub fn c_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.c_gate}
+//
+//    pub fn calc(
+//        &self,
+//        input: &MathVec<IN>,
+//        prev_output: &MathVec<OUT>,
+//        prev_cell: &MathVec<OUT>,
+//        output: &mut MathVec<OUT>,
+//        cell: &mut MathVec<OUT>,
+//        working_buffer_1: &mut MathVec<OUT>,
+//        working_buffer_2: &mut MathVec<OUT>
+//    ) {
+//        // cell = (f_gate * prev_cell) + (i_gate * c_gate);
+//        self.f_gate.calc(input, Some(prev_output), cell);
+//        self.i_gate.calc(input, Some(prev_output), working_buffer_1);
+//        self.c_gate.calc(input, Some(prev_output), working_buffer_2);
+//
+//        for i in 0..OUT {
+//            debug_assert!(cell.get(i).is_some());
+//            debug_assert!(prev_cell.get(i).is_some());
+//            debug_assert!(working_buffer_1.get(i).is_some());
+//            debug_assert!(working_buffer_2.get(i).is_some());
+//
+//            unsafe {
+//                *cell.get_unchecked_mut(i) *= *prev_cell.get_unchecked(i);
+//                *cell.get_unchecked_mut(i) +=
+//                    *working_buffer_1.get_unchecked(i)
+//                    * *working_buffer_2.get_unchecked(i);
+//            }
+//        }
+//
+//        // output = o_gate * tanh(cell)
+//        self.o_gate.calc(input, Some(prev_output), output);
+//
+//        for i in 0..OUT {
+//            debug_assert!(cell.get(i).is_some());
+//            debug_assert!(output.get(i).is_some());
+//
+//            unsafe {
+//                *output.get_unchecked_mut(i) *=
+//                    self.tanh.activate(*cell.get_unchecked(i));
+//            }
+//        }
+//    }
+//}
+//
+//#[derive(Debug, Clone, PartialEq)]
+//pub struct MLLSTMCache<const OUT: usize, const IN: usize> {
+//    input: MathVec<IN>,
+//    prev_output: MathVec<OUT>,
+//    prev_cell: MathVec<OUT>,
+//
+//    f_gate_cache: MLCache<OUT, IN>,
+//    i_gate_cache: MLCache<OUT, IN>,
+//    o_gate_cache: MLCache<OUT, IN>,
+//    c_gate_cache: MLCache<OUT, IN>,
+//
+//    tanh_c: MathVec<OUT>,
+//    d_tanh_c: MathVec<OUT>,
+//
+//    output: MathVec<OUT>,
+//    cell: MathVec<OUT>
+//}
+//
+//impl<const OUT: usize, const IN: usize> MLLSTMCache<OUT, IN> {
+//    #[inline]
+//    pub fn new() -> Self {
+//        Self {
+//            input: MathVec::<IN>::new(),
+//            prev_output: MathVec::<OUT>::new(),
+//            prev_cell: MathVec::<OUT>::new(),
+//
+//            f_gate_cache: MLCache::<OUT, IN>::new(),
+//            i_gate_cache: MLCache::<OUT, IN>::new(),
+//            o_gate_cache: MLCache::<OUT, IN>::new(),
+//            c_gate_cache: MLCache::<OUT, IN>::new(),
+//
+//            tanh_c: MathVec::<OUT>::new(),
+//            d_tanh_c: MathVec::<OUT>::new(),
+//
+//            output: MathVec::<OUT>::new(),
+//            cell: MathVec::<OUT>::new()
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn calc_feedback(
+//        &self,
+//        train_out: &MathVec<OUT>,
+//        feedback: &mut MathVec<OUT>
+//    ) {
+//        feedback.copy_from(&self.output);
+//        *feedback -= train_out;
+//    }
+//
+//    #[inline]
+//    pub fn input(&self) -> &MathVec<IN> {&self.input}
+//
+//    #[inline]
+//    pub fn prev_output(&self) -> &MathVec<OUT> {&self.prev_output}
+//
+//    #[inline]
+//    pub fn prev_cell(&self) -> &MathVec<OUT> {&self.prev_cell}
+//
+//    #[inline]
+//    pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
+//
+//    #[inline]
+//    pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
+//
+//    #[inline]
+//    pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
+//
+//    #[inline]
+//    pub fn c_gate_cache(&self) -> &MLCache<OUT, IN> {&self.c_gate_cache}
+//
+//    #[inline]
+//    pub fn tanh_c(&self) -> &MathVec<OUT> {&self.tanh_c}
+//
+//    #[inline]
+//    pub fn d_tanh_c(&self) -> &MathVec<OUT> {&self.d_tanh_c}
+//
+//    #[inline]
+//    pub fn output(&self) -> &MathVec<OUT> {&self.output}
+//
+//    #[inline]
+//    pub fn cell(&self) -> &MathVec<OUT> {&self.cell}
+//}
+//
+//#[derive(Debug, Clone, PartialEq)]
+//pub struct MLLSTM<const OUT: usize, const IN: usize> {
+//    f_gate: MLLayer<OUT, IN>,
+//    i_gate: MLLayer<OUT, IN>,
+//    o_gate: MLLayer<OUT, IN>,
+//    c_gate: MLLayer<OUT, IN>,
+//    tanh: Activation,
+//
+//    next_feedback_for_input_f: MathVec<IN>,
+//    next_feedback_for_input_i: MathVec<IN>,
+//    next_feedback_for_input_o: MathVec<IN>,
+//    next_feedback_for_input_c: MathVec<IN>,
+//
+//    next_feedback_for_prev_output_f: MathVec<OUT>,
+//    next_feedback_for_prev_output_i: MathVec<OUT>,
+//    next_feedback_for_prev_output_o: MathVec<OUT>,
+//    next_feedback_for_prev_output_c: MathVec<OUT>,
+//
+//    tmp_feedback: MathVec<OUT>,
+//}
+//
+//impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
+//    #[inline]
+//    pub fn new(lstm: LSTM<OUT, IN>) -> Self {
+//        let LSTM::<OUT, IN> {f_gate, i_gate, o_gate, c_gate, tanh} = lstm;
+//
+//        Self {
+//            f_gate: MLLayer::<OUT, IN>::new(f_gate),
+//            i_gate: MLLayer::<OUT, IN>::new(i_gate),
+//            o_gate: MLLayer::<OUT, IN>::new(o_gate),
+//            c_gate: MLLayer::<OUT, IN>::new(c_gate),
+//
+//            tanh: tanh,
+//
+//            next_feedback_for_input_f: MathVec::<IN>::new(),
+//            next_feedback_for_input_i: MathVec::<IN>::new(),
+//            next_feedback_for_input_o: MathVec::<IN>::new(),
+//            next_feedback_for_input_c: MathVec::<IN>::new(),
+//
+//            next_feedback_for_prev_output_f: MathVec::<OUT>::new(),
+//            next_feedback_for_prev_output_i: MathVec::<OUT>::new(),
+//            next_feedback_for_prev_output_o: MathVec::<OUT>::new(),
+//            next_feedback_for_prev_output_c: MathVec::<OUT>::new(),
+//
+//            tmp_feedback: MathVec::<OUT>::new()
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn drop(self) -> LSTM<OUT, IN> {
+//        let Self {f_gate, i_gate, o_gate, c_gate, tanh, ..} = self;
+//
+//        LSTM::<OUT, IN> {
+//            f_gate: f_gate.drop(),
+//            i_gate: i_gate.drop(),
+//            o_gate: o_gate.drop(),
+//            c_gate: c_gate.drop(),
+//
+//            tanh: tanh
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn clear_study_data(&mut self) {
+//        self.f_gate.clear_study_data();
+//        self.i_gate.clear_study_data();
+//        self.o_gate.clear_study_data();
+//        self.c_gate.clear_study_data();
+//    }
+//
+//    pub fn ready(
+//        &self,
+//        input: &MathVec<IN>,
+//        prev_output: &MathVec<OUT>,
+//        prev_cell: &MathVec<OUT>,
+//        cache: &mut MLLSTMCache<OUT, IN>
+//    ) {
+//        cache.input.copy_from(input);
+//        cache.prev_output.copy_from(prev_output);
+//        cache.prev_cell.copy_from(prev_cell);
+//
+//        self.f_gate.ready(input, Some(prev_output), &mut cache.f_gate_cache);
+//        self.i_gate.ready(input, Some(prev_output), &mut cache.i_gate_cache);
+//        self.o_gate.ready(input, Some(prev_output), &mut cache.o_gate_cache);
+//        self.c_gate.ready(input, Some(prev_output), &mut cache.c_gate_cache);
+//
+//        for i in 0..OUT {
+//            debug_assert!(cache.cell.get(i).is_some());
+//            debug_assert!(cache.tanh_c.get(i).is_some());
+//            debug_assert!(cache.d_tanh_c.get(i).is_some());
+//            debug_assert!(cache.output.get(i).is_some());
+//            debug_assert!(prev_cell.get(i).is_some());
+//            debug_assert!(cache.f_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.i_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.o_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.c_gate_cache.output.get(i).is_some());
+//
+//            unsafe {
+//                *cache.cell.get_unchecked_mut(i) =
+//                    (*prev_cell.get_unchecked(i)
+//                        * *cache.f_gate_cache.output.get_unchecked(i))
+//                    + (*cache.i_gate_cache.output.get_unchecked(i)
+//                        * *cache.c_gate_cache.output.get_unchecked(i));
+//
+//                *cache.tanh_c.get_unchecked_mut(i) =
+//                    self.tanh.activate(*cache.cell.get_unchecked(i));
+//
+//                *cache.d_tanh_c.get_unchecked_mut(i) =
+//                    self.tanh.d_activate(*cache.cell.get_unchecked(i));
+//
+//                *cache.output.get_unchecked_mut(i) =
+//                    *cache.o_gate_cache.output.get_unchecked(i)
+//                    * self.tanh.activate(*cache.cell.get_unchecked(i));
+//            }
+//        }
+//    }
+//
+//    pub fn study(
+//        &mut self,
+//        feedback: &MathVec<OUT>,
+//        cache: &MLLSTMCache<OUT, IN>,
+//        next_feedback_for_input: &mut MathVec<IN>,
+//        next_feedback_for_prev_output: &mut MathVec<OUT>,
+//        next_feedback_for_prev_cell: &mut MathVec<OUT>
+//    ) {
+//        self.study_f_gate(feedback, cache);
+//        self.study_i_gate(feedback, cache);
+//        self.study_o_gate(feedback, cache);
+//        self.study_c_gate(feedback, cache);
+//
+//        next_feedback_for_input.copy_from(&self.next_feedback_for_input_o);
+//        *next_feedback_for_input += &self.next_feedback_for_input_f;
+//        *next_feedback_for_input += &self.next_feedback_for_input_i;
+//        *next_feedback_for_input += &self.next_feedback_for_input_c;
+//
+//        next_feedback_for_prev_output.copy_from(
+//            &self.next_feedback_for_prev_output_o
+//        );
+//        *next_feedback_for_prev_output +=
+//            &self.next_feedback_for_prev_output_f;
+//        *next_feedback_for_prev_output +=
+//            &self.next_feedback_for_prev_output_i;
+//        *next_feedback_for_prev_output +=
+//            &self.next_feedback_for_prev_output_c;
+//
+//        self.grad_with_prev_cell(feedback, cache, next_feedback_for_prev_cell);
+//    }
+//
+//    fn study_f_gate(
+//        &mut self,
+//        feedback: &MathVec<OUT>,
+//        cache: &MLLSTMCache<OUT, IN>
+//    ) {
+//        for i in 0..OUT {
+//            debug_assert!(feedback.get(i).is_some());
+//            debug_assert!(self.tmp_feedback.get(i).is_some());
+//            debug_assert!(cache.o_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.d_tanh_c.get(i).is_some());
+//            debug_assert!(cache.cell.get(i).is_some());
+//
+//            unsafe {
+//                *self.tmp_feedback.get_unchecked_mut(i) =
+//                    *feedback.get_unchecked(i)
+//                    * *cache.o_gate_cache.output.get_unchecked(i)
+//                    * *cache.d_tanh_c.get_unchecked(i)
+//                    * *cache.cell.get_unchecked(i);
+//            }
+//        }
+//
+//        self.f_gate.study(
+//            &self.tmp_feedback,
+//            &cache.f_gate_cache,
+//            &mut self.next_feedback_for_input_f,
+//            Some(&mut self.next_feedback_for_prev_output_f)
+//        );
+//    }
+//
+//    fn study_i_gate(
+//        &mut self,
+//        feedback: &MathVec<OUT>,
+//        cache: &MLLSTMCache<OUT, IN>
+//    ) {
+//        for i in 0..OUT {
+//            debug_assert!(feedback.get(i).is_some());
+//            debug_assert!(self.tmp_feedback.get(i).is_some());
+//            debug_assert!(cache.o_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.d_tanh_c.get(i).is_some());
+//            debug_assert!(cache.c_gate_cache.output.get(i).is_some());
+//
+//            unsafe {
+//                *self.tmp_feedback.get_unchecked_mut(i) =
+//                    *feedback.get_unchecked(i)
+//                    * *cache.o_gate_cache.output.get_unchecked(i)
+//                    * *cache.d_tanh_c.get_unchecked(i)
+//                    * *cache.c_gate_cache.output.get_unchecked(i);
+//            }
+//        }
+//
+//        self.i_gate.study(
+//            &self.tmp_feedback,
+//            &cache.f_gate_cache,
+//            &mut self.next_feedback_for_input_i,
+//            Some(&mut self.next_feedback_for_prev_output_i)
+//        );
+//    }
+//
+//    fn study_o_gate(
+//        &mut self,
+//        feedback: &MathVec<OUT>,
+//        cache: &MLLSTMCache<OUT, IN>
+//    ) {
+//        for i in 0..OUT {
+//            debug_assert!(feedback.get(i).is_some());
+//            debug_assert!(self.tmp_feedback.get(i).is_some());
+//            debug_assert!(cache.tanh_c.get(i).is_some());
+//            unsafe {
+//                *self.tmp_feedback.get_unchecked_mut(i) =
+//                    *feedback.get_unchecked(i)
+//                    * *cache.tanh_c.get_unchecked(i);
+//            }
+//        }
+//
+//        self.o_gate.study(
+//            &self.tmp_feedback,
+//            &cache.f_gate_cache,
+//            &mut self.next_feedback_for_input_o,
+//            Some(&mut self.next_feedback_for_prev_output_o)
+//        );
+//    }
+//
+//    fn study_c_gate(
+//        &mut self,
+//        feedback: &MathVec<OUT>,
+//        cache: &MLLSTMCache<OUT, IN>
+//    ) {
+//        for i in 0..OUT {
+//            debug_assert!(feedback.get(i).is_some());
+//            debug_assert!(self.tmp_feedback.get(i).is_some());
+//            debug_assert!(cache.o_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.d_tanh_c.get(i).is_some());
+//            debug_assert!(cache.i_gate_cache.output.get(i).is_some());
+//
+//            unsafe {
+//                *self.tmp_feedback.get_unchecked_mut(i) =
+//                    *feedback.get_unchecked(i)
+//                    * *cache.o_gate_cache.output.get_unchecked(i)
+//                    * *cache.d_tanh_c.get_unchecked(i)
+//                    * *cache.i_gate_cache.output.get_unchecked(i);
+//            }
+//        }
+//
+//        self.c_gate.study(
+//            &self.tmp_feedback,
+//            &cache.f_gate_cache,
+//            &mut self.next_feedback_for_input_c,
+//            Some(&mut self.next_feedback_for_prev_output_c)
+//        );
+//    }
+//
+//    fn grad_with_prev_cell(
+//        &self,
+//        feedback: &MathVec<OUT>,
+//        cache: &MLLSTMCache<OUT, IN>,
+//        next_feedback_for_prev_cell: &mut MathVec<OUT>
+//    ) {
+//        for i in 0..OUT {
+//            debug_assert!(feedback.get(i).is_some());
+//            debug_assert!(next_feedback_for_prev_cell.get(i).is_some());
+//            debug_assert!(cache.o_gate_cache.output.get(i).is_some());
+//            debug_assert!(cache.d_tanh_c.get(i).is_some());
+//            debug_assert!(cache.f_gate_cache.output.get(i).is_some());
+//
+//            unsafe {
+//                *next_feedback_for_prev_cell.get_unchecked_mut(i) =
+//                    *feedback.get_unchecked(i)
+//                    * *cache.o_gate_cache.output.get_unchecked(i)
+//                    * *cache.d_tanh_c.get_unchecked(i)
+//                    * *cache.f_gate_cache.output.get_unchecked(i);
+//            }
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn update(&mut self, rate: f32) {
+//        self.f_gate.update(rate);
+//        self.i_gate.update(rate);
+//        self.o_gate.update(rate);
+//        self.c_gate.update(rate);
+//    }
+//}
+//
+//#[derive(Debug, Clone, PartialEq)]
+//pub struct Encoder<const OUT: usize, const IN: usize> {
+//    body: LSTM<OUT, IN>
+//}
+//
+//impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
+//    #[inline]
+//    pub fn new() -> Self {
+//        Self {
+//            body: LSTM::<OUT, IN>::new()
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn body(&self) -> &LSTM<OUT, IN> {&self.body}
+//
+//    pub fn calc(
+//        &self,
+//        input: &[MathVec<IN>],
+//        prev_output: &MathVec<OUT>,
+//        prev_cell: &MathVec<OUT>,
+//        output: &mut MathVec<OUT>,
+//        cell: &mut MathVec<OUT>,
+//        working_buffer_1: &mut MathVec<OUT>,
+//        working_buffer_2: &mut MathVec<OUT>,
+//        working_buffer_3: &mut MathVec<OUT>,
+//        working_buffer_4: &mut MathVec<OUT>
+//    ) {
+//        working_buffer_1.copy_from(prev_output);
+//        let prev_output = working_buffer_1;
+//
+//        working_buffer_2.copy_from(prev_cell);
+//        let prev_cell = working_buffer_2;
+//
+//        input.iter().for_each(|input| {
+//            self.body.calc(
+//                input,
+//                prev_output,
+//                prev_cell,
+//                output,
+//                cell,
+//                working_buffer_3,
+//                working_buffer_4
+//            );
+//
+//            prev_output.copy_from(output);
+//            prev_cell.copy_from(cell);
+//        });
+//    }
+//}
