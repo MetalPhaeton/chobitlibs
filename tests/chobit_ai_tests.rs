@@ -730,7 +730,7 @@ fn chobit_ai_test_1() {
     let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
-    let mut working_buffer = MathVec::<MIDDLE>::new();
+    let mut tmpbuf = MathVec::<MIDDLE>::new();
 
     ai.middle_layer_mut().mut_weights().iter_mut().for_each(|val| {
         *val = rand_num(&mut rng);
@@ -744,7 +744,7 @@ fn chobit_ai_test_1() {
         let label_in = rng.next_u64() as u16;
 
         input.load_u16_label(label_in);
-        ai.calc(&input, &mut output, &mut working_buffer);
+        ai.calc(&input, &mut output, &mut tmpbuf);
     }
 
     const EPOCH: usize = 10;
@@ -771,7 +771,7 @@ fn chobit_ai_test_1() {
         let label_in = rng.next_u64() as u16;
 
         input.load_u16_label(label_in);
-        ai.calc(&input, &mut output, &mut working_buffer);
+        ai.calc(&input, &mut output, &mut tmpbuf);
     }
 }
 
@@ -789,7 +789,7 @@ fn chobit_ai_test_2() {
     let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
-    let mut working_buffer = MathVec::<MIDDLE>::new();
+    let mut tmpbuf = MathVec::<MIDDLE>::new();
 
     ai.middle_layer_mut().mut_weights().iter_mut().for_each(|val| {
         *val = rand_num(&mut rng);
@@ -804,7 +804,7 @@ fn chobit_ai_test_2() {
         let label_in = rng.next_u64() as u32;
 
         input.load_u32_label(label_in);
-        ai.calc(&input, &mut output, &mut working_buffer);
+        ai.calc(&input, &mut output, &mut tmpbuf);
 
         let label_out = output.to_u32_label();
 
@@ -837,7 +837,7 @@ fn chobit_ai_test_2() {
         let label_in = rng.next_u64() as u32;
 
         input.load_u32_label(label_in);
-        ai.calc(&input, &mut output, &mut working_buffer);
+        ai.calc(&input, &mut output, &mut tmpbuf);
 
         let label_out = output.to_u32_label();
 
@@ -958,7 +958,7 @@ fn lstm_test_1() {
     let mut prev_cell = MathVec::<OUT>::new();
     let mut output = MathVec::<OUT>::new();
     let mut cell = MathVec::<OUT>::new();
-    let mut working_buffer = MathVec::<OUT>::new();
+    let mut tmpbuf = MathVec::<OUT>::new();
 
     const COUNT: usize = 10;
 
@@ -975,14 +975,14 @@ fn lstm_test_1() {
                 &prev_cell,
                 &mut output,
                 &mut cell,
-                &mut working_buffer,
+                &mut tmpbuf,
             );
 
             prev_cell.copy_from(&cell);
         }
 
-        working_buffer.copy_from(&output);
-        output_layer.calc(&working_buffer, None, &mut output);
+        tmpbuf.copy_from(&output);
+        output_layer.calc(&tmpbuf, None, &mut output);
     }
 
     const EPOCH: usize = 10;
@@ -1008,15 +1008,15 @@ fn lstm_test_1() {
 
             let tail: usize = data.len() - 1;
 
-            working_buffer.copy_from(&caches[tail].output());
-            output_layer.ready(&working_buffer, None, &mut output_layer_cache);
+            tmpbuf.copy_from(&caches[tail].output());
+            output_layer.ready(&tmpbuf, None, &mut output_layer_cache);
 
             output_layer_cache.calc_error(&japanese, &mut output_error);
 
-            working_buffer.copy_from(&output_error);
+            tmpbuf.copy_from(&output_error);
 
             output_layer.study(
-                &working_buffer,
+                &tmpbuf,
                 &output_layer_cache,
                 &mut output_error,
                 None
@@ -1055,15 +1055,15 @@ fn lstm_test_1() {
 
             let tail: usize = data.len() - 1;
 
-            working_buffer.copy_from(&caches[tail].output());
-            output_layer.ready(&working_buffer, None, &mut output_layer_cache);
+            tmpbuf.copy_from(&caches[tail].output());
+            output_layer.ready(&tmpbuf, None, &mut output_layer_cache);
 
             output_layer_cache.calc_error(&english, &mut output_error);
 
-            working_buffer.copy_from(&output_error);
+            tmpbuf.copy_from(&output_error);
 
             output_layer.study(
-                &working_buffer,
+                &tmpbuf,
                 &output_layer_cache,
                 &mut output_error,
                 None
@@ -1120,7 +1120,7 @@ fn lstm_test_2() {
     let mut middle_output = MathVec::<MIDDLE>::new();
     let mut output = MathVec::<OUT>::new();
     let mut cell = MathVec::<MIDDLE>::new();
-    let mut working_buffer_middle = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_middle = MathVec::<MIDDLE>::new();
 
     const COUNT: usize = 10;
 
@@ -1137,7 +1137,7 @@ fn lstm_test_2() {
                 &prev_cell,
                 &mut middle_output,
                 &mut cell,
-                &mut working_buffer_middle,
+                &mut tmpbuf_middle,
             );
 
             prev_cell.copy_from(&cell);
@@ -1159,7 +1159,7 @@ fn lstm_test_2() {
                 &prev_cell,
                 &mut middle_output,
                 &mut cell,
-                &mut working_buffer_middle,
+                &mut tmpbuf_middle,
             );
 
             prev_cell.copy_from(&cell);
@@ -1301,7 +1301,7 @@ fn lstm_test_2() {
                 &prev_cell,
                 &mut middle_output,
                 &mut cell,
-                &mut working_buffer_middle,
+                &mut tmpbuf_middle,
             );
 
             prev_cell.copy_from(&cell);
@@ -1327,7 +1327,7 @@ fn lstm_test_2() {
                 &prev_cell,
                 &mut middle_output,
                 &mut cell,
-                &mut working_buffer_middle,
+                &mut tmpbuf_middle,
             );
 
             prev_cell.copy_from(&cell);
@@ -1389,9 +1389,9 @@ fn encoder_test_1() {
     let mut middle_output = MathVec::<MIDDLE>::new();
     let mut output = MathVec::<OUT>::new();
     let mut cell = MathVec::<MIDDLE>::new();
-    let mut working_buffer_1 = MathVec::<MIDDLE>::new();
-    let mut working_buffer_2 = MathVec::<MIDDLE>::new();
-    let mut working_buffer_3 = MathVec::<IN>::new();
+    let mut tmpbuf_1 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_2 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_3 = MathVec::<IN>::new();
 
     const COUNT: usize = 10;
 
@@ -1407,8 +1407,8 @@ fn encoder_test_1() {
             &prev_cell,
             &mut middle_output,
             &mut cell,
-            &mut working_buffer_1,
-            &mut working_buffer_2
+            &mut tmpbuf_1,
+            &mut tmpbuf_2
         );
 
         output_layer.calc(&middle_output, None, &mut output);
@@ -1434,7 +1434,7 @@ fn encoder_test_1() {
                 &data,
                 &prev_cell,
                 &mut caches[..data.len()],
-                &mut working_buffer_1
+                &mut tmpbuf_1
             );
 
             let tail: usize = data.len() - 1;
@@ -1460,8 +1460,8 @@ fn encoder_test_1() {
                 &caches[..data.len()],
                 &mut input_error,
                 &mut prev_cell_error,
-                &mut working_buffer_3,
-                &mut working_buffer_1
+                &mut tmpbuf_3,
+                &mut tmpbuf_1
             );
         }
 
@@ -1492,9 +1492,9 @@ fn encoder_test_2() {
     let mut middle_output = MathVec::<MIDDLE>::new();
     let mut output = MathVec::<OUT>::new();
     let mut cell = MathVec::<MIDDLE>::new();
-    let mut working_buffer_1 = MathVec::<MIDDLE>::new();
-    let mut working_buffer_2 = MathVec::<MIDDLE>::new();
-    let mut working_buffer_3 = MathVec::<IN>::new();
+    let mut tmpbuf_1 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_2 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_3 = MathVec::<IN>::new();
 
     const COUNT: usize = 10;
 
@@ -1510,8 +1510,8 @@ fn encoder_test_2() {
             &prev_cell,
             &mut middle_output,
             &mut cell,
-            &mut working_buffer_1,
-            &mut working_buffer_2
+            &mut tmpbuf_1,
+            &mut tmpbuf_2
         );
 
         output_layer.calc(&middle_output, None, &mut output);
@@ -1532,8 +1532,8 @@ fn encoder_test_2() {
             &prev_cell,
             &mut middle_output,
             &mut cell,
-            &mut working_buffer_1,
-            &mut working_buffer_2
+            &mut tmpbuf_1,
+            &mut tmpbuf_2
         );
 
         output_layer.calc(&middle_output, None, &mut output);
@@ -1545,7 +1545,7 @@ fn encoder_test_2() {
         );
     }
 
-    const EPOCH: usize = 10000;
+    const EPOCH: usize = 5000;
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
@@ -1565,7 +1565,7 @@ fn encoder_test_2() {
                 &data,
                 &prev_cell,
                 &mut caches[..data.len()],
-                &mut working_buffer_1
+                &mut tmpbuf_1
             );
 
             let tail: usize = data.len() - 1;
@@ -1591,8 +1591,8 @@ fn encoder_test_2() {
                 &caches[..data.len()],
                 &mut input_error,
                 &mut prev_cell_error,
-                &mut working_buffer_3,
-                &mut working_buffer_1
+                &mut tmpbuf_3,
+                &mut tmpbuf_1
             );
 
             english_data(&mut rng, &mut data);
@@ -1602,7 +1602,7 @@ fn encoder_test_2() {
                 &data,
                 &prev_cell,
                 &mut caches[..data.len()],
-                &mut working_buffer_1
+                &mut tmpbuf_1
             );
 
             let tail: usize = data.len() - 1;
@@ -1628,8 +1628,8 @@ fn encoder_test_2() {
                 &caches[..data.len()],
                 &mut input_error,
                 &mut prev_cell_error,
-                &mut working_buffer_3,
-                &mut working_buffer_1
+                &mut tmpbuf_3,
+                &mut tmpbuf_1
             );
         }
 
@@ -1649,8 +1649,8 @@ fn encoder_test_2() {
             &prev_cell,
             &mut middle_output,
             &mut cell,
-            &mut working_buffer_1,
-            &mut working_buffer_2
+            &mut tmpbuf_1,
+            &mut tmpbuf_2
         );
 
         output_layer.calc(&middle_output, None, &mut output);
@@ -1671,8 +1671,8 @@ fn encoder_test_2() {
             &prev_cell,
             &mut middle_output,
             &mut cell,
-            &mut working_buffer_1,
-            &mut working_buffer_2
+            &mut tmpbuf_1,
+            &mut tmpbuf_2
         );
 
         output_layer.calc(&middle_output, None, &mut output);

@@ -1334,10 +1334,10 @@ impl<
         &self,
         input: &MathVec<IN>,
         output: &mut MathVec<OUT>,
-        working_buffer: &mut MathVec<MIDDLE>
+        tmpbuf: &mut MathVec<MIDDLE>
     ) {
-        self.middle_layer.calc(input, None, working_buffer);
-        self.output_layer.calc(working_buffer, None, output);
+        self.middle_layer.calc(input, None, tmpbuf);
+        self.output_layer.calc(tmpbuf, None, output);
     }
 }
 
@@ -1475,17 +1475,17 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
         prev_cell: &MathVec<OUT>,
         output: &mut MathVec<OUT>,
         cell: &mut MathVec<OUT>,
-        working_buffer: &mut MathVec<OUT>
+        tmpbuf: &mut MathVec<OUT>
     ) {
         // cell = (f_gate * prev_cell) + (i_gate * main_layer);
         self.main_layer.calc(input, Some(prev_cell), cell);
-        self.i_gate.calc(input, Some(prev_cell), working_buffer);
-        cell.pointwise_mul_assign(working_buffer);
+        self.i_gate.calc(input, Some(prev_cell), tmpbuf);
+        cell.pointwise_mul_assign(tmpbuf);
 
-        self.f_gate.calc(input, Some(prev_cell), working_buffer);
-        working_buffer.pointwise_mul_assign(prev_cell);
+        self.f_gate.calc(input, Some(prev_cell), tmpbuf);
+        tmpbuf.pointwise_mul_assign(prev_cell);
 
-        *cell += working_buffer;
+        *cell += tmpbuf;
 
         // output = o_gate * tanh(cell)
         self.o_gate.calc(input, Some(prev_cell), output);
@@ -2012,11 +2012,11 @@ impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
         prev_cell: &MathVec<OUT>,
         output: &mut MathVec<OUT>,
         cell: &mut MathVec<OUT>,
-        working_buffer_1: &mut MathVec<OUT>,
-        working_buffer_2: &mut MathVec<OUT>
+        tmpbuf_1: &mut MathVec<OUT>,
+        tmpbuf_2: &mut MathVec<OUT>
     ) {
-        working_buffer_1.copy_from(prev_cell);
-        let prev_cell = working_buffer_1;
+        tmpbuf_1.copy_from(prev_cell);
+        let prev_cell = tmpbuf_1;
 
         input.iter().for_each(|input| {
             self.lstm.calc(
@@ -2024,7 +2024,7 @@ impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
                 prev_cell,
                 output,
                 cell,
-                working_buffer_2,
+                tmpbuf_2,
             );
 
             prev_cell.copy_from(cell);
@@ -2062,14 +2062,14 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
         input: &[MathVec<IN>],
         prev_cell: &MathVec<OUT>,
         caches: &mut [MLLSTMCache<OUT, IN>],
-        working_buffer: &mut MathVec<OUT>
+        tmpbuf: &mut MathVec<OUT>
     ) -> Option<()> {
         if caches.len() != input.len() {
             return None;
         }
 
-        working_buffer.copy_from(prev_cell);
-        let prev_cell = working_buffer;
+        tmpbuf.copy_from(prev_cell);
+        let prev_cell = tmpbuf;
 
         for i in 0..input.len() {
             self.lstm.ready(&input[i], prev_cell, &mut caches[i]);
@@ -2086,8 +2086,8 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
         caches: &[MLLSTMCache<OUT, IN>],
         input_error: &mut MathVec<IN>,
         prev_cell_error: &mut MathVec<OUT>,
-        working_buffer_1: &mut MathVec<IN>,
-        working_buffer_2: &mut MathVec<OUT>
+        tmpbuf_1: &mut MathVec<IN>,
+        tmpbuf_2: &mut MathVec<OUT>
     ) {
         let mut caches_iter = caches.iter().rev();
 
@@ -2104,10 +2104,10 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
             prev_cell_error.clear();
         }
 
-        let input_error_one = working_buffer_1;
+        let input_error_one = tmpbuf_1;
 
-        working_buffer_2.copy_from(prev_cell_error);
-        let cell_error = working_buffer_2;
+        tmpbuf_2.copy_from(prev_cell_error);
+        let cell_error = tmpbuf_2;
 
         caches_iter.for_each(|cache| {
             self.lstm.study(
