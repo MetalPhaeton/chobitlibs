@@ -1989,19 +1989,22 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Encoder<const OUT: usize, const IN: usize> {
-    body: LSTM<OUT, IN>
+    lstm: LSTM<OUT, IN>
 }
 
 impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
     #[inline]
     pub fn new() -> Self {
         Self {
-            body: LSTM::<OUT, IN>::new()
+            lstm: LSTM::<OUT, IN>::new()
         }
     }
 
     #[inline]
-    pub fn body(&self) -> &LSTM<OUT, IN> {&self.body}
+    pub fn lstm(&self) -> &LSTM<OUT, IN> {&self.lstm}
+
+    #[inline]
+    pub fn lstm_mut(&mut self) -> &mut LSTM<OUT, IN> {&mut self.lstm}
 
     pub fn calc(
         &self,
@@ -2016,7 +2019,7 @@ impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
         let prev_cell = working_buffer_1;
 
         input.iter().for_each(|input| {
-            self.body.calc(
+            self.lstm.calc(
                 input,
                 prev_cell,
                 output,
@@ -2026,5 +2029,102 @@ impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
 
             prev_cell.copy_from(cell);
         });
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLEncoder<const OUT: usize, const IN: usize> {
+    lstm: MLLSTM<OUT, IN>
+}
+
+impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
+    #[inline]
+    pub fn new(encoder: Encoder<OUT, IN>) -> Self {
+        let Encoder::<OUT, IN> {lstm} = encoder;
+
+        Self {
+            lstm: MLLSTM::<OUT, IN>::new(lstm)
+        }
+    }
+
+    #[inline]
+    pub fn drop(self) -> Encoder<OUT, IN> {
+        let Self {lstm} = self;
+
+        Encoder::<OUT, IN> {
+            lstm: lstm.drop()
+        }
+    }
+
+    #[inline]
+    pub fn ready(
+        &self,
+        input: &[MathVec<IN>],
+        prev_cell: &MathVec<OUT>,
+        caches: &mut [MLLSTMCache<OUT, IN>],
+        working_buffer: &mut MathVec<OUT>
+    ) -> Option<()> {
+        if caches.len() != input.len() {
+            return None;
+        }
+
+        working_buffer.copy_from(prev_cell);
+        let prev_cell = working_buffer;
+
+        for i in 0..input.len() {
+            self.lstm.ready(&input[i], prev_cell, &mut caches[i]);
+            prev_cell.copy_from(&caches[i].cell);
+        }
+
+        Some(())
+    }
+
+    pub fn study(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        cell_error: Option<&MathVec<OUT>>,
+        caches: &[MLLSTMCache<OUT, IN>],
+        input_error: &mut MathVec<IN>,
+        prev_cell_error: &mut MathVec<OUT>,
+        working_buffer_1: &mut MathVec<IN>,
+        working_buffer_2: &mut MathVec<OUT>
+    ) {
+        let mut caches_iter = caches.iter().rev();
+
+        if let Some(cache) = caches_iter.next() {
+            self.lstm.study(
+                Some(output_error),
+                cell_error,
+                cache,
+                input_error,
+                prev_cell_error
+            );
+        } else {
+            input_error.clear();
+            prev_cell_error.clear();
+        }
+
+        let input_error_one = working_buffer_1;
+
+        working_buffer_2.copy_from(prev_cell_error);
+        let cell_error = working_buffer_2;
+
+        caches_iter.for_each(|cache| {
+            self.lstm.study(
+                None,
+                Some(cell_error),
+                cache,
+                input_error_one,
+                prev_cell_error
+            );
+
+            *input_error += input_error_one;
+            cell_error.copy_from(prev_cell_error);
+        });
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.lstm.update(rate);
     }
 }

@@ -1343,3 +1343,344 @@ fn lstm_test_2() {
         );
     }
 }
+
+fn gen_encoder<const OUT: usize, const IN: usize>(
+    rng: &mut ChobitRand
+) -> Encoder<OUT, IN> {
+    let mut ret = Encoder::<OUT, IN>::new();
+
+    ret.lstm_mut().main_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.lstm_mut().f_gate_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.lstm_mut().i_gate_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.lstm_mut().o_gate_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret
+}
+
+#[test]
+fn encoder_test_1() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
+    const IN: usize = 32;
+
+    let mut rng = ChobitRand::new("encoder_test_1".as_bytes());
+
+    let mut data = Vec::<MathVec<32>>::new();
+    let mut japanese = MathVec::<OUT>::new();
+    japanese.load_u32_label(JAPANESE as u32);
+    let mut english = MathVec::<OUT>::new();
+    english.load_u32_label(ENGLISH as u32);
+
+    let mut caches = vec![MLLSTMCache::<MIDDLE, IN>::new(); 30];
+    let mut output_layer_cache = MLCache::<OUT, MIDDLE>::new();
+
+    let mut prev_cell = MathVec::<MIDDLE>::new();
+    let mut middle_output = MathVec::<MIDDLE>::new();
+    let mut output = MathVec::<OUT>::new();
+    let mut cell = MathVec::<MIDDLE>::new();
+    let mut working_buffer_1 = MathVec::<MIDDLE>::new();
+    let mut working_buffer_2 = MathVec::<MIDDLE>::new();
+    let mut working_buffer_3 = MathVec::<IN>::new();
+
+    const COUNT: usize = 10;
+
+    let encoder = gen_encoder::<MIDDLE, IN>(&mut rng);
+    let output_layer = gen_layer::<OUT, MIDDLE>(&mut rng);
+
+    for _ in 0..COUNT {
+        japanese_data(&mut rng, &mut data);
+        prev_cell.clear();
+
+        encoder.calc(
+            &data,
+            &prev_cell,
+            &mut middle_output,
+            &mut cell,
+            &mut working_buffer_1,
+            &mut working_buffer_2
+        );
+
+        output_layer.calc(&middle_output, None, &mut output);
+    }
+
+    const EPOCH: usize = 10;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.01;
+
+    let mut encoder = MLEncoder::<MIDDLE, IN>::new(encoder);
+    let mut output_layer = MLLayer::<OUT, MIDDLE>::new(output_layer);
+
+    let mut middle_output_error = MathVec::<MIDDLE>::new();
+    let mut output_error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            japanese_data(&mut rng, &mut data);
+            prev_cell.clear();
+
+            encoder.ready(
+                &data,
+                &prev_cell,
+                &mut caches[..data.len()],
+                &mut working_buffer_1
+            );
+
+            let tail: usize = data.len() - 1;
+
+            output_layer.ready(
+                &caches[tail].output(),
+                None,
+                &mut output_layer_cache
+            );
+
+            output_layer_cache.calc_error(&japanese, &mut output_error);
+
+            output_layer.study(
+                &output_error,
+                &output_layer_cache,
+                &mut middle_output_error,
+                None
+            );
+
+            encoder.study(
+                &middle_output_error,
+                None,
+                &caches[..data.len()],
+                &mut input_error,
+                &mut prev_cell_error,
+                &mut working_buffer_3,
+                &mut working_buffer_1
+            );
+        }
+
+        encoder.update(RATE);
+        output_layer.update(RATE);
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[test]
+fn encoder_test_2() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
+    const IN: usize = 32;
+
+    let mut rng = ChobitRand::new("encoder_test_2".as_bytes());
+
+    let mut data = Vec::<MathVec<32>>::new();
+    let mut japanese = MathVec::<OUT>::new();
+    japanese.load_u32_label(JAPANESE as u32);
+    let mut english = MathVec::<OUT>::new();
+    english.load_u32_label(ENGLISH as u32);
+
+    let mut caches = vec![MLLSTMCache::<MIDDLE, IN>::new(); 30];
+    let mut output_layer_cache = MLCache::<OUT, MIDDLE>::new();
+
+    let mut prev_cell = MathVec::<MIDDLE>::new();
+    let mut middle_output = MathVec::<MIDDLE>::new();
+    let mut output = MathVec::<OUT>::new();
+    let mut cell = MathVec::<MIDDLE>::new();
+    let mut working_buffer_1 = MathVec::<MIDDLE>::new();
+    let mut working_buffer_2 = MathVec::<MIDDLE>::new();
+    let mut working_buffer_3 = MathVec::<IN>::new();
+
+    const COUNT: usize = 10;
+
+    let encoder = gen_encoder::<MIDDLE, IN>(&mut rng);
+    let output_layer = gen_layer::<OUT, MIDDLE>(&mut rng);
+
+    for _ in 0..COUNT {
+        japanese_data(&mut rng, &mut data);
+        prev_cell.clear();
+
+        encoder.calc(
+            &data,
+            &prev_cell,
+            &mut middle_output,
+            &mut cell,
+            &mut working_buffer_1,
+            &mut working_buffer_2
+        );
+
+        output_layer.calc(&middle_output, None, &mut output);
+
+        println!(
+            "{} : {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        );
+    }
+
+    for _ in 0..COUNT {
+        english_data(&mut rng, &mut data);
+        prev_cell.clear();
+
+        encoder.calc(
+            &data,
+            &prev_cell,
+            &mut middle_output,
+            &mut cell,
+            &mut working_buffer_1,
+            &mut working_buffer_2
+        );
+
+        output_layer.calc(&middle_output, None, &mut output);
+
+        println!(
+            "{} : {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        );
+    }
+
+    const EPOCH: usize = 10000;
+    const BATCH_SIZE: usize = 100;
+    const RATE: f32 = 0.01;
+
+    let mut encoder = MLEncoder::<MIDDLE, IN>::new(encoder);
+    let mut output_layer = MLLayer::<OUT, MIDDLE>::new(output_layer);
+
+    let mut middle_output_error = MathVec::<MIDDLE>::new();
+    let mut output_error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            japanese_data(&mut rng, &mut data);
+            prev_cell.clear();
+
+            encoder.ready(
+                &data,
+                &prev_cell,
+                &mut caches[..data.len()],
+                &mut working_buffer_1
+            );
+
+            let tail: usize = data.len() - 1;
+
+            output_layer.ready(
+                &caches[tail].output(),
+                None,
+                &mut output_layer_cache
+            );
+
+            output_layer_cache.calc_error(&japanese, &mut output_error);
+
+            output_layer.study(
+                &output_error,
+                &output_layer_cache,
+                &mut middle_output_error,
+                None
+            );
+
+            encoder.study(
+                &middle_output_error,
+                None,
+                &caches[..data.len()],
+                &mut input_error,
+                &mut prev_cell_error,
+                &mut working_buffer_3,
+                &mut working_buffer_1
+            );
+
+            english_data(&mut rng, &mut data);
+            prev_cell.clear();
+
+            encoder.ready(
+                &data,
+                &prev_cell,
+                &mut caches[..data.len()],
+                &mut working_buffer_1
+            );
+
+            let tail: usize = data.len() - 1;
+
+            output_layer.ready(
+                &caches[tail].output(),
+                None,
+                &mut output_layer_cache
+            );
+
+            output_layer_cache.calc_error(&english, &mut output_error);
+
+            output_layer.study(
+                &output_error,
+                &output_layer_cache,
+                &mut middle_output_error,
+                None
+            );
+
+            encoder.study(
+                &middle_output_error,
+                None,
+                &caches[..data.len()],
+                &mut input_error,
+                &mut prev_cell_error,
+                &mut working_buffer_3,
+                &mut working_buffer_1
+            );
+        }
+
+        encoder.update(RATE);
+        output_layer.update(RATE);
+    }
+
+    let encoder = encoder.drop();
+    let output_layer = output_layer.drop();
+
+    for _ in 0..COUNT {
+        japanese_data(&mut rng, &mut data);
+        prev_cell.clear();
+
+        encoder.calc(
+            &data,
+            &prev_cell,
+            &mut middle_output,
+            &mut cell,
+            &mut working_buffer_1,
+            &mut working_buffer_2
+        );
+
+        output_layer.calc(&middle_output, None, &mut output);
+
+        println!(
+            "{} : {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        );
+    }
+
+    for _ in 0..COUNT {
+        english_data(&mut rng, &mut data);
+        prev_cell.clear();
+
+        encoder.calc(
+            &data,
+            &prev_cell,
+            &mut middle_output,
+            &mut cell,
+            &mut working_buffer_1,
+            &mut working_buffer_2
+        );
+
+        output_layer.calc(&middle_output, None, &mut output);
+
+        println!(
+            "{} : {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        );
+    }
+}
