@@ -854,7 +854,7 @@ fn letter_data(
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
     ];
 
-    let half_size: usize = ((rng.next_u64() % 10) + 1) as usize;
+    let half_size: usize = ((rng.next_u64() % 5) + 1) as usize;
 
     data.resize(half_size * 2, MathVec::<32>::new());
 
@@ -873,7 +873,7 @@ fn letter_data(
     rng.shuffle(data);
 }
 
-const JAPANESE: f32 = 1.0;
+const JAPANESE: char = '日';
 fn japanese_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
     let letters: [char; 10] = [
         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
@@ -882,7 +882,7 @@ fn japanese_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
     letter_data(rng, &letters, data);
 }
 
-const ENGLISH: f32 = -1.0;
+const ENGLISH: char = 'E';
 fn english_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
     let letters: [char; 10] = [
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'
@@ -891,6 +891,7 @@ fn english_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
     letter_data(rng, &letters, data);
 }
 
+#[cfg(not(debug_assertions))]
 fn data_to_string(data: &Vec<MathVec<32>>) -> String {
     let mut ret = String::new();
 
@@ -926,20 +927,34 @@ fn gen_lstm<const OUT: usize, const IN: usize>(
     ret
 }
 
+fn gen_layer<const OUT: usize, const IN: usize>(
+    rng: &mut ChobitRand
+) -> Layer<OUT, IN> {
+    let mut ret = Layer::<OUT, IN>::new(Activation::SoftSign);
+
+    ret.mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret
+}
+
+
 #[test]
 fn lstm_test_1() {
-    const OUT: usize = 1;
+    const OUT: usize = 32;
     const IN: usize = 32;
 
     let mut rng = ChobitRand::new("lstm_test_1".as_bytes());
 
     let mut data = Vec::<MathVec<32>>::new();
     let mut japanese = MathVec::<OUT>::new();
-    japanese[0] = JAPANESE;
+    japanese.load_u32_label(JAPANESE as u32);
     let mut english = MathVec::<OUT>::new();
-    english[0] = ENGLISH;
+    english.load_u32_label(ENGLISH as u32);
 
     let mut caches = vec![MLLSTMCache::<OUT, IN>::new(); 30];
+    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
     let mut prev_cell = MathVec::<OUT>::new();
     let mut output = MathVec::<OUT>::new();
     let mut cell = MathVec::<OUT>::new();
@@ -947,7 +962,8 @@ fn lstm_test_1() {
 
     const COUNT: usize = 10;
 
-    let lstm = gen_lstm(&mut rng);
+    let lstm = gen_lstm::<OUT, IN>(&mut rng);
+    let output_layer = gen_layer::<OUT, OUT>(&mut rng);
 
     for _ in 0..COUNT {
         japanese_data(&mut rng, &mut data);
@@ -964,6 +980,9 @@ fn lstm_test_1() {
 
             prev_cell.copy_from(&cell);
         }
+
+        working_buffer.copy_from(&output);
+        output_layer.calc(&working_buffer, None, &mut output);
     }
 
     const EPOCH: usize = 10;
@@ -971,6 +990,7 @@ fn lstm_test_1() {
     const RATE: f32 = 0.01;
 
     let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
+    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
 
     let mut output_error = MathVec::<OUT>::new();
     let mut cell_error = MathVec::<OUT>::new();
@@ -988,8 +1008,19 @@ fn lstm_test_1() {
 
             let tail: usize = data.len() - 1;
 
-            caches[tail].calc_output_error(&japanese, &mut output_error);
-            cell_error.clear();
+            working_buffer.copy_from(&caches[tail].output());
+            output_layer.ready(&working_buffer, None, &mut output_layer_cache);
+
+            output_layer_cache.calc_error(&japanese, &mut output_error);
+
+            working_buffer.copy_from(&output_error);
+
+            output_layer.study(
+                &working_buffer,
+                &output_layer_cache,
+                &mut output_error,
+                None
+            );
 
             lstm.study(
                 Some(&output_error),
@@ -1024,8 +1055,19 @@ fn lstm_test_1() {
 
             let tail: usize = data.len() - 1;
 
-            caches[tail].calc_output_error(&english, &mut output_error);
-            cell_error.clear();
+            working_buffer.copy_from(&caches[tail].output());
+            output_layer.ready(&working_buffer, None, &mut output_layer_cache);
+
+            output_layer_cache.calc_error(&english, &mut output_error);
+
+            working_buffer.copy_from(&output_error);
+
+            output_layer.study(
+                &working_buffer,
+                &output_layer_cache,
+                &mut output_error,
+                None
+            );
 
             lstm.study(
                 Some(&output_error),
@@ -1053,32 +1095,37 @@ fn lstm_test_1() {
         }
 
         lstm.update(RATE);
+        output_layer.update(RATE);
     }
 }
 
 #[cfg(not(debug_assertions))]
 #[test]
 fn lstm_test_2() {
-    const OUT: usize = 1;
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
     const IN: usize = 32;
 
     let mut rng = ChobitRand::new("lstm_test_2".as_bytes());
 
     let mut data = Vec::<MathVec<32>>::new();
     let mut japanese = MathVec::<OUT>::new();
-    japanese[0] = JAPANESE;
+    japanese.load_u32_label(JAPANESE as u32);
     let mut english = MathVec::<OUT>::new();
-    english[0] = ENGLISH;
+    english.load_u32_label(ENGLISH as u32);
 
-    let mut caches = vec![MLLSTMCache::<OUT, IN>::new(); 30];
-    let mut prev_cell = MathVec::<OUT>::new();
+    let mut caches = vec![MLLSTMCache::<MIDDLE, IN>::new(); 30];
+    let mut output_layer_cache = MLCache::<OUT, MIDDLE>::new();
+    let mut prev_cell = MathVec::<MIDDLE>::new();
+    let mut middle_output = MathVec::<MIDDLE>::new();
     let mut output = MathVec::<OUT>::new();
-    let mut cell = MathVec::<OUT>::new();
-    let mut working_buffer = MathVec::<OUT>::new();
+    let mut cell = MathVec::<MIDDLE>::new();
+    let mut working_buffer_middle = MathVec::<MIDDLE>::new();
 
     const COUNT: usize = 10;
 
-    let lstm = gen_lstm(&mut rng);
+    let lstm = gen_lstm::<MIDDLE, IN>(&mut rng);
+    let output_layer = gen_layer::<OUT, MIDDLE>(&mut rng);
 
     for _ in 0..COUNT {
         japanese_data(&mut rng, &mut data);
@@ -1088,15 +1135,18 @@ fn lstm_test_2() {
             lstm.calc(
                 &data[i],
                 &prev_cell,
-                &mut output,
+                &mut middle_output,
                 &mut cell,
-                &mut working_buffer,
+                &mut working_buffer_middle,
             );
 
             prev_cell.copy_from(&cell);
         }
 
-        println!("{} : {}", data_to_string(&data), output[0]);
+        output_layer.calc(&middle_output, None, &mut output);
+
+        assert_ne!(output.to_u32_label(), JAPANESE as u32);
+        println!("{} : {}",data_to_string(&data), output.to_u32_label());
     }
 
     for _ in 0..COUNT {
@@ -1107,27 +1157,32 @@ fn lstm_test_2() {
             lstm.calc(
                 &data[i],
                 &prev_cell,
-                &mut output,
+                &mut middle_output,
                 &mut cell,
-                &mut working_buffer,
+                &mut working_buffer_middle,
             );
 
             prev_cell.copy_from(&cell);
         }
 
-        println!("{} : {}", data_to_string(&data), output[0]);
+        output_layer.calc(&middle_output, None, &mut output);
+
+        assert_ne!(output.to_u32_label(), ENGLISH as u32);
+        println!("{} : {}",data_to_string(&data), output.to_u32_label());
     }
 
     const EPOCH: usize = 5000;
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
-    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
+    let mut lstm = MLLSTM::<MIDDLE, IN>::new(lstm);
+    let mut output_layer = MLLayer::<OUT, MIDDLE>::new(output_layer);
 
     let mut output_error = MathVec::<OUT>::new();
-    let mut cell_error = MathVec::<OUT>::new();
+    let mut middle_output_error = MathVec::<MIDDLE>::new();
+    let mut cell_error = MathVec::<MIDDLE>::new();
     let mut input_error = MathVec::<IN>::new();
-    let mut prev_cell_error = MathVec::<OUT>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
             japanese_data(&mut rng, &mut data);
@@ -1140,11 +1195,23 @@ fn lstm_test_2() {
 
             let tail: usize = data.len() - 1;
 
-            caches[tail].calc_output_error(&japanese, &mut output_error);
-            cell_error.clear();
+            output_layer.ready(
+                caches[tail].output(),
+                None,
+                &mut output_layer_cache
+            );
+
+            output_layer_cache.calc_error(&japanese, &mut output_error);
+
+            output_layer.study(
+                &output_error,
+                &output_layer_cache,
+                &mut middle_output_error,
+                None
+            );
 
             lstm.study(
-                Some(&output_error),
+                Some(&middle_output_error),
                 None,
                 &caches[tail],
                 &mut input_error,
@@ -1176,11 +1243,23 @@ fn lstm_test_2() {
 
             let tail: usize = data.len() - 1;
 
-            caches[tail].calc_output_error(&english, &mut output_error);
-            cell_error.clear();
+            output_layer.ready(
+                caches[tail].output(),
+                None,
+                &mut output_layer_cache
+            );
+
+            output_layer_cache.calc_error(&english, &mut output_error);
+
+            output_layer.study(
+                &output_error,
+                &output_layer_cache,
+                &mut middle_output_error,
+                None
+            );
 
             lstm.study(
-                Some(&output_error),
+                Some(&middle_output_error),
                 None,
                 &caches[tail],
                 &mut input_error,
@@ -1201,15 +1280,16 @@ fn lstm_test_2() {
 
                 cell_error.copy_from(&prev_cell_error);
             }
-
         }
 
         lstm.update(RATE);
+        output_layer.update(RATE);
     }
 
     println!("----------");
 
     let lstm = lstm.drop();
+    let output_layer = output_layer.drop();
 
     for _ in 0..COUNT {
         japanese_data(&mut rng, &mut data);
@@ -1219,15 +1299,22 @@ fn lstm_test_2() {
             lstm.calc(
                 &data[i],
                 &prev_cell,
-                &mut output,
+                &mut middle_output,
                 &mut cell,
-                &mut working_buffer,
+                &mut working_buffer_middle,
             );
 
             prev_cell.copy_from(&cell);
         }
 
-        println!("{} : {}", data_to_string(&data), output[0]);
+        output_layer.calc(&middle_output, None, &mut output);
+
+        assert_eq!(output.to_u32_label(), JAPANESE as u32);
+        println!(
+            "{} : {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        );
     }
 
     for _ in 0..COUNT {
@@ -1238,14 +1325,21 @@ fn lstm_test_2() {
             lstm.calc(
                 &data[i],
                 &prev_cell,
-                &mut output,
+                &mut middle_output,
                 &mut cell,
-                &mut working_buffer,
+                &mut working_buffer_middle,
             );
 
             prev_cell.copy_from(&cell);
         }
 
-        println!("{} : {}", data_to_string(&data), output[0]);
+        output_layer.calc(&middle_output, None, &mut output);
+
+        assert_eq!(output.to_u32_label(), ENGLISH as u32);
+        println!(
+            "{} : {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        );
     }
 }

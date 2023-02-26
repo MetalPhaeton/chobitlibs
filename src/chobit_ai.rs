@@ -1986,54 +1986,45 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.update(rate);
     }
 }
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct Encoder<const OUT: usize, const IN: usize> {
-//    body: LSTM<OUT, IN>
-//}
-//
-//impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            body: LSTM::<OUT, IN>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn body(&self) -> &LSTM<OUT, IN> {&self.body}
-//
-//    pub fn calc(
-//        &self,
-//        input: &[MathVec<IN>],
-//        prev_output: &MathVec<OUT>,
-//        prev_cell: &MathVec<OUT>,
-//        output: &mut MathVec<OUT>,
-//        cell: &mut MathVec<OUT>,
-//        working_buffer_1: &mut MathVec<OUT>,
-//        working_buffer_2: &mut MathVec<OUT>,
-//        working_buffer_3: &mut MathVec<OUT>,
-//        working_buffer_4: &mut MathVec<OUT>
-//    ) {
-//        working_buffer_1.copy_from(prev_output);
-//        let prev_output = working_buffer_1;
-//
-//        working_buffer_2.copy_from(prev_cell);
-//        let prev_cell = working_buffer_2;
-//
-//        input.iter().for_each(|input| {
-//            self.body.calc(
-//                input,
-//                prev_output,
-//                prev_cell,
-//                output,
-//                cell,
-//                working_buffer_3,
-//                working_buffer_4
-//            );
-//
-//            prev_output.copy_from(output);
-//            prev_cell.copy_from(cell);
-//        });
-//    }
-//}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Encoder<const OUT: usize, const IN: usize> {
+    body: LSTM<OUT, IN>
+}
+
+impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            body: LSTM::<OUT, IN>::new()
+        }
+    }
+
+    #[inline]
+    pub fn body(&self) -> &LSTM<OUT, IN> {&self.body}
+
+    pub fn calc(
+        &self,
+        input: &[MathVec<IN>],
+        prev_cell: &MathVec<OUT>,
+        output: &mut MathVec<OUT>,
+        cell: &mut MathVec<OUT>,
+        working_buffer_1: &mut MathVec<OUT>,
+        working_buffer_2: &mut MathVec<OUT>
+    ) {
+        working_buffer_1.copy_from(prev_cell);
+        let prev_cell = working_buffer_1;
+
+        input.iter().for_each(|input| {
+            self.body.calc(
+                input,
+                prev_cell,
+                output,
+                cell,
+                working_buffer_2,
+            );
+
+            prev_cell.copy_from(cell);
+        });
+    }
+}
