@@ -40,7 +40,8 @@ use core::{
         DerefMut
     },
     slice::{from_raw_parts, from_raw_parts_mut},
-    mem::size_of
+    mem::size_of,
+    iter::{Zip, Iterator}
 };
 
 #[inline]
@@ -2034,7 +2035,10 @@ impl<const OUT: usize, const IN: usize> Encoder<OUT, IN> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLEncoder<const OUT: usize, const IN: usize> {
-    lstm: MLLSTM<OUT, IN>
+    lstm: MLLSTM<OUT, IN>,
+
+    tmpbuf_in: MathVec<IN>,
+    tmpbuf_out: MathVec<OUT>
 }
 
 impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
@@ -2043,13 +2047,16 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
         let Encoder::<OUT, IN> {lstm} = encoder;
 
         Self {
-            lstm: MLLSTM::<OUT, IN>::new(lstm)
+            lstm: MLLSTM::<OUT, IN>::new(lstm),
+
+            tmpbuf_in: MathVec::<IN>::new(),
+            tmpbuf_out: MathVec::<OUT>::new()
         }
     }
 
     #[inline]
     pub fn drop(self) -> Encoder<OUT, IN> {
-        let Self {lstm} = self;
+        let Self {lstm, ..} = self;
 
         Encoder::<OUT, IN> {
             lstm: lstm.drop()
@@ -2059,24 +2066,21 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
     #[inline]
     pub fn ready<'a>(
         &self,
-        input: &[MathVec<IN>],
+        input_and_caches: Zip<
+            impl Iterator<Item=&'a MathVec<IN>>,
+            impl Iterator<Item=&'a mut MLLSTMCache<OUT, IN>>
+        >,
         prev_cell: &MathVec<OUT>,
-        caches: &'a mut Vec<MLLSTMCache<OUT, IN>>,
         tmpbuf: &mut MathVec<OUT>
-    ) -> &'a [MLLSTMCache<OUT, IN>] {
-        if caches.len() < input.len() {
-            caches.resize_with(input.len(), || MLLSTMCache::<OUT, IN>::new());
-        }
-
-        tmpbuf.copy_from(prev_cell);
+    ) {
+        tmpbuf.copy_from(&prev_cell);
         let prev_cell = tmpbuf;
 
-        for i in 0..input.len() {
-            self.lstm.ready(&input[i], prev_cell, &mut caches[i]);
-            prev_cell.copy_from(&caches[i].cell);
-        }
+        input_and_caches.for_each(move |(input_one, cache)| {
+            self.lstm.ready(input_one, prev_cell, cache);
 
-        &caches[..input.len()]
+            prev_cell.copy_from(&cache.cell);
+        });
     }
 
     pub fn study(
@@ -2085,41 +2089,42 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
         cell_error: Option<&MathVec<OUT>>,
         caches: &[MLLSTMCache<OUT, IN>],
         input_error: &mut MathVec<IN>,
-        prev_cell_error: &mut MathVec<OUT>,
-        tmpbuf_1: &mut MathVec<IN>,
-        tmpbuf_2: &mut MathVec<OUT>
+        prev_cell_error: &mut MathVec<OUT>
     ) {
         let mut caches_iter = caches.iter().rev();
 
-        if let Some(cache) = caches_iter.next() {
-            self.lstm.study(
-                Some(output_error),
-                cell_error,
-                cache,
-                input_error,
-                prev_cell_error
-            );
-        } else {
-            input_error.clear();
-            prev_cell_error.clear();
+        match caches_iter.next() {
+            Some(cache) => {
+                self.lstm.study(
+                    Some(output_error),
+                    cell_error,
+                    cache,
+                    input_error,
+                    prev_cell_error
+                );
+            },
+
+            None => {
+                input_error.clear();
+                prev_cell_error.clear();
+
+                return;
+            }
         }
 
-        let input_error_one = tmpbuf_1;
-
-        tmpbuf_2.copy_from(prev_cell_error);
-        let cell_error = tmpbuf_2;
+        self.tmpbuf_out.copy_from(prev_cell_error);
 
         caches_iter.for_each(|cache| {
             self.lstm.study(
                 None,
-                Some(cell_error),
+                Some(&self.tmpbuf_out),
                 cache,
-                input_error_one,
+                &mut self.tmpbuf_in,
                 prev_cell_error
             );
 
-            *input_error += input_error_one;
-            cell_error.copy_from(prev_cell_error);
+            *input_error += &self.tmpbuf_in;
+            self.tmpbuf_out.copy_from(prev_cell_error);
         });
     }
 
@@ -2148,24 +2153,24 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
 //    #[inline]
 //    pub fn lstm_mut(&mut self) -> &mut LSTM<OUT, IN> {&mut self.lstm}
 //
-//    pub fn calc(
+//    pub fn calc<'a>(
 //        &self,
 //        input: &MathVec<IN>,
 //        prev_cell: &MathVec<OUT>,
-//        output: &mut Vec<MathVec<OUT>>,
+//        output: &'a mut Vec<MathVec<OUT>>,
 //        cell: &mut MathVec<OUT>,
 //        terminator: &MathVec<OUT>,
 //        max_length: usize,
 //        tmpbuf_1: &mut MathVec<OUT>,
-//        tmpbuf_2: &mut MathVec<OUT>,
-//    ) -> usize {
+//        tmpbuf_2: &mut MathVec<OUT>
+//    ) -> &'a [MathVec<OUT>] {
 //        tmpbuf_1.copy_from(prev_cell);
 //        let prev_cell = tmpbuf_1;
 //
 //        let mut count: usize = 0;
 //
 //        for output_one in output.iter_mut() {
-//            if count >= max_length {return count;}
+//            if count >= max_length {return &output[..count];}
 //
 //            self.lstm.calc(
 //                input,
@@ -2177,7 +2182,7 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
 //            count += 1;
 //
 //            if output_one == terminator {
-//                return count;
+//                return &output[..count];
 //            }
 //
 //            prev_cell.copy_from(&cell);
@@ -2197,38 +2202,141 @@ impl<const OUT: usize, const IN: usize> MLEncoder<OUT, IN> {
 //
 //            if output_one == *terminator {
 //                output.push(output_one);
-//                return count;
+//                return &output[..count];
 //            }
 //
-//            output.push(output_one);
 //            prev_cell.copy_from(&cell);
+//            output.push(output_one);
 //        }
 //
-//        count
+//        &output[..count]
 //    }
 //}
-//
+
 //#[derive(Debug, Clone, PartialEq)]
 //pub struct MLDecoder<const OUT: usize, const IN: usize> {
-//    lstm: MLLSTM<OUT, IN>
+//    lstm: MLLSTM<OUT, IN>,
+//
+//    tmpbuf_in: MathVec<IN>,
+//    tmpbuf_out: MathVec<OUT>,
+//    tmp_error: MathVec<OUT>
 //}
 //
 //impl<const OUT: usize, const IN: usize> MLDecoder<OUT, IN> {
 //    #[inline]
-//    pub fn new(decorder: Decoder<OUT, IN>) -> Self {
-//        let Decoder::<OUT, IN> {lstm} = decorder;
+//    pub fn new(decoder: Decoder<OUT, IN>) -> Self {
+//        let Decoder::<OUT, IN> {lstm} = decoder;
 //
 //        Self {
-//            lstm: MLLSTM::<OUT, IN>::new(lstm)
+//            lstm: MLLSTM::<OUT, IN>::new(lstm),
+//
+//            tmpbuf_in: MathVec::<IN>::new(),
+//            tmpbuf_out: MathVec::<OUT>::new(),
+//            tmp_error: MathVec::<OUT>::new()
 //        }
 //    }
 //
 //    #[inline]
 //    pub fn drop(self) -> Decoder<OUT, IN> {
-//        let Self {lstm} = self;
+//        let Self {lstm, ..} = self;
 //
 //        Decoder::<OUT, IN> {
 //            lstm: lstm.drop()
 //        }
+//    }
+//
+//    pub fn ready<'a>(
+//        &self,
+//        input: &MathVec<IN>,
+//        prev_cell: &MathVec<OUT>,
+//        caches: &'a mut Vec<MLLSTMCache<OUT, IN>>,
+//        terminator: &MathVec<OUT>,
+//        max_length: usize,
+//        tmpbuf: &mut MathVec<OUT>
+//    ) -> &'a [MLLSTMCache<OUT, IN>] {
+//        tmpbuf.copy_from(prev_cell);
+//        let prev_cell = tmpbuf;
+//
+//        let mut count: usize = 0;
+//
+//        for cache in caches.iter_mut() {
+//            if count >= max_length {return &caches[..count];}
+//
+//            self.lstm.ready(input, prev_cell, cache);
+//            count += 1;
+//
+//            if cache.output == *terminator {
+//                return &caches[..count];
+//            }
+//
+//            prev_cell.copy_from(&cache.cell);
+//        }
+//
+//        while count < max_length {
+//            let mut cache = MLLSTMCache::<OUT, IN>::new();
+//
+//            self.lstm.ready(input, prev_cell, &mut cache);
+//            count += 1;
+//
+//            if cache.output == *terminator {
+//                caches.push(cache);
+//                return &caches[..count];
+//            }
+//
+//            prev_cell.copy_from(&cache.cell);
+//            caches.push(cache);
+//        }
+//
+//        &caches[..count]
+//    }
+//
+//    pub fn study(
+//        &mut self,
+//        output_error: &[MathVec<OUT>],
+//        cell_error: Option<&MathVec<OUT>>,
+//        caches: &[MLLSTMCache<OUT, IN>],
+//        input_error: &mut MathVec<IN>,
+//        prev_cell_error: &mut MathVec<OUT>
+//    ) {
+//        //let mut caches_iter = caches.iter().rev();
+//
+//        //match caches_iter.next() {
+//        //    Some(cache) => {
+//        //        self.lstm.study(
+//        //            Some(output_error),
+//        //            cell_error,
+//        //            cache,
+//        //            input_error,
+//        //            prev_cell_error
+//        //        );
+//        //    },
+//
+//        //    None => {
+//        //        input_error.clear();
+//        //        prev_cell_error.clear();
+//
+//        //        return;
+//        //    }
+//        //}
+//
+//        //self.tmpbuf_out.copy_from(prev_cell_error);
+//
+//        //caches_iter.for_each(|cache| {
+//        //    self.lstm.study(
+//        //        None,
+//        //        Some(&self.tmpbuf_out),
+//        //        cache,
+//        //        &mut self.tmpbuf_in,
+//        //        prev_cell_error
+//        //    );
+//
+//        //    *input_error += &self.tmpbuf_in;
+//        //    self.tmpbuf_out.copy_from(prev_cell_error);
+//        //});
+//    }
+//
+//    #[inline]
+//    pub fn update(&mut self, rate: f32) {
+//        self.lstm.update(rate);
 //    }
 //}
