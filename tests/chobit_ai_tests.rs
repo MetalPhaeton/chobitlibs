@@ -1430,17 +1430,19 @@ fn encoder_test_1() {
             japanese_data(&mut rng, &mut data);
             prev_cell.clear();
 
-            encoder.ready(
+            assert_eq!(caches.len(), 30);
+            let caches_slice = encoder.ready(
                 &data,
                 &prev_cell,
-                &mut caches[..data.len()],
+                &mut caches,
                 &mut tmpbuf_1
             );
+            assert_eq!(caches_slice.len(), data.len());
 
-            let tail: usize = data.len() - 1;
+            let tail: usize = caches_slice.len() - 1;
 
             output_layer.ready(
-                &caches[tail].output(),
+                &caches_slice[tail].output(),
                 None,
                 &mut output_layer_cache
             );
@@ -1457,7 +1459,7 @@ fn encoder_test_1() {
             encoder.study(
                 &middle_output_error,
                 None,
-                &caches[..data.len()],
+                &caches_slice,
                 &mut input_error,
                 &mut prev_cell_error,
                 &mut tmpbuf_3,
@@ -1561,17 +1563,19 @@ fn encoder_test_2() {
             japanese_data(&mut rng, &mut data);
             prev_cell.clear();
 
-            encoder.ready(
+            assert_eq!(caches.len(), 30);
+            let caches_slice = encoder.ready(
                 &data,
                 &prev_cell,
-                &mut caches[..data.len()],
+                &mut caches,
                 &mut tmpbuf_1
             );
+            assert_eq!(caches_slice.len(), data.len());
 
-            let tail: usize = data.len() - 1;
+            let tail: usize = caches_slice.len() - 1;
 
             output_layer.ready(
-                &caches[tail].output(),
+                &caches_slice[tail].output(),
                 None,
                 &mut output_layer_cache
             );
@@ -1588,7 +1592,7 @@ fn encoder_test_2() {
             encoder.study(
                 &middle_output_error,
                 None,
-                &caches[..data.len()],
+                &caches_slice,
                 &mut input_error,
                 &mut prev_cell_error,
                 &mut tmpbuf_3,
@@ -1598,17 +1602,19 @@ fn encoder_test_2() {
             english_data(&mut rng, &mut data);
             prev_cell.clear();
 
-            encoder.ready(
+            assert_eq!(caches.len(), 30);
+            let caches_slice = encoder.ready(
                 &data,
                 &prev_cell,
-                &mut caches[..data.len()],
+                &mut caches,
                 &mut tmpbuf_1
             );
+            assert_eq!(caches_slice.len(), data.len());
 
-            let tail: usize = data.len() - 1;
+            let tail: usize = caches_slice.len() - 1;
 
             output_layer.ready(
-                &caches[tail].output(),
+                &caches_slice[tail].output(),
                 None,
                 &mut output_layer_cache
             );
@@ -1625,7 +1631,7 @@ fn encoder_test_2() {
             encoder.study(
                 &middle_output_error,
                 None,
-                &caches[..data.len()],
+                &caches_slice,
                 &mut input_error,
                 &mut prev_cell_error,
                 &mut tmpbuf_3,
