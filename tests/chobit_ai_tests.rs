@@ -1419,7 +1419,7 @@ fn encoder_test_1() {
     let mut encoder = MLEncoder::<OUT, MIDDLE, IN>::new(encoder);
 
     let mut output_error = MathVec::<OUT>::new();
-    let mut input_error = MathVec::<IN>::new();
+    let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut prev_cell_error = MathVec::<MIDDLE>::new();
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
@@ -1439,7 +1439,7 @@ fn encoder_test_1() {
                 &output_error,
                 None,
                 &cache,
-                &mut input_error,
+                &mut input_error[..data.len()],
                 &mut prev_cell_error
             );
         }
@@ -1519,7 +1519,7 @@ fn encoder_test_2() {
     let mut encoder = MLEncoder::<OUT, MIDDLE, IN>::new(encoder);
 
     let mut output_error = MathVec::<OUT>::new();
-    let mut input_error = MathVec::<IN>::new();
+    let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut prev_cell_error = MathVec::<MIDDLE>::new();
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
@@ -1540,7 +1540,7 @@ fn encoder_test_2() {
                     &output_error,
                     None,
                     &cache,
-                    &mut input_error,
+                    &mut input_error[..data.len()],
                     &mut prev_cell_error
                 );
             }
@@ -1561,7 +1561,7 @@ fn encoder_test_2() {
                     &output_error,
                     None,
                     &cache,
-                    &mut input_error,
+                    &mut input_error[..data.len()],
                     &mut prev_cell_error
                 );
             }

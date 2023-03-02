@@ -2184,7 +2184,7 @@ impl<
         output_error: &MathVec<OUT>,
         cell_error: Option<&MathVec<MIDDLE>>,
         cache: &MLEncoderCache<OUT, MIDDLE, IN>,
-        input_error: &mut MathVec<IN>,
+        input_error: &mut [MathVec<IN>],
         prev_cell_error: &mut MathVec<MIDDLE>
     ) {
         self.output_layer.study(
@@ -2194,11 +2194,11 @@ impl<
             None
         );
 
-        let mut caches_iter =
-            cache.lstm_caches[..cache.input_len].iter().rev();
+        let mut cache_and_input_error =
+            cache.lstm_caches[..cache.input_len].iter().zip(input_error).rev();
 
-        match caches_iter.next() {
-            Some(cache) => {
+        match cache_and_input_error.next() {
+            Some((cache, input_error)) => {
                 self.lstm.study(
                     Some(&self.tmp_middle_error),
                     cell_error,
@@ -2208,26 +2208,20 @@ impl<
                 );
             },
 
-            None => {
-                input_error.clear();
-                prev_cell_error.clear();
-
-                return;
-            }
+            None => {return;}
         }
 
         self.tmp_cell_error.copy_from(prev_cell_error);
 
-        caches_iter.for_each(|cache| {
+        cache_and_input_error.for_each(|(cache, input_error)| {
             self.lstm.study(
                 None,
                 Some(&self.tmp_cell_error),
                 cache,
-                &mut self.tmp_input_error,
+                input_error,
                 prev_cell_error
             );
 
-            *input_error += &self.tmp_input_error;
             self.tmp_cell_error.copy_from(prev_cell_error);
         });
     }
