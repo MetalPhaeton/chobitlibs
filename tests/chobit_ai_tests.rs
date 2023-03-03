@@ -575,6 +575,7 @@ fn layer_test_1() {
     });
 
     let mut layer_2 = Layer::<OUT, IN>::new(Activation::SoftSign);
+
     layer_2.mut_weights().iter_mut().for_each(|val| {
         *val = rand_num(&mut rng);
     });
@@ -598,7 +599,7 @@ fn layer_test_1() {
     layer_2.calc(&input, Some(&state), &mut output_2);
 
     // checks before machine learning.
-    const EPSILON_1: f32 = 0.1;
+    const EPSILON_1: f32 = 0.01;
     for i in 0..OUT {
         let diff = (output_1[i] - output_2[i]).abs();
         assert!(diff > EPSILON_1);
@@ -1347,7 +1348,7 @@ fn lstm_test_2() {
 fn gen_encoder<const OUT: usize, const MIDDLE: usize, const IN: usize>(
     rng: &mut ChobitRand
 ) -> Encoder<OUT, MIDDLE, IN> {
-    let mut ret = Encoder::<OUT, MIDDLE, IN>::new();
+    let mut ret = Encoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 
     ret.lstm_mut().main_layer_mut().mut_weights().iter_mut().for_each(|val| {
         *val = rand_num(rng);
@@ -1606,391 +1607,266 @@ fn encoder_test_2() {
         assert_eq!(char::from_u32(output.to_u32_label()).unwrap(), ENGLISH);
     }
 }
-//
-//const TERMINATOR: char = '\x00';
-//
-//fn gen_decoder<const OUT: usize, const IN: usize>(
-//    rng: &mut ChobitRand
-//) -> Decoder<OUT, IN> {
-//    let mut ret = Decoder::<OUT, IN>::new();
-//
-//    ret.lstm_mut().main_layer_mut().mut_weights().iter_mut().for_each(|val| {
-//        *val = rand_num(rng);
-//    });
-//
-//    ret.lstm_mut().f_gate_mut().mut_weights().iter_mut().for_each(|val| {
-//        *val = rand_num(rng);
-//    });
-//
-//    ret.lstm_mut().i_gate_mut().mut_weights().iter_mut().for_each(|val| {
-//        *val = rand_num(rng);
-//    });
-//
-//    ret.lstm_mut().o_gate_mut().mut_weights().iter_mut().for_each(|val| {
-//        *val = rand_num(rng);
-//    });
-//
-//    ret
-//}
-//
-//#[test]
-//fn decoder_test_1() {
-//    const OUT: usize = 32;
-//    const MIDDLE: usize = 64;
-//    const IN: usize = 32;
-//
-//    let mut rng = ChobitRand::new("decoder_test_1".as_bytes());
-//
-//    let mut japanese_in = MathVec::<IN>::new();
-//    japanese_in.load_u32_label(JAPANESE as u32);
-//
-//    let mut english_in = MathVec::<IN>::new();
-//    english_in.load_u32_label(ENGLISH as u32);
-//
-//    let mut terminator = MathVec::<OUT>::new();
-//    terminator.load_u32_label(TERMINATOR as u32);
-//
-//    let japanese_out: Vec<MathVec<OUT>> =
-//        "これは日本語です。\x00".chars().map(|c| {
-//            let mut vec = MathVec::<OUT>::new();
-//            vec.load_u32_label(c as u32);
-//            vec
-//        }).collect();
-//
-//    const MAX_LENGTH: usize = 30;
-//
-//    let mut caches = vec![MLLSTMCache::<OUT, MIDDLE>::new(); MAX_LENGTH];
-//    let mut input_layer_cache = MLCache::<MIDDLE, IN>::new();
-//
-//    let mut prev_cell = MathVec::<OUT>::new();
-//    let mut middle_output = MathVec::<MIDDLE>::new();
-//    let mut output = vec![MathVec::<OUT>::new(); MAX_LENGTH + 10];
-//    let mut cell = MathVec::<OUT>::new();
-//    let mut tmpbuf_1 = MathVec::<OUT>::new();
-//    let mut tmpbuf_2 = MathVec::<OUT>::new();
-//
-//    let input_layer = gen_layer::<MIDDLE, IN>(&mut rng);
-//    let decoder = gen_decoder::<OUT, MIDDLE>(&mut rng);
-//
-//    input_layer.calc(&japanese_in, None, &mut middle_output);
-//
-//    prev_cell.clear();
-//
-//    let output_slice = decoder.calc(
-//        &middle_output,
-//        &prev_cell,
-//        &mut output,
-//        &mut cell,
-//        &terminator,
-//        MAX_LENGTH,
-//        &mut tmpbuf_1,
-//        &mut tmpbuf_2
-//    );
-//
-//    assert!(output_slice.len() <= MAX_LENGTH);
-//
-//    const EPOCH: usize = 3;
-//    const BATCH_SIZE: usize = 3;
-//    const RATE: f32 = 0.01;
-//
-//    let mut decoder = MLDecoder::<OUT, MIDDLE>::new(decoder);
-//    let mut input_layer = MLLayer::<MIDDLE, IN>::new(input_layer);
-//
-//    let mut middle_output_error = MathVec::<MIDDLE>::new();
-//    let mut output_error = vec![MathVec::<OUT>::new(); MAX_LENGTH];
-//    let mut input_error = MathVec::<IN>::new();
-//    let mut prev_cell_error = MathVec::<OUT>::new();
-//    for _ in 0..EPOCH {
-//        for _ in 0..BATCH_SIZE {
-//            input_layer.ready(
-//                &japanese_in,
-//                None,
-//                &mut input_layer_cache
-//            );
-//
-//            prev_cell.clear();
-//            let caches_slice = decoder.ready(
-//                input_layer_cache.output(),
-//                &prev_cell,
-//                &mut caches,
-//                &terminator,
-//                MAX_LENGTH,
-//                &mut tmpbuf_1
-//            );
-//
-//            japanese_out.iter().zip(
-//                caches_slice
-//            ).zip(
-//                &mut output_error
-//            ).for_each(|((train, cache), output_error)| {
-//                cache.calc_output_error(train, output_error);
-//            });
-//
-//            decoder.study(
-//                output_error[..japanese_out.len()].iter().zip(caches_slice),
-//                None,
-//                &mut middle_output_error,
-//                &mut prev_cell_error
-//            );
-//
-//            input_layer.study(
-//                &middle_output_error,
-//                &input_layer_cache,
-//                &mut input_error,
-//                None
-//            );
-//        }
-//
-//        decoder.update(RATE);
-//        input_layer.update(RATE);
-//    }
-//}
-//
-//#[cfg(not(debug_assertions))]
-//#[test]
-//fn decoder_test_2() {
-//    const OUT: usize = 32;
-//    const MIDDLE: usize = 64;
-//    const IN: usize = 32;
-//
-//    let mut rng = ChobitRand::new("decoder_test_2".as_bytes());
-//
-//    let mut japanese_in = MathVec::<IN>::new();
-//    japanese_in.load_u32_label(JAPANESE as u32);
-//
-//    let mut english_in = MathVec::<IN>::new();
-//    english_in.load_u32_label(ENGLISH as u32);
-//
-//    let mut terminator = MathVec::<OUT>::new();
-//    terminator.load_u32_label(TERMINATOR as u32);
-//
-//    let japanese_out: Vec<MathVec<OUT>> =
-//        "日本語\x00".chars().map(|c| {
-//            let mut vec = MathVec::<OUT>::new();
-//            vec.load_u32_label(c as u32);
-//            vec
-//        }).collect();
-//
-//    let english_out: Vec<MathVec<OUT>> =
-//        "this is english.\x00".chars().map(|c| {
-//            let mut vec = MathVec::<OUT>::new();
-//            vec.load_u32_label(c as u32);
-//            vec
-//        }).collect();
-//
-//    const MAX_LENGTH: usize = 30;
-//
-//    let mut caches = vec![MLLSTMCache::<OUT, MIDDLE>::new(); MAX_LENGTH];
-//    let mut input_layer_cache = MLCache::<MIDDLE, IN>::new();
-//
-//    let mut prev_cell = MathVec::<OUT>::new();
-//    let mut middle_output = MathVec::<MIDDLE>::new();
-//    let mut output = vec![MathVec::<OUT>::new(); MAX_LENGTH + 10];
-//    let mut cell = MathVec::<OUT>::new();
-//    let mut tmpbuf_1 = MathVec::<OUT>::new();
-//    let mut tmpbuf_2 = MathVec::<OUT>::new();
-//
-//    let input_layer = gen_layer::<MIDDLE, IN>(&mut rng);
-//    let decoder = gen_decoder::<OUT, MIDDLE>(&mut rng);
-//
-//    // japanese ---------------------------------------------------------------
-//    {
-//        input_layer.calc(&japanese_in, None, &mut middle_output);
-//
-//        prev_cell.clear();
-//
-//        let output_slice = decoder.calc(
-//            &middle_output,
-//            &prev_cell,
-//            &mut output,
-//            &mut cell,
-//            &terminator,
-//            MAX_LENGTH,
-//            &mut tmpbuf_1,
-//            &mut tmpbuf_2
-//        );
-//
-//        assert!(output_slice.len() <= MAX_LENGTH);
-//
-//        for (train, output) in japanese_out.iter().zip(&output) {
-//            assert_ne!(train, output);
-//        }
-//    }
-//
-//    // english ----------------------------------------------------------------
-//    {
-//        input_layer.calc(&english_in, None, &mut middle_output);
-//
-//        prev_cell.clear();
-//
-//        let output_slice = decoder.calc(
-//            &middle_output,
-//            &prev_cell,
-//            &mut output,
-//            &mut cell,
-//            &terminator,
-//            MAX_LENGTH,
-//            &mut tmpbuf_1,
-//            &mut tmpbuf_2
-//        );
-//
-//        assert!(output_slice.len() <= MAX_LENGTH);
-//
-//        for (train, output) in english_out.iter().zip(&output) {
-//            assert_ne!(train, output);
-//        }
-//    }
-//
-//    const EPOCH: usize = 20000;
-//    const BATCH_SIZE: usize = 1000;
-//    const RATE: f32 = 0.01;
-//
-//    let mut decoder = MLDecoder::<OUT, MIDDLE>::new(decoder);
-//    let mut input_layer = MLLayer::<MIDDLE, IN>::new(input_layer);
-//
-//    let mut middle_output_error = MathVec::<MIDDLE>::new();
-//    let mut output_error = vec![MathVec::<OUT>::new(); MAX_LENGTH];
-//    let mut input_error = MathVec::<IN>::new();
-//    let mut prev_cell_error = MathVec::<OUT>::new();
-//    for _ in 0..EPOCH {
-//        for _ in 0..BATCH_SIZE {
-//            // japanese -------------------------------------------------------
-//            input_layer.ready(
-//                &japanese_in,
-//                None,
-//                &mut input_layer_cache
-//            );
-//
-//            prev_cell.clear();
-//            let caches_slice = decoder.ready(
-//                input_layer_cache.output(),
-//                &prev_cell,
-//                &mut caches,
-//                &terminator,
-//                MAX_LENGTH,
-//                &mut tmpbuf_1
-//            );
-//
-//            japanese_out.iter().zip(
-//                caches_slice
-//            ).zip(
-//                &mut output_error
-//            ).for_each(|((train, cache), output_error)| {
-//                cache.calc_output_error(train, output_error);
-//            });
-//
-//            decoder.study(
-//                output_error[..japanese_out.len()].iter().zip(caches_slice),
-//                None,
-//                &mut middle_output_error,
-//                &mut prev_cell_error
-//            );
-//
-//            input_layer.study(
-//                &middle_output_error,
-//                &input_layer_cache,
-//                &mut input_error,
-//                None
-//            );
-//
-//            //// english --------------------------------------------------------
-//            //input_layer.ready(
-//            //    &english_in,
-//            //    None,
-//            //    &mut input_layer_cache
-//            //);
-//
-//            //prev_cell.clear();
-//            //let caches_slice = decoder.ready(
-//            //    input_layer_cache.output(),
-//            //    &prev_cell,
-//            //    &mut caches,
-//            //    &terminator,
-//            //    MAX_LENGTH,
-//            //    &mut tmpbuf_1
-//            //);
-//
-//            //english_out.iter().zip(
-//            //    caches_slice
-//            //).zip(
-//            //    &mut output_error
-//            //).for_each(|((train, cache), output_error)| {
-//            //    cache.calc_output_error(train, output_error);
-//            //});
-//
-//            //decoder.study(
-//            //    output_error[..english_out.len()].iter().zip(caches_slice),
-//            //    None,
-//            //    &mut middle_output_error,
-//            //    &mut prev_cell_error
-//            //);
-//
-//            //input_layer.study(
-//            //    &middle_output_error,
-//            //    &input_layer_cache,
-//            //    &mut input_error,
-//            //    None
-//            //);
-//
-//        }
-//
-//        decoder.update(RATE);
-//        input_layer.update(RATE);
-//    }
-//
-//    let decoder = decoder.drop();
-//    let input_layer = input_layer.drop();
-//
-//    // japanese ---------------------------------------------------------------
-//    {
-//        input_layer.calc(&japanese_in, None, &mut middle_output);
-//
-//        prev_cell.clear();
-//
-//        let output_slice = decoder.calc(
-//            &middle_output,
-//            &prev_cell,
-//            &mut output,
-//            &mut cell,
-//            &terminator,
-//            MAX_LENGTH,
-//            &mut tmpbuf_1,
-//            &mut tmpbuf_2
-//        );
-//
-//        assert!(output_slice.len() <= MAX_LENGTH);
-//
-//        output.iter().for_each(|vec| {
-//            println!("{:?}", char::from_u32(vec.to_u32_label()));
-//        });
-//        //println!("{}", data_to_string(&output));
-//        //for (train, output) in japanese_out.iter().zip(&output) {
-//        //    assert_ne!(train, output);
-//        //}
-//    }
-//
-//    //// english ----------------------------------------------------------------
-//    //{
-//    //    input_layer.calc(&english_in, None, &mut middle_output);
-//
-//    //    prev_cell.clear();
-//
-//    //    let output_slice = decoder.calc(
-//    //        &middle_output,
-//    //        &prev_cell,
-//    //        &mut output,
-//    //        &mut cell,
-//    //        &terminator,
-//    //        MAX_LENGTH,
-//    //        &mut tmpbuf_1,
-//    //        &mut tmpbuf_2
-//    //    );
-//
-//    //    assert!(output_slice.len() <= MAX_LENGTH);
-//
-//    //    println!("{}", data_to_string(&output));
-//    //    //for (train, output) in english_out.iter().zip(&output) {
-//    //    //    assert_ne!(train, output);
-//    //    //}
-//    //}
-//}
+
+fn gen_decoder<const OUT: usize, const MIDDLE: usize, const IN: usize>(
+    rng: &mut ChobitRand
+) -> Decoder<OUT, MIDDLE, IN> {
+    let mut ret = Decoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+
+    ret.lstm_mut().main_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.lstm_mut().f_gate_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.lstm_mut().i_gate_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.lstm_mut().o_gate_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret.output_layer_mut().mut_weights().iter_mut().for_each(|val| {
+        *val = rand_num(rng);
+    });
+
+    ret
+}
+
+#[test]
+fn decoder_test_1() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
+    const IN: usize = 32;
+
+    let mut rng = ChobitRand::new("decoder_test_1".as_bytes());
+
+    let mut japanese_in = MathVec::<IN>::new();
+    japanese_in.load_u32_label(JAPANESE as u32);
+
+    let japanese_out: Vec<MathVec<OUT>> =
+        "これは日本語です。\x00".chars().map(|c| {
+            let mut vec = MathVec::<OUT>::new();
+            vec.load_u32_label(c as u32);
+            vec
+        }).collect();
+
+    const OUTPUT_LEN: usize = 30;
+
+    let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(OUTPUT_LEN);
+
+    let mut prev_cell = MathVec::<MIDDLE>::new();
+    let mut output = vec![MathVec::<OUT>::new(); OUTPUT_LEN];
+    let mut cell = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_1 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_2 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_3 = MathVec::<MIDDLE>::new();
+
+    let decoder = gen_decoder::<OUT, MIDDLE, IN>(&mut rng);
+
+    prev_cell.clear();
+
+    decoder.calc(
+        &japanese_in,
+        &prev_cell,
+        output.as_mut_slice(),
+        &mut cell,
+        &mut tmpbuf_1,
+        &mut tmpbuf_2,
+        &mut tmpbuf_3,
+    );
+
+    const EPOCH: usize = 3;
+    const BATCH_SIZE: usize = 3;
+    const RATE: f32 = 0.01;
+
+    let mut decoder = MLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+
+    let mut output_error = vec![MathVec::<OUT>::new(); OUTPUT_LEN];
+    let mut input_error = MathVec::<IN>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            prev_cell.clear();
+            decoder.ready(
+                &japanese_in,
+                &prev_cell,
+                &mut cache,
+                OUTPUT_LEN,
+                &mut tmpbuf_1
+            );
+
+            cache.calc_error(
+                &japanese_out,
+                &mut output_error[..japanese_out.len()]
+            );
+
+            decoder.study(
+                &output_error[..japanese_out.len()],
+                None,
+                &cache,
+                &mut input_error,
+                &mut prev_cell_error
+            );
+        }
+
+        decoder.update(RATE);
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[test]
+fn decoder_test_2() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
+    const IN: usize = 32;
+
+    let mut rng = ChobitRand::new("decoder_test_2".as_bytes());
+
+    let mut japanese_in = MathVec::<IN>::new();
+    japanese_in.load_u32_label(JAPANESE as u32);
+
+    let japanese_out: Vec<MathVec<OUT>> =
+        "これは日本語です。\x00".chars().map(|c| {
+            let mut vec = MathVec::<OUT>::new();
+            vec.load_u32_label(c as u32);
+            vec
+        }).collect();
+
+    let mut english_in = MathVec::<IN>::new();
+    english_in.load_u32_label(ENGLISH as u32);
+
+    let english_out: Vec<MathVec<OUT>> =
+        "this is english.\x00".chars().map(|c| {
+            let mut vec = MathVec::<OUT>::new();
+            vec.load_u32_label(c as u32);
+            vec
+        }).collect();
+
+    const OUTPUT_LEN: usize = 30;
+
+    let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(OUTPUT_LEN);
+
+    let mut prev_cell = MathVec::<MIDDLE>::new();
+    let mut output = vec![MathVec::<OUT>::new(); OUTPUT_LEN];
+    let mut cell = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_1 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_2 = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_3 = MathVec::<MIDDLE>::new();
+
+    let decoder = gen_decoder::<OUT, MIDDLE, IN>(&mut rng);
+
+    prev_cell.clear();
+
+    decoder.calc(
+        &japanese_in,
+        &prev_cell,
+        output.as_mut_slice(),
+        &mut cell,
+        &mut tmpbuf_1,
+        &mut tmpbuf_2,
+        &mut tmpbuf_3,
+    );
+
+    const EPOCH: usize = 10000;
+    const BATCH_SIZE: usize = 100;
+    const RATE: f32 = 0.01;
+
+    let mut decoder = MLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+
+    let mut output_error = vec![MathVec::<OUT>::new(); OUTPUT_LEN];
+    let mut input_error = MathVec::<IN>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            prev_cell.clear();
+            decoder.ready(
+                &japanese_in,
+                &prev_cell,
+                &mut cache,
+                OUTPUT_LEN,
+                &mut tmpbuf_1
+            );
+
+            cache.calc_error(
+                &japanese_out,
+                &mut output_error[..japanese_out.len()]
+            );
+
+            decoder.study(
+                &output_error[..japanese_out.len()],
+                None,
+                &cache,
+                &mut input_error,
+                &mut prev_cell_error
+            );
+
+            prev_cell.clear();
+            decoder.ready(
+                &english_in,
+                &prev_cell,
+                &mut cache,
+                OUTPUT_LEN,
+                &mut tmpbuf_1
+            );
+
+            cache.calc_error(
+                &english_out,
+                &mut output_error[..english_out.len()]
+            );
+
+            decoder.study(
+                &output_error[..english_out.len()],
+                None,
+                &cache,
+                &mut input_error,
+                &mut prev_cell_error
+            );
+        }
+
+        decoder.update(RATE);
+    }
+
+    let decoder = decoder.drop();
+
+    prev_cell.clear();
+    decoder.calc(
+        &japanese_in,
+        &prev_cell,
+        &mut output,
+        &mut cell,
+        &mut tmpbuf_1,
+        &mut tmpbuf_2,
+        &mut tmpbuf_3,
+    );
+
+    output.iter().for_each(|val| {
+        println!("{:?}", char::from_u32(val.to_u32_label()));}
+    );
+
+    japanese_out.iter().zip(&output).for_each(|(japanese, output_one)| {
+        assert_eq!(output_one.to_u32_label(), japanese.to_u32_label());
+    });
+
+    prev_cell.clear();
+    decoder.calc(
+        &english_in,
+        &prev_cell,
+        &mut output,
+        &mut cell,
+        &mut tmpbuf_1,
+        &mut tmpbuf_2,
+        &mut tmpbuf_3,
+    );
+
+    output.iter().for_each(|val| {
+        println!("{:?}", char::from_u32(val.to_u32_label()));}
+    );
+
+    english_out.iter().zip(&output).for_each(|(english, output_one)| {
+        assert_eq!(output_one.to_u32_label(), english.to_u32_label());
+    });
+}
