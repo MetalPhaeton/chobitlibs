@@ -864,7 +864,10 @@ fn japanese_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
     letter_data(rng, &letters, data);
 }
 
+#[cfg(not(debug_assertions))]
 const ENGLISH: char = 'E';
+
+#[cfg(not(debug_assertions))]
 fn english_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
     let letters: [char; 10] = [
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'
@@ -1300,3 +1303,242 @@ fn lstm_test_2() {
     }
 }
 
+fn gen_encoder<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+>(rng: &mut ChobitRand) -> ChobitEncoder<OUT, MIDDLE, IN> {
+    let mut ret = ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+
+    rand_weights(rng, ret.lstm_mut().main_layer_mut().mut_weights());
+    rand_weights(rng, ret.lstm_mut().f_gate_mut().mut_weights());
+    rand_weights(rng, ret.lstm_mut().i_gate_mut().mut_weights());
+    rand_weights(rng, ret.lstm_mut().o_gate_mut().mut_weights());
+
+    rand_weights(rng, ret.output_layer_mut().mut_weights());
+
+    ret
+}
+
+#[test]
+fn chobit_encoder_test_1() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
+    const IN: usize = 32;
+
+    let mut rng = ChobitRand::new("chobit_encoder_test_1".as_bytes());
+
+    let mut data = Vec::<MathVec<32>>::new();
+    let mut japanese = MathVec::<OUT>::new();
+    japanese.load_u32_label(JAPANESE as u32);
+
+    const COUNT: usize = 10;
+
+    let mut encoder = gen_encoder::<OUT, MIDDLE, IN>(&mut rng);
+    let mut output = MathVec::<OUT>::new();
+    let mut tmpbuf = MathVec::<MIDDLE>::new();
+
+    for _ in 0..COUNT {
+        japanese_data(&mut rng, &mut data);
+        encoder.cell_mut().clear();
+
+        data.iter().for_each(|data_one| {
+            encoder.input_next(data_one);
+        });
+
+        encoder.output(&mut output, &mut tmpbuf);
+    }
+
+    const EPOCH: usize = 10;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.01;
+
+    encoder.cell_mut().clear();
+    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+    let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(0);
+    let mut error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            japanese_data(&mut rng, &mut data);
+
+            cache.clear();
+            data.iter().for_each(|data_one| {
+                encoder.ready_next(data_one, &mut cache);
+            });
+            encoder.ready_output(&mut cache);
+
+            cache.calc_error(&japanese, &mut error);
+
+            encoder.study(
+                &error,
+                &cache,
+                &mut input_error,
+                &mut prev_cell_error
+            );
+        }
+
+        encoder.update(RATE);
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[test]
+fn chobit_encoder_test_2() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 64;
+    const IN: usize = 32;
+
+    let mut rng = ChobitRand::new("chobit_encoder_test_2".as_bytes());
+
+    let mut data = Vec::<MathVec<32>>::new();
+    let mut japanese = MathVec::<OUT>::new();
+    japanese.load_u32_label(JAPANESE as u32);
+    let mut english = MathVec::<OUT>::new();
+    english.load_u32_label(ENGLISH as u32);
+
+    const COUNT: usize = 10;
+
+    let mut encoder = gen_encoder::<OUT, MIDDLE, IN>(&mut rng);
+    let mut output = MathVec::<OUT>::new();
+    let mut tmpbuf = MathVec::<MIDDLE>::new();
+
+    for _ in 0..COUNT {
+        japanese_data(&mut rng, &mut data);
+        encoder.cell_mut().clear();
+
+        data.iter().for_each(|data_one| {
+            encoder.input_next(data_one);
+        });
+
+        encoder.output(&mut output, &mut tmpbuf);
+
+        assert_ne!(
+            output.to_u32_label(),
+            japanese.to_u32_label(),
+        );
+        println!(
+            "{}, {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        )
+    }
+
+    for _ in 0..COUNT {
+        english_data(&mut rng, &mut data);
+        encoder.cell_mut().clear();
+
+        data.iter().for_each(|data_one| {
+            encoder.input_next(data_one);
+        });
+
+        encoder.output(&mut output, &mut tmpbuf);
+
+        assert_ne!(
+            output.to_u32_label(),
+            english.to_u32_label(),
+        );
+        println!(
+            "{}, {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        )
+    }
+
+    const EPOCH: usize = 1000;
+    const BATCH_SIZE: usize = 100;
+    const RATE: f32 = 0.01;
+
+    encoder.cell_mut().clear();
+    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+    let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(0);
+    let mut error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+    let mut prev_cell_error = MathVec::<MIDDLE>::new();
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            japanese_data(&mut rng, &mut data);
+
+            cache.clear();
+            data.iter().for_each(|data_one| {
+                encoder.ready_next(data_one, &mut cache);
+            });
+            encoder.ready_output(&mut cache);
+
+            cache.calc_error(&japanese, &mut error);
+
+            encoder.study(
+                &error,
+                &cache,
+                &mut input_error,
+                &mut prev_cell_error
+            );
+
+            english_data(&mut rng, &mut data);
+
+            cache.clear();
+            data.iter().for_each(|data_one| {
+                encoder.ready_next(data_one, &mut cache);
+            });
+            encoder.ready_output(&mut cache);
+
+            cache.calc_error(&english, &mut error);
+
+            encoder.study(
+                &error,
+                &cache,
+                &mut input_error,
+                &mut prev_cell_error
+            );
+        }
+
+        encoder.update(RATE);
+    }
+
+    let mut encoder = encoder.drop();
+
+    for _ in 0..COUNT {
+        japanese_data(&mut rng, &mut data);
+        encoder.cell_mut().clear();
+
+        data.iter().for_each(|data_one| {
+            encoder.input_next(data_one);
+        });
+
+        encoder.output(&mut output, &mut tmpbuf);
+
+        //assert_ne!(
+        //    output.to_u32_label(),
+        //    japanese.to_u32_label(),
+        //);
+        println!(
+            "{}, {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        )
+    }
+
+    for _ in 0..COUNT {
+        english_data(&mut rng, &mut data);
+        encoder.cell_mut().clear();
+
+        data.iter().for_each(|data_one| {
+            encoder.input_next(data_one);
+        });
+
+        encoder.output(&mut output, &mut tmpbuf);
+
+        //assert_ne!(
+        //    output.to_u32_label(),
+        //    english.to_u32_label(),
+        //);
+        println!(
+            "{}, {:?}",
+            data_to_string(&data),
+            char::from_u32(output.to_u32_label())
+        )
+    }
+}
