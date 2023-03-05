@@ -1390,6 +1390,12 @@ impl<
         }
     }
 
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.middle_layer.clear_study_data();
+        self.output_layer.clear_study_data();
+    }
+
     pub fn study(&mut self, train_in: &MathVec<IN>, train_out: &MathVec<OUT>) {
         self.middle_layer.ready(train_in, None, &mut self.middle_cache);
 
@@ -1991,3 +1997,55 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     }
 }
 
+//pub struct Encoder<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+//    lstm: LSTM<MIDDLE, IN>,
+//    output_layer: Layer<OUT, MIDDLE>,
+//
+//    prev_cell: MathVec<MIDDLE>,
+//    cell: MathVec<MIDDLE>,
+//
+//    tmpbuf: MathVec<MIDDLE>
+//}
+//
+//impl<
+//    const OUT: usize,
+//    const MIDDLE: usize,
+//    const IN: usize
+//> Encoder<OUT, MIDDLE, IN> {
+//    #[inline]
+//    pub fn new(activation: Activation) -> Self {
+//        Self {
+//            lstm: LSTM::<MIDDLE, IN>::new(),
+//            output_layer: Layer::<OUT, MIDDLE>::new(activation),
+//
+//            prev_cell: MathVec::<MIDDLE>::new(),
+//            cell: MathVec::<MIDDLE>::new(),
+//
+//            tmpbuf: MathVec::<MIDDLE>::new()
+//        }
+//    }
+//
+//    #[inline]
+//    pub fn lstm(&self) -> &LSTM<MIDDLE, IN> {&self.lstm}
+//
+//    #[inline]
+//    pub fn lstm_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {&mut self.lstm}
+//
+//    #[inline]
+//    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
+//
+//    #[inline]
+//    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
+//        &mut self.output_layer
+//    }
+//
+//    #[inline]
+//    pub fn cell(&self) -> &MathVec<MIDDLE> {&self.cell}
+//
+//    #[inline]
+//    pub fn cell_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.cell}
+//
+//    pub fn input_next(&mut self, input: &MathVec<IN>) {
+//        self.lstm.calc(input, &self.prev_cell, &)
+//    }
+//}
