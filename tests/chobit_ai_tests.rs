@@ -1353,10 +1353,8 @@ fn chobit_encoder_test_1() {
     const BATCH_SIZE: usize = 10;
     const RATE: f32 = 0.01;
 
-    encoder.cell_mut().clear();
     let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-    let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(0);
-    let mut error = MathVec::<OUT>::new();
+    let prev_cell = MathVec::<MIDDLE>::new();
     let mut input_error = MathVec::<IN>::new();
     let mut prev_cell_error = MathVec::<MIDDLE>::new();
 
@@ -1364,17 +1362,10 @@ fn chobit_encoder_test_1() {
         for _ in 0..BATCH_SIZE {
             japanese_data(&mut rng, &mut data);
 
-            cache.clear();
-            data.iter().for_each(|data_one| {
-                encoder.ready_next(data_one, &mut cache);
-            });
-            encoder.ready_output(&mut cache);
-
-            cache.calc_error(&japanese, &mut error);
-
             encoder.study(
-                &error,
-                &cache,
+                &data,
+                &prev_cell,
+                &japanese,
                 &mut input_error,
                 &mut prev_cell_error
             );
@@ -1451,10 +1442,8 @@ fn chobit_encoder_test_2() {
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
-    encoder.cell_mut().clear();
     let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-    let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(0);
-    let mut error = MathVec::<OUT>::new();
+    let prev_cell = MathVec::<MIDDLE>::new();
     let mut input_error = MathVec::<IN>::new();
     let mut prev_cell_error = MathVec::<MIDDLE>::new();
 
@@ -1462,36 +1451,20 @@ fn chobit_encoder_test_2() {
         for _ in 0..BATCH_SIZE {
             japanese_data(&mut rng, &mut data);
 
-            cache.clear();
-            encoder.cell_mut().clear();
-            data.iter().for_each(|data_one| {
-                encoder.ready_next(data_one, &mut cache);
-            });
-            encoder.ready_output(&mut cache);
-
-            cache.calc_error(&japanese, &mut error);
-
             encoder.study(
-                &error,
-                &cache,
+                &data,
+                &prev_cell,
+                &japanese,
                 &mut input_error,
                 &mut prev_cell_error
             );
 
             english_data(&mut rng, &mut data);
 
-            cache.clear();
-            encoder.cell_mut().clear();
-            data.iter().for_each(|data_one| {
-                encoder.ready_next(data_one, &mut cache);
-            });
-            encoder.ready_output(&mut cache);
-
-            cache.calc_error(&english, &mut error);
-
             encoder.study(
-                &error,
-                &cache,
+                &data,
+                &prev_cell,
+                &english,
                 &mut input_error,
                 &mut prev_cell_error
             );
