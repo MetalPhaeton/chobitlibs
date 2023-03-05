@@ -1463,6 +1463,7 @@ fn chobit_encoder_test_2() {
             japanese_data(&mut rng, &mut data);
 
             cache.clear();
+            encoder.cell_mut().clear();
             data.iter().for_each(|data_one| {
                 encoder.ready_next(data_one, &mut cache);
             });
@@ -1480,6 +1481,7 @@ fn chobit_encoder_test_2() {
             english_data(&mut rng, &mut data);
 
             cache.clear();
+            encoder.cell_mut().clear();
             data.iter().for_each(|data_one| {
                 encoder.ready_next(data_one, &mut cache);
             });
@@ -1510,10 +1512,10 @@ fn chobit_encoder_test_2() {
 
         encoder.output(&mut output, &mut tmpbuf);
 
-        //assert_ne!(
-        //    output.to_u32_label(),
-        //    japanese.to_u32_label(),
-        //);
+        assert_eq!(
+            output.to_u32_label(),
+            japanese.to_u32_label(),
+        );
         println!(
             "{}, {:?}",
             data_to_string(&data),
@@ -1531,10 +1533,10 @@ fn chobit_encoder_test_2() {
 
         encoder.output(&mut output, &mut tmpbuf);
 
-        //assert_ne!(
-        //    output.to_u32_label(),
-        //    english.to_u32_label(),
-        //);
+        assert_eq!(
+            output.to_u32_label(),
+            english.to_u32_label(),
+        );
         println!(
             "{}, {:?}",
             data_to_string(&data),

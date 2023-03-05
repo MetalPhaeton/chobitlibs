@@ -2264,7 +2264,7 @@ impl<
             tmpbuf
         } = encoder;
 
-        let mut ret = Self {
+        Self {
             lstm: MLLSTM::<MIDDLE, IN>::new(lstm),
             output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
 
@@ -2279,12 +2279,14 @@ impl<
             original_cell: cell,
             original_last_input: last_input,
             original_tmpbuf: tmpbuf
-        };
-
-        ret.cell.copy_from(&ret.original_cell);
-
-        ret
+        }
     }
+
+    #[inline]
+    pub fn cell(&self) -> &MathVec<MIDDLE> {&self.cell}
+
+    #[inline]
+    pub fn cell_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.cell}
 
     #[inline]
     pub fn drop(self) -> ChobitEncoder<OUT, MIDDLE, IN> {
@@ -2397,8 +2399,6 @@ impl<
             self.tmp_cell_error.copy_from(prev_cell_error);
             *input_error += &self.tmp_input_error_one;
         });
-
-        self.cell.copy_from(&self.original_cell);
     }
 
     #[inline]
