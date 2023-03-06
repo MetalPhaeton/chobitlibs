@@ -1328,322 +1328,326 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     }
 }
 
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-//    middle_layer: Layer<MIDDLE, IN>,
-//    output_layer: Layer<OUT, MIDDLE>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitAI<OUT, MIDDLE, IN> {
-//    #[inline]
-//    pub fn new(activation: Activation) -> Self {
-//        Self {
-//            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU),
-//            output_layer: Layer::<OUT, MIDDLE>::new(activation)
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
-//
-//    #[inline]
-//    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
-//        &mut self.middle_layer
-//    }
-//
-//    #[inline]
-//    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
-//
-//    #[inline]
-//    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
-//        &mut self.output_layer
-//    }
-//
-//    #[inline]
-//    pub fn calc(
-//        &self,
-//        input: &MathVec<IN>,
-//        output: &mut MathVec<OUT>,
-//        tmpbuf: &mut MathVec<MIDDLE>
-//    ) {
-//        self.middle_layer.calc(input, None, tmpbuf);
-//        self.output_layer.calc(tmpbuf, None, output);
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-//    middle_layer: MLLayer<MIDDLE, IN>,
-//    output_layer: MLLayer<OUT, MIDDLE>,
-//
-//    middle_cache: MLCache<MIDDLE, IN>,
-//    output_cache: MLCache<OUT, MIDDLE>,
-//
-//    input_error: MathVec<IN>,
-//    middle_error: MathVec<MIDDLE>,
-//    output_error: MathVec<OUT>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitMLAI<OUT, MIDDLE, IN> {
-//    #[inline]
-//    pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
-//        let ChobitAI::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
-//
-//        Self {
-//            middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
-//            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
-//
-//            middle_cache: MLCache::<MIDDLE, IN>::new(),
-//            output_cache: MLCache::<OUT, MIDDLE>::new(),
-//
-//            input_error: MathVec::<IN>::new(),
-//            middle_error: MathVec::<MIDDLE>::new(),
-//            output_error: MathVec::<OUT>::new(),
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
-//        let Self {middle_layer, output_layer, ..} = self;
-//
-//        ChobitAI::<OUT, MIDDLE, IN> {
-//            middle_layer: middle_layer.drop(),
-//            output_layer: output_layer.drop()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.middle_layer.clear_study_data();
-//        self.output_layer.clear_study_data();
-//    }
-//
-//    pub fn study(&mut self, train_in: &MathVec<IN>, train_out: &MathVec<OUT>) {
-//        self.middle_layer.ready(train_in, None, &mut self.middle_cache);
-//
-//        self.output_layer.ready(
-//            &self.middle_cache.output,
-//            None,
-//            &mut self.output_cache
-//        );
-//
-//        self.output_cache.calc_error(train_out, &mut self.output_error);
-//
-//        self.output_layer.study(
-//            &self.output_error,
-//            &self.output_cache,
-//            &mut self.middle_error,
-//            None
-//        );
-//
-//        self.middle_layer.study(
-//            &self.middle_error,
-//            &self.middle_cache,
-//            &mut self.input_error,
-//            None
-//        );
-//    }
-//
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.middle_layer.update(rate);
-//        self.output_layer.update(rate);
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct LSTM<const OUT: usize, const IN: usize> {
-//    main_layer: Layer<OUT, IN>,
-//
-//    f_gate: Layer<OUT, IN>,
-//    i_gate: Layer<OUT, IN>,
-//    o_gate: Layer<OUT, IN>,
-//
-//    tanh: Activation
-//}
-//
-//impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
-//    pub fn new() -> Self {
-//        Self {
-//            main_layer: Layer::<OUT, IN>::new(Activation::SoftSign),
-//
-//            f_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
-//            i_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
-//            o_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
-//
-//            tanh: Activation::SoftSign
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn main_layer(&self) -> &Layer<OUT, IN> {&self.main_layer}
-//
-//    #[inline]
-//    pub fn main_layer_mut(&mut self) -> &mut Layer<OUT, IN> {
-//        &mut self.main_layer
-//    }
-//
-//    #[inline]
-//    pub fn f_gate(&self) -> &Layer<OUT, IN> {&self.f_gate}
-//
-//    #[inline]
-//    pub fn f_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.f_gate}
-//
-//    #[inline]
-//    pub fn i_gate(&self) -> &Layer<OUT, IN> {&self.i_gate}
-//
-//    #[inline]
-//    pub fn i_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.i_gate}
-//
-//    #[inline]
-//    pub fn o_gate(&self) -> &Layer<OUT, IN> {&self.o_gate}
-//
-//    #[inline]
-//    pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
-//
-//    pub fn calc_cell(
-//        &self,
-//        input: &MathVec<IN>,
-//        prev_cell: &MathVec<OUT>,
-//        next_cell: &mut MathVec<OUT>,
-//        tmpbuf: &mut MathVec<OUT>
-//    ) {
-//        // cell = (f_gate * prev_cell) + (i_gate * main_layer);
-//        self.main_layer.calc(input, Some(prev_cell), next_cell);
-//        self.i_gate.calc(input, Some(prev_cell), tmpbuf);
-//        next_cell.pointwise_mul_assign(tmpbuf);
-//
-//        self.f_gate.calc(input, Some(prev_cell), tmpbuf);
-//        tmpbuf.pointwise_mul_assign(prev_cell);
-//
-//        *next_cell += tmpbuf;
-//    }
-//
-//    pub fn calc_output(
-//        &self,
-//        last_input: &MathVec<IN>,
-//        cell: &MathVec<OUT>,
-//        output: &mut MathVec<OUT>,
-//    ) {
-//        // output = o_gate * tanh(cell)
-//        self.o_gate.calc(last_input, Some(cell), output);
-//
-//        for i in 0..OUT {
-//            debug_assert!(cell.get(i).is_some());
-//            debug_assert!(output.get(i).is_some());
-//
-//            unsafe {
-//                *output.get_unchecked_mut(i) *=
-//                    self.tanh.activate(*cell.get_unchecked(i));
-//            }
-//        }
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLLSTMCellCache<const OUT: usize, const IN: usize> {
-//    input: MathVec<IN>,
-//    prev_cell: MathVec<OUT>,
-//
-//    main_layer_cache: MLCache<OUT, IN>,
-//
-//    f_gate_cache: MLCache<OUT, IN>,
-//    i_gate_cache: MLCache<OUT, IN>,
-//
-//    cell: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> MLLSTMCellCache<OUT, IN> {
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            input: MathVec::<IN>::new(),
-//            prev_cell: MathVec::<OUT>::new(),
-//
-//            main_layer_cache: MLCache::<OUT, IN>::new(),
-//            f_gate_cache: MLCache::<OUT, IN>::new(),
-//            i_gate_cache: MLCache::<OUT, IN>::new(),
-//
-//            cell: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn input(&self) -> &MathVec<IN> {&self.input}
-//
-//    #[inline]
-//    pub fn prev_cell(&self) -> &MathVec<OUT> {&self.prev_cell}
-//
-//    #[inline]
-//    pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
-//        &self.main_layer_cache
-//    }
-//
-//    #[inline]
-//    pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
-//
-//    #[inline]
-//    pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
-//
-//    #[inline]
-//    pub fn cell(&self) -> &MathVec<OUT> {&self.cell}
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
-//    o_gate_cache: MLCache<OUT, IN>,
-//
-//    tanh_c: MathVec<OUT>,
-//    d_tanh_c: MathVec<OUT>,
-//
-//    output: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            o_gate_cache: MLCache::<OUT, IN>::new(),
-//
-//            tanh_c: MathVec::<OUT>::new(),
-//            d_tanh_c: MathVec::<OUT>::new(),
-//
-//            output: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn calc_output_error(
-//        &self,
-//        train_out: &MathVec<OUT>,
-//        output_error: &mut MathVec<OUT>
-//    ) {
-//        output_error.copy_from(&self.output);
-//        *output_error -= train_out;
-//    }
-//
-//    #[inline]
-//    pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
-//
-//    #[inline]
-//    pub fn tanh_c(&self) -> &MathVec<OUT> {&self.tanh_c}
-//
-//    #[inline]
-//    pub fn d_tanh_c(&self) -> &MathVec<OUT> {&self.d_tanh_c}
-//
-//    #[inline]
-//    pub fn output(&self) -> &MathVec<OUT> {&self.output}
-//}
-//
-//
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: Layer<MIDDLE, IN>,
+    output_layer: Layer<OUT, MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitAI<OUT, MIDDLE, IN> {
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU),
+            output_layer: Layer::<OUT, MIDDLE>::new(activation)
+        }
+    }
+
+    #[inline]
+    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
+
+    #[inline]
+    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
+        &mut self.middle_layer
+    }
+
+    #[inline]
+    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
+
+    #[inline]
+    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
+        &mut self.output_layer
+    }
+
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        output: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<MIDDLE>
+    ) {
+        self.middle_layer.calc(input, None, tmpbuf);
+        self.output_layer.calc(tmpbuf, None, output);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: MLLayer<MIDDLE, IN>,
+    output_layer: MLLayer<OUT, MIDDLE>,
+
+    middle_cache: MLCache<MIDDLE, IN>,
+    output_cache: MLCache<OUT, MIDDLE>,
+
+    input_error: MathVec<IN>,
+    middle_error: MathVec<MIDDLE>,
+    output_error: MathVec<OUT>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitMLAI<OUT, MIDDLE, IN> {
+    #[inline]
+    pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
+        let ChobitAI::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
+
+        Self {
+            middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
+            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+
+            middle_cache: MLCache::<MIDDLE, IN>::new(),
+            output_cache: MLCache::<OUT, MIDDLE>::new(),
+
+            input_error: MathVec::<IN>::new(),
+            middle_error: MathVec::<MIDDLE>::new(),
+            output_error: MathVec::<OUT>::new(),
+        }
+    }
+
+    #[inline]
+    pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
+        let Self {middle_layer, output_layer, ..} = self;
+
+        ChobitAI::<OUT, MIDDLE, IN> {
+            middle_layer: middle_layer.drop(),
+            output_layer: output_layer.drop()
+        }
+    }
+
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.middle_layer.clear_study_data();
+        self.output_layer.clear_study_data();
+    }
+
+    pub fn study(&mut self, train_in: &MathVec<IN>, train_out: &MathVec<OUT>) {
+        self.middle_layer.ready(train_in, None, &mut self.middle_cache);
+
+        self.output_layer.ready(
+            &self.middle_cache.output,
+            None,
+            &mut self.output_cache
+        );
+
+        self.output_cache.calc_output_error(
+            train_out,
+            &mut self.output_error
+        );
+
+        self.output_layer.study(
+            &self.output_error,
+            None,
+            &self.output_cache,
+            &mut self.middle_error,
+            None
+        );
+
+        self.middle_layer.study(
+            &self.middle_error,
+            None,
+            &self.middle_cache,
+            &mut self.input_error,
+            None
+        );
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.middle_layer.update(rate);
+        self.output_layer.update(rate);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LSTM<const OUT: usize, const IN: usize> {
+    main_layer: Layer<OUT, IN>,
+
+    f_gate: Layer<OUT, IN>,
+    i_gate: Layer<OUT, IN>,
+    o_gate: Layer<OUT, IN>,
+
+    tanh: Activation
+}
+
+impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
+    pub fn new() -> Self {
+        Self {
+            main_layer: Layer::<OUT, IN>::new(Activation::SoftSign),
+
+            f_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
+            i_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
+            o_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
+
+            tanh: Activation::SoftSign
+        }
+    }
+
+    #[inline]
+    pub fn main_layer(&self) -> &Layer<OUT, IN> {&self.main_layer}
+
+    #[inline]
+    pub fn main_layer_mut(&mut self) -> &mut Layer<OUT, IN> {
+        &mut self.main_layer
+    }
+
+    #[inline]
+    pub fn f_gate(&self) -> &Layer<OUT, IN> {&self.f_gate}
+
+    #[inline]
+    pub fn f_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.f_gate}
+
+    #[inline]
+    pub fn i_gate(&self) -> &Layer<OUT, IN> {&self.i_gate}
+
+    #[inline]
+    pub fn i_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.i_gate}
+
+    #[inline]
+    pub fn o_gate(&self) -> &Layer<OUT, IN> {&self.o_gate}
+
+    #[inline]
+    pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
+
+    pub fn calc_cell(
+        &self,
+        input: &MathVec<IN>,
+        prev_cell: &MathVec<OUT>,
+        next_cell: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<OUT>
+    ) {
+        // cell = (f_gate * prev_cell) + (i_gate * main_layer);
+        self.main_layer.calc(input, Some(prev_cell), next_cell);
+        self.i_gate.calc(input, Some(prev_cell), tmpbuf);
+        next_cell.pointwise_mul_assign(tmpbuf);
+
+        self.f_gate.calc(input, Some(prev_cell), tmpbuf);
+        tmpbuf.pointwise_mul_assign(prev_cell);
+
+        *next_cell += tmpbuf;
+    }
+
+    pub fn calc_output(
+        &self,
+        last_input: &MathVec<IN>,
+        cell: &MathVec<OUT>,
+        output: &mut MathVec<OUT>,
+    ) {
+        // output = o_gate * tanh(cell)
+        self.o_gate.calc(last_input, Some(cell), output);
+
+        for i in 0..OUT {
+            debug_assert!(cell.get(i).is_some());
+            debug_assert!(output.get(i).is_some());
+
+            unsafe {
+                *output.get_unchecked_mut(i) *=
+                    self.tanh.activate(*cell.get_unchecked(i));
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLLSTMCellCache<const OUT: usize, const IN: usize> {
+    input: MathVec<IN>,
+    prev_cell: MathVec<OUT>,
+
+    main_layer_cache: MLCache<OUT, IN>,
+
+    f_gate_cache: MLCache<OUT, IN>,
+    i_gate_cache: MLCache<OUT, IN>,
+
+    cell: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLLSTMCellCache<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            input: MathVec::<IN>::new(),
+            prev_cell: MathVec::<OUT>::new(),
+
+            main_layer_cache: MLCache::<OUT, IN>::new(),
+            f_gate_cache: MLCache::<OUT, IN>::new(),
+            i_gate_cache: MLCache::<OUT, IN>::new(),
+
+            cell: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn input(&self) -> &MathVec<IN> {&self.input}
+
+    #[inline]
+    pub fn prev_cell(&self) -> &MathVec<OUT> {&self.prev_cell}
+
+    #[inline]
+    pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
+        &self.main_layer_cache
+    }
+
+    #[inline]
+    pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
+
+    #[inline]
+    pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
+
+    #[inline]
+    pub fn cell(&self) -> &MathVec<OUT> {&self.cell}
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
+    o_gate_cache: MLCache<OUT, IN>,
+
+    tanh_c: MathVec<OUT>,
+    d_tanh_c: MathVec<OUT>,
+
+    output: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            o_gate_cache: MLCache::<OUT, IN>::new(),
+
+            tanh_c: MathVec::<OUT>::new(),
+            d_tanh_c: MathVec::<OUT>::new(),
+
+            output: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn calc_output_error(
+        &self,
+        train_out: &MathVec<OUT>,
+        output_error: &mut MathVec<OUT>
+    ) {
+        output_error.copy_from(&self.output);
+        *output_error -= train_out;
+    }
+
+    #[inline]
+    pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
+
+    #[inline]
+    pub fn tanh_c(&self) -> &MathVec<OUT> {&self.tanh_c}
+
+    #[inline]
+    pub fn d_tanh_c(&self) -> &MathVec<OUT> {&self.d_tanh_c}
+
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {&self.output}
+}
+
 //#[derive(Debug, Clone, PartialEq)]
 //pub struct MLLSTM<const OUT: usize, const IN: usize> {
 //    main_layer: MLLayer<OUT, IN>,

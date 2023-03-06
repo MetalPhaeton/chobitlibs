@@ -718,124 +718,124 @@ fn layer_test_2() {
     }
 }
 
-//#[test]
-//fn chobit_ai_test_1() {
-//    const OUT: usize = 8;
-//    const MIDDLE: usize = 32;
-//    const IN: usize = 16;
-//
-//    const COUNT: usize = 100;
-//
-//    let mut rng = ChobitRand::new("chobit_ai_test_1".as_bytes());
-//
-//    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-//    let mut input = MathVec::<IN>::new();
-//    let mut output = MathVec::<OUT>::new();
-//    let mut tmpbuf = MathVec::<MIDDLE>::new();
-//
-//    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
-//    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
-//
-//    for _ in 0..COUNT {
-//        let label_in = rng.next_u64() as u16;
-//
-//        input.load_u16_label(label_in);
-//        ai.calc(&input, &mut output, &mut tmpbuf);
-//    }
-//
-//    const EPOCH: usize = 10;
-//    const BATCH_SIZE: usize = 10;
-//    const RATE: f32 = 0.01;
-//
-//    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-//
-//    for _ in 0..EPOCH {
-//        for _ in 0..BATCH_SIZE {
-//            let label = rng.next_u64() as u32;
-//            input.load_u16_label(label as u16);
-//            output.load_u8_label(label as u8);
-//
-//            ai.study(&input, &output);
-//        }
-//
-//        ai.update(RATE);
-//    }
-//
-//    let ai = ai.drop();
-//
-//    for _ in 0..COUNT {
-//        let label_in = rng.next_u64() as u16;
-//
-//        input.load_u16_label(label_in);
-//        ai.calc(&input, &mut output, &mut tmpbuf);
-//    }
-//}
-//
-//#[cfg(not(debug_assertions))]
-//#[test]
-//fn chobit_ai_test_2() {
-//    const OUT: usize = 32;
-//    const MIDDLE: usize = 128;
-//    const IN: usize = 32;
-//
-//    const COUNT: usize = 100;
-//
-//    let mut rng = ChobitRand::new("chobit_ai_test_2".as_bytes());
-//
-//    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-//    let mut input = MathVec::<IN>::new();
-//    let mut output = MathVec::<OUT>::new();
-//    let mut tmpbuf = MathVec::<MIDDLE>::new();
-//
-//    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
-//    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
-//
-//    // before machine learning.
-//    for _ in 0..COUNT {
-//        let label_in = rng.next_u64() as u32;
-//
-//        input.load_u32_label(label_in);
-//        ai.calc(&input, &mut output, &mut tmpbuf);
-//
-//        let label_out = output.to_u32_label();
-//
-//        assert_ne!(label_out, label_in);
-//    }
-//
-//    // machine learning.
-//    const EPOCH: usize = 2000;
-//    const BATCH_SIZE: usize = 100;
-//    const RATE: f32 = 0.01;
-//
-//    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-//
-//    for _ in 0..EPOCH {
-//        for _ in 0..BATCH_SIZE {
-//            let label = rng.next_u64() as u32;
-//            input.load_u32_label(label);
-//            output.load_u32_label(label);
-//
-//            ai.study(&input, &output);
-//        }
-//
-//        ai.update(RATE);
-//    }
-//
-//    let ai = ai.drop();
-//
-//    // after machine learning.
-//    for _ in 0..COUNT {
-//        let label_in = rng.next_u64() as u32;
-//
-//        input.load_u32_label(label_in);
-//        ai.calc(&input, &mut output, &mut tmpbuf);
-//
-//        let label_out = output.to_u32_label();
-//
-//        assert_eq!(label_out, label_in);
-//    }
-//}
-//
+#[test]
+fn chobit_ai_test_1() {
+    const OUT: usize = 8;
+    const MIDDLE: usize = 32;
+    const IN: usize = 16;
+
+    const COUNT: usize = 100;
+
+    let mut rng = ChobitRand::new("chobit_ai_test_1".as_bytes());
+
+    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut input = MathVec::<IN>::new();
+    let mut output = MathVec::<OUT>::new();
+    let mut tmpbuf = MathVec::<MIDDLE>::new();
+
+    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
+    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
+
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u16;
+
+        input.load_u16_label(label_in);
+        ai.calc(&input, &mut output, &mut tmpbuf);
+    }
+
+    const EPOCH: usize = 10;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.01;
+
+    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            let label = rng.next_u64() as u32;
+            input.load_u16_label(label as u16);
+            output.load_u8_label(label as u8);
+
+            ai.study(&input, &output);
+        }
+
+        ai.update(RATE);
+    }
+
+    let ai = ai.drop();
+
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u16;
+
+        input.load_u16_label(label_in);
+        ai.calc(&input, &mut output, &mut tmpbuf);
+    }
+}
+
+#[cfg(not(debug_assertions))]
+#[test]
+fn chobit_ai_test_2() {
+    const OUT: usize = 32;
+    const MIDDLE: usize = 128;
+    const IN: usize = 32;
+
+    const COUNT: usize = 100;
+
+    let mut rng = ChobitRand::new("chobit_ai_test_2".as_bytes());
+
+    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut input = MathVec::<IN>::new();
+    let mut output = MathVec::<OUT>::new();
+    let mut tmpbuf = MathVec::<MIDDLE>::new();
+
+    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
+    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
+
+    // before machine learning.
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u32;
+
+        input.load_u32_label(label_in);
+        ai.calc(&input, &mut output, &mut tmpbuf);
+
+        let label_out = output.to_u32_label();
+
+        assert_ne!(label_out, label_in);
+    }
+
+    // machine learning.
+    const EPOCH: usize = 2000;
+    const BATCH_SIZE: usize = 100;
+    const RATE: f32 = 0.01;
+
+    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            let label = rng.next_u64() as u32;
+            input.load_u32_label(label);
+            output.load_u32_label(label);
+
+            ai.study(&input, &output);
+        }
+
+        ai.update(RATE);
+    }
+
+    let ai = ai.drop();
+
+    // after machine learning.
+    for _ in 0..COUNT {
+        let label_in = rng.next_u64() as u32;
+
+        input.load_u32_label(label_in);
+        ai.calc(&input, &mut output, &mut tmpbuf);
+
+        let label_out = output.to_u32_label();
+
+        assert_eq!(label_out, label_in);
+    }
+}
+
 //fn letter_data(
 //    rng: &mut ChobitRand,
 //    letters: &[char],
