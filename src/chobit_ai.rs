@@ -1514,70 +1514,70 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
     #[inline]
     pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
 
-    pub fn calc_cell(
+    pub fn calc_state(
         &self,
         input: &MathVec<IN>,
-        prev_cell: &MathVec<OUT>,
-        next_cell: &mut MathVec<OUT>,
+        prev_state: &MathVec<OUT>,
+        next_state: &mut MathVec<OUT>,
         tmpbuf: &mut MathVec<OUT>
     ) {
-        // cell = (f_gate * prev_cell) + (i_gate * main_layer);
-        self.main_layer.calc(input, Some(prev_cell), next_cell);
-        self.i_gate.calc(input, Some(prev_cell), tmpbuf);
-        next_cell.pointwise_mul_assign(tmpbuf);
+        // state = (f_gate * prev_state) + (i_gate * main_layer);
+        self.main_layer.calc(input, Some(prev_state), next_state);
+        self.i_gate.calc(input, Some(prev_state), tmpbuf);
+        next_state.pointwise_mul_assign(tmpbuf);
 
-        self.f_gate.calc(input, Some(prev_cell), tmpbuf);
-        tmpbuf.pointwise_mul_assign(prev_cell);
+        self.f_gate.calc(input, Some(prev_state), tmpbuf);
+        tmpbuf.pointwise_mul_assign(prev_state);
 
-        *next_cell += tmpbuf;
+        *next_state += tmpbuf;
     }
 
     pub fn calc_output(
         &self,
         last_input: &MathVec<IN>,
-        cell: &MathVec<OUT>,
+        state: &MathVec<OUT>,
         output: &mut MathVec<OUT>,
     ) {
-        // output = o_gate * tanh(cell)
-        self.o_gate.calc(last_input, Some(cell), output);
+        // output = o_gate * tanh(state)
+        self.o_gate.calc(last_input, Some(state), output);
 
         for i in 0..OUT {
-            debug_assert!(cell.get(i).is_some());
+            debug_assert!(state.get(i).is_some());
             debug_assert!(output.get(i).is_some());
 
             unsafe {
                 *output.get_unchecked_mut(i) *=
-                    self.tanh.activate(*cell.get_unchecked(i));
+                    self.tanh.activate(*state.get_unchecked(i));
             }
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLLSTMCellCache<const OUT: usize, const IN: usize> {
+pub struct MLLSTMStateCache<const OUT: usize, const IN: usize> {
     input: MathVec<IN>,
-    prev_cell: MathVec<OUT>,
+    prev_state: MathVec<OUT>,
 
     main_layer_cache: MLCache<OUT, IN>,
 
     f_gate_cache: MLCache<OUT, IN>,
     i_gate_cache: MLCache<OUT, IN>,
 
-    cell: MathVec<OUT>
+    state: MathVec<OUT>
 }
 
-impl<const OUT: usize, const IN: usize> MLLSTMCellCache<OUT, IN> {
+impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
     #[inline]
     pub fn new() -> Self {
         Self {
             input: MathVec::<IN>::new(),
-            prev_cell: MathVec::<OUT>::new(),
+            prev_state: MathVec::<OUT>::new(),
 
             main_layer_cache: MLCache::<OUT, IN>::new(),
             f_gate_cache: MLCache::<OUT, IN>::new(),
             i_gate_cache: MLCache::<OUT, IN>::new(),
 
-            cell: MathVec::<OUT>::new()
+            state: MathVec::<OUT>::new()
         }
     }
 
@@ -1585,7 +1585,7 @@ impl<const OUT: usize, const IN: usize> MLLSTMCellCache<OUT, IN> {
     pub fn input(&self) -> &MathVec<IN> {&self.input}
 
     #[inline]
-    pub fn prev_cell(&self) -> &MathVec<OUT> {&self.prev_cell}
+    pub fn prev_state(&self) -> &MathVec<OUT> {&self.prev_state}
 
     #[inline]
     pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
@@ -1599,7 +1599,7 @@ impl<const OUT: usize, const IN: usize> MLLSTMCellCache<OUT, IN> {
     pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
 
     #[inline]
-    pub fn cell(&self) -> &MathVec<OUT> {&self.cell}
+    pub fn state(&self) -> &MathVec<OUT> {&self.state}
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1657,24 +1657,24 @@ pub struct MLLSTM<const OUT: usize, const IN: usize> {
     tanh: Activation,
 
     input_error_main_by_output_error: MathVec<IN>,
-    input_error_main_by_cell_error: MathVec<IN>,
+    input_error_main_by_state_error: MathVec<IN>,
     input_error_f_by_output_error: MathVec<IN>,
-    input_error_f_by_cell_error: MathVec<IN>,
+    input_error_f_by_state_error: MathVec<IN>,
     input_error_i_by_output_error: MathVec<IN>,
-    input_error_i_by_cell_error: MathVec<IN>,
+    input_error_i_by_state_error: MathVec<IN>,
     input_error_o_by_output_error: MathVec<IN>,
-    input_error_o_by_cell_error: MathVec<IN>,
+    input_error_o_by_state_error: MathVec<IN>,
 
-    prev_cell_error_main_by_output_error: MathVec<OUT>,
-    prev_cell_error_main_by_cell_error: MathVec<OUT>,
-    prev_cell_error_f_by_output_error: MathVec<OUT>,
-    prev_cell_error_f_by_cell_error: MathVec<OUT>,
-    prev_cell_error_i_by_output_error: MathVec<OUT>,
-    prev_cell_error_i_by_cell_error: MathVec<OUT>,
-    prev_cell_error_o_by_output_error: MathVec<OUT>,
-    prev_cell_error_o_by_cell_error: MathVec<OUT>,
+    prev_state_error_main_by_output_error: MathVec<OUT>,
+    prev_state_error_main_by_state_error: MathVec<OUT>,
+    prev_state_error_f_by_output_error: MathVec<OUT>,
+    prev_state_error_f_by_state_error: MathVec<OUT>,
+    prev_state_error_i_by_output_error: MathVec<OUT>,
+    prev_state_error_i_by_state_error: MathVec<OUT>,
+    prev_state_error_o_by_output_error: MathVec<OUT>,
+    prev_state_error_o_by_state_error: MathVec<OUT>,
 
-    tmp_error: MathVec<OUT>,
+    tmp_error: MathVec<OUT>
 }
 
 impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
@@ -1690,22 +1690,22 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             tanh: tanh,
 
             input_error_main_by_output_error: MathVec::<IN>::new(),
-            input_error_main_by_cell_error: MathVec::<IN>::new(),
+            input_error_main_by_state_error: MathVec::<IN>::new(),
             input_error_f_by_output_error: MathVec::<IN>::new(),
-            input_error_f_by_cell_error: MathVec::<IN>::new(),
+            input_error_f_by_state_error: MathVec::<IN>::new(),
             input_error_i_by_output_error: MathVec::<IN>::new(),
-            input_error_i_by_cell_error: MathVec::<IN>::new(),
+            input_error_i_by_state_error: MathVec::<IN>::new(),
             input_error_o_by_output_error: MathVec::<IN>::new(),
-            input_error_o_by_cell_error: MathVec::<IN>::new(),
+            input_error_o_by_state_error: MathVec::<IN>::new(),
 
-            prev_cell_error_main_by_output_error: MathVec::<OUT>::new(),
-            prev_cell_error_main_by_cell_error: MathVec::<OUT>::new(),
-            prev_cell_error_f_by_output_error: MathVec::<OUT>::new(),
-            prev_cell_error_f_by_cell_error: MathVec::<OUT>::new(),
-            prev_cell_error_i_by_output_error: MathVec::<OUT>::new(),
-            prev_cell_error_i_by_cell_error: MathVec::<OUT>::new(),
-            prev_cell_error_o_by_output_error: MathVec::<OUT>::new(),
-            prev_cell_error_o_by_cell_error: MathVec::<OUT>::new(),
+            prev_state_error_main_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_main_by_state_error: MathVec::<OUT>::new(),
+            prev_state_error_f_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_f_by_state_error: MathVec::<OUT>::new(),
+            prev_state_error_i_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_i_by_state_error: MathVec::<OUT>::new(),
+            prev_state_error_o_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_o_by_state_error: MathVec::<OUT>::new(),
 
             tmp_error: MathVec::<OUT>::new()
         }
@@ -1734,33 +1734,33 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.clear_study_data();
     }
 
-    pub fn ready_cell_cache(
+    pub fn ready_state_cache(
         &self,
         input: &MathVec<IN>,
-        prev_cell: &MathVec<OUT>,
-        cache: &mut MLLSTMCellCache<OUT, IN>
+        prev_state: &MathVec<OUT>,
+        cache: &mut MLLSTMStateCache<OUT, IN>
     ) {
         cache.input.copy_from(input);
-        cache.prev_cell.copy_from(prev_cell);
+        cache.prev_state.copy_from(prev_state);
 
         self.main_layer.ready(
             input,
-            Some(prev_cell),
+            Some(prev_state),
             &mut cache.main_layer_cache
         );
-        self.f_gate.ready(input, Some(prev_cell), &mut cache.f_gate_cache);
-        self.i_gate.ready(input, Some(prev_cell), &mut cache.i_gate_cache);
+        self.f_gate.ready(input, Some(prev_state), &mut cache.f_gate_cache);
+        self.i_gate.ready(input, Some(prev_state), &mut cache.i_gate_cache);
 
         for i in 0..OUT {
-            debug_assert!(cache.cell.get(i).is_some());
-            debug_assert!(prev_cell.get(i).is_some());
+            debug_assert!(cache.state.get(i).is_some());
+            debug_assert!(prev_state.get(i).is_some());
             debug_assert!(cache.f_gate_cache.output.get(i).is_some());
             debug_assert!(cache.i_gate_cache.output.get(i).is_some());
             debug_assert!(cache.main_layer_cache.output.get(i).is_some());
 
             unsafe {
-                *cache.cell.get_unchecked_mut(i) =
-                    (*prev_cell.get_unchecked(i)
+                *cache.state.get_unchecked_mut(i) =
+                    (*prev_state.get_unchecked(i)
                         * *cache.f_gate_cache.output.get_unchecked(i))
                     + (*cache.i_gate_cache.output.get_unchecked(i)
                         * *cache.main_layer_cache.output.get_unchecked(i));
@@ -1770,17 +1770,17 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 
     pub fn ready_output_cache(
         &self,
-        last_cell_cache: &MLLSTMCellCache<OUT, IN>,
+        last_state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &mut MLLSTMOutputCache<OUT, IN>
     ) {
         self.o_gate.ready(
-            &last_cell_cache.input,
-            Some(&last_cell_cache.prev_cell),
+            &last_state_cache.input,
+            Some(&last_state_cache.prev_state),
             &mut output_cache.o_gate_cache
         );
 
         for i in 0..OUT {
-            debug_assert!(last_cell_cache.cell.get(i).is_some());
+            debug_assert!(last_state_cache.state.get(i).is_some());
             debug_assert!(output_cache.tanh_c.get(i).is_some());
             debug_assert!(output_cache.d_tanh_c.get(i).is_some());
             debug_assert!(output_cache.output.get(i).is_some());
@@ -1788,11 +1788,13 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 
             unsafe {
                 *output_cache.tanh_c.get_unchecked_mut(i) =
-                    self.tanh.activate(*last_cell_cache.cell.get_unchecked(i));
+                    self.tanh.activate(
+                        *last_state_cache.state.get_unchecked(i)
+                    );
 
                 *output_cache.d_tanh_c.get_unchecked_mut(i) =
                     self.tanh.d_activate(
-                        *last_cell_cache.cell.get_unchecked(i)
+                        *last_state_cache.state.get_unchecked(i)
                     );
 
                 *output_cache.output.get_unchecked_mut(i) =
@@ -1802,53 +1804,53 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         }
     }
 
-    pub fn study_with_cell_error(
+    pub fn study_with_state_error(
         &mut self,
-        cell_error: &MathVec<OUT>,
-        cache: &MLLSTMCellCache<OUT, IN>,
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>,
         input_error: &mut MathVec<IN>,
-        prev_cell_error: &mut MathVec<OUT>
+        prev_state_error: &mut MathVec<OUT>
     ) {
-        self.study_main_layer_with_cell_error(cell_error, cache);
-        self.study_f_gate_with_cell_error(cell_error, cache);
-        self.study_i_gate_with_cell_error(cell_error, cache);
+        self.study_main_layer_with_state_error(state_error, cache);
+        self.study_f_gate_with_state_error(state_error, cache);
+        self.study_i_gate_with_state_error(state_error, cache);
 
-        input_error.copy_from(&self.input_error_main_by_cell_error);
-        *input_error += &self.input_error_f_by_cell_error;
-        *input_error += &self.input_error_i_by_cell_error;
+        input_error.copy_from(&self.input_error_main_by_state_error);
+        *input_error += &self.input_error_f_by_state_error;
+        *input_error += &self.input_error_i_by_state_error;
 
-        prev_cell_error.copy_from(&self.prev_cell_error_main_by_cell_error);
-        *prev_cell_error += &self.prev_cell_error_f_by_cell_error;
-        *prev_cell_error += &self.prev_cell_error_i_by_cell_error;
+        prev_state_error.copy_from(&self.prev_state_error_main_by_state_error);
+        *prev_state_error += &self.prev_state_error_f_by_state_error;
+        *prev_state_error += &self.prev_state_error_i_by_state_error;
 
         // This is somehow unnecessary part, but it appears in formula.
-        for i in 0..OUT {
-            debug_assert!(prev_cell_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
-            debug_assert!(cache.f_gate_cache.output.get(i).is_some());
+        //for i in 0..OUT {
+        //    debug_assert!(prev_state_error.get(i).is_some());
+        //    debug_assert!(state_error.get(i).is_some());
+        //    debug_assert!(cache.f_gate_cache.output.get(i).is_some());
 
-            unsafe {
-                *prev_cell_error.get_unchecked_mut(i) +=
-                    *cell_error.get_unchecked(i)
-                    * *cache.f_gate_cache.output.get_unchecked(i);
-            }
-        }
+        //    unsafe {
+        //        *prev_state_error.get_unchecked_mut(i) +=
+        //            *state_error.get_unchecked(i)
+        //            * *cache.f_gate_cache.output.get_unchecked(i);
+        //    }
+        //}
     }
 
 
-    fn study_main_layer_with_cell_error(
+    fn study_main_layer_with_state_error(
         &mut self,
-        cell_error: &MathVec<OUT>,
-        cache: &MLLSTMCellCache<OUT, IN>
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>
     ) {
         for i in 0..OUT {
             debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
+            debug_assert!(state_error.get(i).is_some());
             debug_assert!(cache.i_gate_cache.output.get(i).is_some());
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    *cell_error.get_unchecked(i)
+                    *state_error.get_unchecked(i)
                     * *cache.i_gate_cache.output.get_unchecked(i);
             }
         }
@@ -1857,25 +1859,25 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             &self.tmp_error,
             None,
             &cache.main_layer_cache,
-            &mut self.input_error_main_by_cell_error,
-            Some(&mut self.prev_cell_error_main_by_cell_error)
+            &mut self.input_error_main_by_state_error,
+            Some(&mut self.prev_state_error_main_by_state_error)
         );
     }
 
-    fn study_f_gate_with_cell_error(
+    fn study_f_gate_with_state_error(
         &mut self,
-        cell_error: &MathVec<OUT>,
-        cache: &MLLSTMCellCache<OUT, IN>
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>
     ) {
         for i in 0..OUT {
-            debug_assert!(cell_error.get(i).is_some());
+            debug_assert!(state_error.get(i).is_some());
             debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(cache.prev_cell.get(i).is_some());
+            debug_assert!(cache.prev_state.get(i).is_some());
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    *cell_error.get_unchecked(i)
-                    * *cache.prev_cell.get_unchecked(i);
+                    *state_error.get_unchecked(i)
+                    * *cache.prev_state.get_unchecked(i);
             }
         }
 
@@ -1883,24 +1885,24 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             &self.tmp_error,
             None,
             &cache.f_gate_cache,
-            &mut self.input_error_f_by_cell_error,
-            Some(&mut self.prev_cell_error_f_by_cell_error)
+            &mut self.input_error_f_by_state_error,
+            Some(&mut self.prev_state_error_f_by_state_error)
         );
     }
 
-    fn study_i_gate_with_cell_error(
+    fn study_i_gate_with_state_error(
         &mut self,
-        cell_error: &MathVec<OUT>,
-        cache: &MLLSTMCellCache<OUT, IN>
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>
     ) {
         for i in 0..OUT {
-            debug_assert!(cell_error.get(i).is_some());
+            debug_assert!(state_error.get(i).is_some());
             debug_assert!(self.tmp_error.get(i).is_some());
             debug_assert!(cache.main_layer_cache.output.get(i).is_some());
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    *cell_error.get_unchecked(i)
+                    *state_error.get_unchecked(i)
                     * *cache.main_layer_cache.output.get_unchecked(i);
             }
         }
@@ -1909,41 +1911,40 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             &self.tmp_error,
             None,
             &cache.i_gate_cache,
-            &mut self.input_error_i_by_cell_error,
-            Some(&mut self.prev_cell_error_i_by_cell_error)
+            &mut self.input_error_i_by_state_error,
+            Some(&mut self.prev_state_error_i_by_state_error)
         );
     }
 
     pub fn study_with_output_error(
         &mut self,
         output_error: &MathVec<OUT>,
-        cell_error: &MathVec<OUT>,
-        last_cell_cache: &MLLSTMCellCache<OUT, IN>,
+        state_error: &MathVec<OUT>,
+        last_state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>,
         input_error: &mut MathVec<IN>,
-        prev_cell_error: &mut MathVec<OUT>
+        prev_state_error: &mut MathVec<OUT>
     ) {
         self.study_main_layer_with_output_error(
             output_error,
-            cell_error,
-            last_cell_cache,
+            state_error,
+            last_state_cache,
             output_cache,
         );
         self.study_f_gate_with_output_error(
             output_error,
-            cell_error,
-            last_cell_cache,
+            state_error,
+            last_state_cache,
             output_cache,
         );
         self.study_i_gate_with_output_error(
             output_error,
-            cell_error,
-            last_cell_cache,
+            state_error,
+            last_state_cache,
             output_cache,
         );
         self.study_o_gate_with_output_error(
             output_error,
-            cell_error,
             output_cache,
         );
 
@@ -1952,159 +1953,159 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         *input_error += &self.input_error_i_by_output_error;
         *input_error += &self.input_error_o_by_output_error;
 
-        prev_cell_error.copy_from(&self.prev_cell_error_main_by_output_error);
-        *prev_cell_error += &self.prev_cell_error_f_by_output_error;
-        *prev_cell_error += &self.prev_cell_error_i_by_output_error;
-        *prev_cell_error += &self.prev_cell_error_o_by_output_error;
+        prev_state_error.copy_from(
+            &self.prev_state_error_main_by_output_error
+        );
+        *prev_state_error += &self.prev_state_error_f_by_output_error;
+        *prev_state_error += &self.prev_state_error_i_by_output_error;
+        *prev_state_error += &self.prev_state_error_o_by_output_error;
 
         // This is somehow unnecessary part, but it appears in formula.
-        for i in 0..OUT {
-            debug_assert!(prev_cell_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
-            debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
-            debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(last_cell_cache.f_gate_cache.output.get(i).is_some());
+        //for i in 0..OUT {
+        //    debug_assert!(prev_state_error.get(i).is_some());
+        //    debug_assert!(output_error.get(i).is_some());
+        //    debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
+        //    debug_assert!(output_cache.d_tanh_c.get(i).is_some());
+        //    debug_assert!(
+        //        last_state_cache.f_gate_cache.output.get(i).is_some()
+        //    );
 
-            unsafe {
-                *prev_cell_error.get_unchecked_mut(i) +=
-                    (
-                        *output_error.get_unchecked(i)
-                        + *cell_error.get_unchecked(i)
-                    )
-                    * *output_cache.o_gate_cache.output.get_unchecked(i)
-                    * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *last_cell_cache.f_gate_cache.output.get_unchecked(i);
-            }
-        }
+        //    unsafe {
+        //        *prev_state_error.get_unchecked_mut(i) +=
+        //            *output_error.get_unchecked(i)
+        //            * *output_cache.o_gate_cache.output.get_unchecked(i)
+        //            * *output_cache.d_tanh_c.get_unchecked(i)
+        //            * *last_state_cache.f_gate_cache.output.get_unchecked(i);
+        //    }
+        //}
     }
 
     fn study_main_layer_with_output_error(
         &mut self,
         output_error: &MathVec<OUT>,
-        cell_error: &MathVec<OUT>,
-        cell_cache: &MLLSTMCellCache<OUT, IN>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>
     ) {
         for i in 0..OUT {
             debug_assert!(self.tmp_error.get(i).is_some());
             debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
+            debug_assert!(state_error.get(i).is_some());
             debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
             debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(cell_cache.i_gate_cache.output.get(i).is_some());
+            debug_assert!(state_cache.i_gate_cache.output.get(i).is_some());
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    (
-                        *output_error.get_unchecked(i)
-                        + *cell_error.get_unchecked(i)
-                    )
+                    *output_error.get_unchecked(i)
                     * *output_cache.o_gate_cache.output.get_unchecked(i)
                     * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *cell_cache.i_gate_cache.output.get_unchecked(i);
+                    * *state_cache.i_gate_cache.output.get_unchecked(i);
+
+                *self.tmp_error.get_unchecked_mut(i) +=
+                    *state_error.get_unchecked(i)
+                    * *state_cache.i_gate_cache.output.get_unchecked(i);
             }
         }
 
         self.main_layer.study(
             &self.tmp_error,
             None,
-            &cell_cache.main_layer_cache,
+            &state_cache.main_layer_cache,
             &mut self.input_error_main_by_output_error,
-            Some(&mut self.prev_cell_error_main_by_output_error)
+            Some(&mut self.prev_state_error_main_by_output_error)
         );
     }
 
     fn study_f_gate_with_output_error(
         &mut self,
         output_error: &MathVec<OUT>,
-        cell_error: &MathVec<OUT>,
-        cell_cache: &MLLSTMCellCache<OUT, IN>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>
     ) {
         for i in 0..OUT {
             debug_assert!(self.tmp_error.get(i).is_some());
             debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
+            debug_assert!(state_error.get(i).is_some());
             debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
             debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(cell_cache.prev_cell.get(i).is_some());
+            debug_assert!(state_cache.prev_state.get(i).is_some());
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    (
-                        *output_error.get_unchecked(i)
-                        + *cell_error.get_unchecked(i)
-                    )
+                    *output_error.get_unchecked(i)
                     * *output_cache.o_gate_cache.output.get_unchecked(i)
                     * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *cell_cache.prev_cell.get_unchecked(i);
+                    * *state_cache.prev_state.get_unchecked(i);
+
+                *self.tmp_error.get_unchecked_mut(i) +=
+                    *state_error.get_unchecked(i)
+                    * *state_cache.prev_state.get_unchecked(i);
             }
         }
 
         self.f_gate.study(
             &self.tmp_error,
             None,
-            &cell_cache.f_gate_cache,
+            &state_cache.f_gate_cache,
             &mut self.input_error_f_by_output_error,
-            Some(&mut self.prev_cell_error_f_by_output_error)
+            Some(&mut self.prev_state_error_f_by_output_error)
         );
     }
 
     fn study_i_gate_with_output_error(
         &mut self,
         output_error: &MathVec<OUT>,
-        cell_error: &MathVec<OUT>,
-        cell_cache: &MLLSTMCellCache<OUT, IN>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>
     ) {
         for i in 0..OUT {
             debug_assert!(self.tmp_error.get(i).is_some());
             debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
+            debug_assert!(state_error.get(i).is_some());
             debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
             debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(cell_cache.main_layer_cache.output.get(i).is_some());
+            debug_assert!(
+                state_cache.main_layer_cache.output.get(i).is_some()
+            );
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    (
-                        *output_error.get_unchecked(i)
-                        + *cell_error.get_unchecked(i)
-                    )
+                    *output_error.get_unchecked(i)
                     * *output_cache.o_gate_cache.output.get_unchecked(i)
                     * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *cell_cache.main_layer_cache.output.get_unchecked(i);
+                    * *state_cache.main_layer_cache.output.get_unchecked(i);
+
+                *self.tmp_error.get_unchecked_mut(i) +=
+                    *state_error.get_unchecked(i)
+                    * *state_cache.main_layer_cache.output.get_unchecked(i);
             }
         }
 
         self.i_gate.study(
             &self.tmp_error,
             None,
-            &cell_cache.i_gate_cache,
+            &state_cache.i_gate_cache,
             &mut self.input_error_i_by_output_error,
-            Some(&mut self.prev_cell_error_i_by_output_error)
+            Some(&mut self.prev_state_error_i_by_output_error)
         );
     }
 
     fn study_o_gate_with_output_error(
         &mut self,
         output_error: &MathVec<OUT>,
-        cell_error: &MathVec<OUT>,
         cache: &MLLSTMOutputCache<OUT, IN>
     ) {
         for i in 0..OUT {
             debug_assert!(self.tmp_error.get(i).is_some());
             debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cell_error.get(i).is_some());
             debug_assert!(cache.tanh_c.get(i).is_some());
 
             unsafe {
                 *self.tmp_error.get_unchecked_mut(i) =
-                    (
-                        *output_error.get_unchecked(i)
-                        + *cell_error.get_unchecked(i)
-                    )
+                    *output_error.get_unchecked(i)
                     * *cache.tanh_c.get_unchecked(i);
             }
         }
@@ -2114,7 +2115,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             None,
             &cache.o_gate_cache,
             &mut self.input_error_o_by_output_error,
-            Some(&mut self.prev_cell_error_o_by_output_error)
+            Some(&mut self.prev_state_error_o_by_output_error)
         );
     }
 
@@ -2136,8 +2137,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    lstm: LSTM<MIDDLE, IN>,
 //    output_layer: Layer<OUT, MIDDLE>,
 //
-//    prev_cell: MathVec<MIDDLE>,
-//    cell: MathVec<MIDDLE>,
+//    prev_state: MathVec<MIDDLE>,
+//    state: MathVec<MIDDLE>,
 //    last_input: MathVec<IN>,
 //
 //    tmpbuf: MathVec<MIDDLE>
@@ -2153,8 +2154,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            lstm: LSTM::<MIDDLE, IN>::new(),
 //            output_layer: Layer::<OUT, MIDDLE>::new(activation),
 //
-//            prev_cell: MathVec::<MIDDLE>::new(),
-//            cell: MathVec::<MIDDLE>::new(),
+//            prev_state: MathVec::<MIDDLE>::new(),
+//            state: MathVec::<MIDDLE>::new(),
 //            last_input: MathVec::<IN>::new(),
 //
 //            tmpbuf: MathVec::<MIDDLE>::new()
@@ -2176,23 +2177,23 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    }
 //
 //    #[inline]
-//    pub fn cell(&self) -> &MathVec<MIDDLE> {&self.cell}
+//    pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
 //
 //    #[inline]
-//    pub fn cell_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.cell}
+//    pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.state}
 //
 //    #[inline]
 //    pub fn last_input(&self) -> &MathVec<IN> {&self.last_input}
 //
 //    #[inline]
 //    pub fn input_next(&mut self, input: &MathVec<IN>) {
-//        self.prev_cell.copy_from(&self.cell);
+//        self.prev_state.copy_from(&self.state);
 //        self.last_input.copy_from(input);
 //
-//        self.lstm.calc_cell(
+//        self.lstm.calc_state(
 //            input,
-//            &self.prev_cell,
-//            &mut self.cell,
+//            &self.prev_state,
+//            &mut self.state,
 //            &mut self.tmpbuf
 //        );
 //    }
@@ -2203,7 +2204,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //        output: &mut MathVec<OUT>,
 //        tmpbuf: &mut MathVec<MIDDLE>
 //    ) {
-//        self.lstm.calc_output(&self.last_input, &self.cell, tmpbuf);
+//        self.lstm.calc_output(&self.last_input, &self.state, tmpbuf);
 //
 //        self.output_layer.calc(tmpbuf, None, output);
 //    }
@@ -2215,8 +2216,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    const MIDDLE: usize,
 //    const IN: usize
 //> {
-//    lstm_cell_caches: Vec<MLLSTMCellCache<MIDDLE, IN>>,
-//    lstm_cell_caches_len: usize,
+//    lstm_state_caches: Vec<MLLSTMStateCache<MIDDLE, IN>>,
+//    lstm_state_caches_len: usize,
 //
 //    lstm_output_cache: MLLSTMOutputCache<MIDDLE, IN>,
 //
@@ -2231,10 +2232,10 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    #[inline]
 //    pub fn new(capacity: usize) -> Self {
 //        Self {
-//            lstm_cell_caches: vec![
-//                MLLSTMCellCache::<MIDDLE, IN>::new(); capacity
+//            lstm_state_caches: vec![
+//                MLLSTMStateCache::<MIDDLE, IN>::new(); capacity
 //            ],
-//            lstm_cell_caches_len: 0,
+//            lstm_state_caches_len: 0,
 //
 //            lstm_output_cache: MLLSTMOutputCache::<MIDDLE, IN>::new(),
 //
@@ -2243,8 +2244,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    }
 //
 //    #[inline]
-//    pub fn lstm_cell_caches(&self) -> &[MLLSTMCellCache<MIDDLE, IN>] {
-//        &self.lstm_cell_caches[..self.lstm_cell_caches_len]
+//    pub fn lstm_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
+//        &self.lstm_state_caches[..self.lstm_state_caches_len]
 //    }
 //
 //    #[inline]
@@ -2263,18 +2264,18 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    }
 //
 //    #[inline]
-//    pub fn calc_error(
+//    pub fn calc_output_error(
 //        &self,
 //        train_out: &MathVec<OUT>,
-//        error: &mut MathVec<OUT>
+//        output_error: &mut MathVec<OUT>
 //    ) {
-//        error.copy_from(&self.output_layer_cache.output);
-//        *error -= train_out;
+//        output_error.copy_from(&self.output_layer_cache.output);
+//        *output_error -= train_out;
 //    }
 //
 //    #[inline]
 //    pub fn clear(&mut self) {
-//        self.lstm_cell_caches_len = 0;
+//        self.lstm_state_caches_len = 0;
 //    }
 //}
 //
@@ -2289,15 +2290,15 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //    cache: MLEncoderCache<OUT, MIDDLE, IN>,
 //
-//    prev_cell: MathVec<MIDDLE>,
+//    prev_state: MathVec<MIDDLE>,
 //
 //    tmp_output_error: MathVec<OUT>,
 //    tmp_middle_output_error: MathVec<MIDDLE>,
-//    tmp_cell_error: MathVec<MIDDLE>,
+//    tmp_state_error: MathVec<MIDDLE>,
 //    tmp_input_error_one: MathVec<IN>,
 //
-//    original_prev_cell: MathVec<MIDDLE>,
-//    original_cell: MathVec<MIDDLE>,
+//    original_prev_state: MathVec<MIDDLE>,
+//    original_state: MathVec<MIDDLE>,
 //    original_last_input: MathVec<IN>,
 //
 //    original_tmpbuf: MathVec<MIDDLE>
@@ -2312,8 +2313,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //        let ChobitEncoder::<OUT, MIDDLE, IN> {
 //            lstm,
 //            output_layer,
-//            prev_cell,
-//            cell,
+//            prev_state,
+//            state,
 //            last_input,
 //            tmpbuf
 //        } = encoder;
@@ -2324,15 +2325,15 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //            cache: MLEncoderCache::<OUT, MIDDLE, IN>::new(0),
 //
-//            prev_cell: MathVec::<MIDDLE>::new(),
+//            prev_state: MathVec::<MIDDLE>::new(),
 //
 //            tmp_output_error: MathVec::<OUT>::new(),
 //            tmp_middle_output_error: MathVec::<MIDDLE>::new(),
-//            tmp_cell_error: MathVec::<MIDDLE>::new(),
+//            tmp_state_error: MathVec::<MIDDLE>::new(),
 //            tmp_input_error_one: MathVec::<IN>::new(),
 //
-//            original_prev_cell: prev_cell,
-//            original_cell: cell,
+//            original_prev_state: prev_state,
+//            original_state: state,
 //            original_last_input: last_input,
 //            original_tmpbuf: tmpbuf
 //        }
@@ -2343,8 +2344,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //        let Self {
 //            lstm,
 //            output_layer,
-//            original_prev_cell,
-//            original_cell,
+//            original_prev_state,
+//            original_state,
 //            original_last_input,
 //            original_tmpbuf,
 //            ..
@@ -2353,8 +2354,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //        ChobitEncoder::<OUT, MIDDLE, IN> {
 //            lstm: lstm.drop(),
 //            output_layer: output_layer.drop(),
-//            prev_cell: original_prev_cell,
-//            cell: original_cell,
+//            prev_state: original_prev_state,
+//            state: original_state,
 //            last_input: original_last_input,
 //            tmpbuf: original_tmpbuf
 //        }
@@ -2369,21 +2370,24 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    pub fn study(
 //        &mut self,
 //        train_in: &[MathVec<IN>],
-//        prev_cell: &MathVec<MIDDLE>,
+//        prev_state: &MathVec<MIDDLE>,
 //        train_out: &MathVec<OUT>,
 //        input_error: &mut MathVec<IN>,
-//        prev_cell_error: &mut MathVec<MIDDLE>,
+//        prev_state_error: &mut MathVec<MIDDLE>,
 //    ) {
-//        self.ready_cell_cache(train_in, prev_cell);
+//        self.ready_state_cache(train_in, prev_state);
 //        self.ready_output_cache();
 //
-//        self.cache.calc_error(train_out, &mut self.tmp_output_error);
+//        self.cache.calc_output_error(train_out, &mut self.tmp_output_error);
 //
-//        let mut iter = self.cache.lstm_cell_caches().iter().rev();
+//        let mut iter = self.cache.lstm_state_caches().iter().rev();
 //
-//        if let Some(lstm_cell_cache) = iter.next() {
+//        self.tmp_state_error.clear();
+//
+//        if let Some(lstm_state_cache) = iter.next() {
 //            self.output_layer.study(
 //                &self.tmp_output_error,
+//                None,
 //                &self.cache.output_layer_cache,
 //                &mut self.tmp_middle_output_error,
 //                None
@@ -2391,64 +2395,64 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //            self.lstm.study_with_output_error(
 //                &self.tmp_middle_output_error,
-//                &lstm_cell_cache,
+//                &lstm_state_cache,
 //                &self.cache.lstm_output_cache,
 //                input_error,
-//                prev_cell_error
+//                prev_state_error
 //            );
 //        }
 //
-//        self.tmp_cell_error.copy_from(prev_cell_error);
+//        self.tmp_state_error.copy_from(prev_state_error);
 //
-//        iter.for_each(|lstm_cell_cache| {
-//            self.lstm.study_with_cell_error(
-//                &self.tmp_cell_error,
-//                lstm_cell_cache,
+//        iter.for_each(|lstm_state_cache| {
+//            self.lstm.study_with_state_error(
+//                &self.tmp_state_error,
+//                lstm_state_cache,
 //                &mut self.tmp_input_error_one,
-//                prev_cell_error
+//                prev_state_error
 //            );
 //
-//            self.tmp_cell_error.copy_from(prev_cell_error);
+//            self.tmp_state_error.copy_from(prev_state_error);
 //            *input_error += &self.tmp_input_error_one;
 //        });
 //
 //        self.cache.clear();
 //    }
 //
-//    fn ready_cell_cache(
+//    fn ready_state_cache(
 //        &mut self,
 //        train_in: &[MathVec<IN>],
-//        prev_cell: &MathVec<MIDDLE>
+//        prev_state: &MathVec<MIDDLE>
 //    ) {
-//        self.cache.lstm_cell_caches_len = train_in.len();
-//        if self.cache.lstm_cell_caches.len() < train_in.len() {
-//            self.cache.lstm_cell_caches.resize(
+//        self.cache.lstm_state_caches_len = train_in.len();
+//        if self.cache.lstm_state_caches.len() < train_in.len() {
+//            self.cache.lstm_state_caches.resize(
 //                train_in.len(),
-//                MLLSTMCellCache::<MIDDLE, IN>::new()
+//                MLLSTMStateCache::<MIDDLE, IN>::new()
 //            );
 //        }
 //
-//        self.prev_cell.copy_from(prev_cell);
+//        self.prev_state.copy_from(prev_state);
 //
 //        train_in.iter().zip(
-//            &mut self.cache.lstm_cell_caches
+//            &mut self.cache.lstm_state_caches
 //        ).for_each(|(train_in_one, cache)| {
-//            self.lstm.ready_cell_cache(
+//            self.lstm.ready_state_cache(
 //                train_in_one,
-//                &self.prev_cell,
+//                &self.prev_state,
 //                cache
 //            );
 //
-//            self.prev_cell.copy_from(&cache.cell);
+//            self.prev_state.copy_from(&cache.state);
 //        })
 //    }
 //
 //    fn ready_output_cache(&mut self) {
-//        if let Some(last_cell_cache) = self.cache.lstm_cell_caches.get(
-//            self.cache.lstm_cell_caches_len.wrapping_sub(1)
+//        if let Some(last_state_cache) = self.cache.lstm_state_caches.get(
+//            self.cache.lstm_state_caches_len.wrapping_sub(1)
 //        ) {
 //            self.lstm.ready_output_cache(
-//                last_cell_cache,
+//                last_state_cache,
 //                &mut self.cache.lstm_output_cache
 //            );
 //
@@ -2477,8 +2481,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    output_layer: Layer<OUT, MIDDLE>,
 //
 //    input: MathVec<IN>,
-//    prev_cell: MathVec<MIDDLE>,
-//    cell: MathVec<MIDDLE>,
+//    prev_state: MathVec<MIDDLE>,
+//    state: MathVec<MIDDLE>,
 //
 //    tmpbuf: MathVec<MIDDLE>
 //}
@@ -2494,8 +2498,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            output_layer: Layer::<OUT, MIDDLE>::new(activation),
 //
 //            input: MathVec::<IN>::new(),
-//            prev_cell: MathVec::<MIDDLE>::new(),
-//            cell: MathVec::<MIDDLE>::new(),
+//            prev_state: MathVec::<MIDDLE>::new(),
+//            state: MathVec::<MIDDLE>::new(),
 //
 //            tmpbuf: MathVec::<MIDDLE>::new()
 //        }
@@ -2522,21 +2526,21 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    pub fn input_mut(&mut self) -> &mut MathVec<IN> {&mut self.input}
 //
 //    #[inline]
-//    pub fn cell(&self) -> &MathVec<MIDDLE> {&self.cell}
+//    pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
 //
 //    #[inline]
-//    pub fn cell_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.cell}
+//    pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.state}
 //
 //    pub fn output_next(&mut self, output: &mut MathVec<OUT>) {
-//        self.prev_cell.copy_from(&self.cell);
+//        self.prev_state.copy_from(&self.state);
 //
-//        self.lstm.calc_cell(
+//        self.lstm.calc_state(
 //            &self.input,
-//            &self.prev_cell,
-//            &mut self.cell,
+//            &self.prev_state,
+//            &mut self.state,
 //            &mut self.tmpbuf
 //        );
-//        self.lstm.calc_output(&self.input, &self.cell, &mut self.tmpbuf);
+//        self.lstm.calc_output(&self.input, &self.state, &mut self.tmpbuf);
 //
 //        self.output_layer.calc(&self.tmpbuf, None, output);
 //    }
@@ -2549,7 +2553,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    const IN: usize
 //> {
 //    caches: Vec<(
-//        MLLSTMCellCache<MIDDLE, IN>,
+//        MLLSTMStateCache<MIDDLE, IN>,
 //        MLLSTMOutputCache<MIDDLE, IN>,
 //        MLCache<OUT, MIDDLE>
 //    )>,
@@ -2567,7 +2571,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //        Self {
 //            caches: vec![
 //                (
-//                    MLLSTMCellCache::<MIDDLE, IN>::new(),
+//                    MLLSTMStateCache::<MIDDLE, IN>::new(),
 //                    MLLSTMOutputCache::<MIDDLE, IN>::new(),
 //                    MLCache::<OUT, MIDDLE>::new(),
 //                ); capacity
@@ -2578,7 +2582,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //    #[inline]
 //    pub fn caches(&self) -> &[(
-//        MLLSTMCellCache<MIDDLE, IN>,
+//        MLLSTMStateCache<MIDDLE, IN>,
 //        MLLSTMOutputCache<MIDDLE, IN>,
 //        MLCache<OUT, MIDDLE>
 //    )] {
@@ -2586,18 +2590,24 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    }
 //
 //    #[inline]
-//    pub fn calc_error(
+//    pub fn calc_output_error(
 //        &self,
 //        train_out: &[MathVec<OUT>],
-//        error: &mut [MathVec<OUT>]
+//        output_error: &mut [MathVec<OUT>]
 //    ) {
 //        train_out.iter().zip(
 //            &self.caches
 //        ).zip(
-//            error
-//        ).for_each(|((train_out_one, (_, _, output_layer_cache)), error_one)| {
-//            error_one.copy_from(&output_layer_cache.output);
-//            *error_one -= train_out_one;
+//            output_error
+//        ).for_each(|(
+//            (
+//                train_out_one,
+//                (_, _, output_layer_cache)
+//            ),
+//            output_error_one
+//        )| {
+//            output_error_one.copy_from(&output_layer_cache.output);
+//            *output_error_one -= train_out_one;
 //        });
 //    }
 //
@@ -2618,17 +2628,17 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //    cache: MLDecoderCache<OUT, MIDDLE, IN>,
 //
-//    prev_cell: MathVec<MIDDLE>,
+//    prev_state: MathVec<MIDDLE>,
 //
 //    tmp_output_error: Vec<MathVec<OUT>>,
 //    tmp_middle_output_error: MathVec<MIDDLE>,
-//    tmp_prev_cell_error: MathVec<MIDDLE>,
-//    tmp_cell_error: MathVec<MIDDLE>,
+//    tmp_prev_state_error: MathVec<MIDDLE>,
+//    tmp_state_error: MathVec<MIDDLE>,
 //    tmp_input_error_one: MathVec<IN>,
 //
 //    original_input: MathVec<IN>,
-//    original_prev_cell: MathVec<MIDDLE>,
-//    original_cell: MathVec<MIDDLE>,
+//    original_prev_state: MathVec<MIDDLE>,
+//    original_state: MathVec<MIDDLE>,
 //
 //    original_tmpbuf: MathVec<MIDDLE>
 //}
@@ -2643,8 +2653,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            lstm,
 //            output_layer,
 //            input,
-//            prev_cell,
-//            cell,
+//            prev_state,
+//            state,
 //            tmpbuf
 //        } = decoder;
 //
@@ -2654,17 +2664,17 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //            cache: MLDecoderCache::<OUT, MIDDLE, IN>::new(0),
 //
-//            prev_cell: MathVec::<MIDDLE>::new(),
+//            prev_state: MathVec::<MIDDLE>::new(),
 //
 //            tmp_output_error: Vec::<MathVec<OUT>>::new(),
 //            tmp_middle_output_error: MathVec::<MIDDLE>::new(),
-//            tmp_prev_cell_error: MathVec::<MIDDLE>::new(),
-//            tmp_cell_error: MathVec::<MIDDLE>::new(),
+//            tmp_prev_state_error: MathVec::<MIDDLE>::new(),
+//            tmp_state_error: MathVec::<MIDDLE>::new(),
 //            tmp_input_error_one: MathVec::<IN>::new(),
 //
 //            original_input: input,
-//            original_prev_cell: prev_cell,
-//            original_cell: cell,
+//            original_prev_state: prev_state,
+//            original_state: state,
 //            original_tmpbuf: tmpbuf
 //        }
 //    }
@@ -2675,8 +2685,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            lstm,
 //            output_layer,
 //            original_input,
-//            original_prev_cell,
-//            original_cell,
+//            original_prev_state,
+//            original_state,
 //            original_tmpbuf,
 //            ..
 //        } = self;
@@ -2685,8 +2695,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            lstm: lstm.drop(),
 //            output_layer: output_layer.drop(),
 //            input: original_input,
-//            prev_cell: original_prev_cell,
-//            cell: original_cell,
+//            prev_state: original_prev_state,
+//            state: original_state,
 //            tmpbuf: original_tmpbuf
 //        }
 //    }
@@ -2701,12 +2711,12 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    pub fn study(
 //        &mut self,
 //        train_in: &MathVec<IN>,
-//        prev_cell: &MathVec<MIDDLE>,
+//        prev_state: &MathVec<MIDDLE>,
 //        train_out: &[MathVec<OUT>],
 //        input_error: &mut MathVec<IN>,
-//        prev_cell_error: &mut MathVec<MIDDLE>
+//        prev_state_error: &mut MathVec<MIDDLE>
 //    ) {
-//        self.ready(train_in, prev_cell, train_out);
+//        self.ready(train_in, prev_state, train_out);
 //
 //        if self.tmp_output_error.len() < train_out.len() {
 //            self.tmp_output_error.resize(
@@ -2715,16 +2725,16 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            );
 //        }
 //
-//        self.cache.calc_error(train_out, &mut self.tmp_output_error);
+//        self.cache.calc_output_error(train_out, &mut self.tmp_output_error);
 //
 //        input_error.clear();
-//        prev_cell_error.clear();
+//        prev_state_error.clear();
 //
 //        self.cache.caches().iter().zip(
 //            &self.tmp_output_error
 //        ).rev().for_each(|(
 //            (
-//                lstm_cell_cache,
+//                lstm_state_cache,
 //                lstm_output_cache,
 //                output_layer_cache
 //            ),
@@ -2732,6 +2742,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //        )| {
 //            self.output_layer.study(
 //                output_error_one,
+//                None,
 //                &output_layer_cache,
 //                &mut self.tmp_middle_output_error,
 //                None
@@ -2739,11 +2750,12 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //
 //            self.lstm.study_with_output_error(
 //                &self.tmp_middle_output_error,
-//                lstm_cell_cache,
+//                lstm_state_cache,
 //                lstm_output_cache,
 //                &mut self.tmp_input_error_one,
-//                prev_cell_error
+//                prev_state_error
 //            );
+//
 //            *input_error += &self.tmp_input_error_one;
 //        });
 //    }
@@ -2751,7 +2763,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //    fn ready(
 //        &mut self,
 //        train_in: &MathVec<IN>,
-//        prev_cell: &MathVec<MIDDLE>,
+//        prev_state: &MathVec<MIDDLE>,
 //        train_out: &[MathVec<OUT>],
 //    ) {
 //        self.cache.caches_len = train_out.len();
@@ -2759,29 +2771,29 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 //            self.cache.caches.resize(
 //                train_out.len(),
 //                (
-//                    MLLSTMCellCache::<MIDDLE, IN>::new(),
+//                    MLLSTMStateCache::<MIDDLE, IN>::new(),
 //                    MLLSTMOutputCache::<MIDDLE, IN>::new(),
 //                    MLCache::<OUT, MIDDLE>::new()
 //                )
 //            );
 //        }
 //
-//        self.prev_cell.copy_from(prev_cell);
+//        self.prev_state.copy_from(prev_state);
 //
 //        self.cache.caches[..train_out.len()].iter_mut().for_each(|(
-//            lstm_cell_cache,
+//            lstm_state_cache,
 //            lstm_output_cache,
 //            output_layer_cache
 //        )| {
-//            self.lstm.ready_cell_cache(
+//            self.lstm.ready_state_cache(
 //                train_in,
-//                &self.prev_cell,
-//                lstm_cell_cache
+//                &self.prev_state,
+//                lstm_state_cache
 //            );
-//            self.prev_cell.copy_from(&lstm_cell_cache.cell);
+//            self.prev_state.copy_from(&lstm_state_cache.state);
 //
 //            self.lstm.ready_output_cache(
-//                lstm_cell_cache,
+//                lstm_state_cache,
 //                lstm_output_cache
 //            );
 //
