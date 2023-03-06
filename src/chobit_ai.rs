@@ -2128,349 +2128,350 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     }
 }
 
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitEncoder<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> {
-//    lstm: LSTM<MIDDLE, IN>,
-//    output_layer: Layer<OUT, MIDDLE>,
-//
-//    prev_state: MathVec<MIDDLE>,
-//    state: MathVec<MIDDLE>,
-//    last_input: MathVec<IN>,
-//
-//    tmpbuf: MathVec<MIDDLE>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitEncoder<OUT, MIDDLE, IN> {
-//    pub fn new(activation: Activation) -> Self {
-//        Self {
-//            lstm: LSTM::<MIDDLE, IN>::new(),
-//            output_layer: Layer::<OUT, MIDDLE>::new(activation),
-//
-//            prev_state: MathVec::<MIDDLE>::new(),
-//            state: MathVec::<MIDDLE>::new(),
-//            last_input: MathVec::<IN>::new(),
-//
-//            tmpbuf: MathVec::<MIDDLE>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn lstm(&self) -> &LSTM<MIDDLE, IN> {&self.lstm}
-//
-//    #[inline]
-//    pub fn lstm_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {&mut self.lstm}
-//
-//    #[inline]
-//    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
-//
-//    #[inline]
-//    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
-//        &mut self.output_layer
-//    }
-//
-//    #[inline]
-//    pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
-//
-//    #[inline]
-//    pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.state}
-//
-//    #[inline]
-//    pub fn last_input(&self) -> &MathVec<IN> {&self.last_input}
-//
-//    #[inline]
-//    pub fn input_next(&mut self, input: &MathVec<IN>) {
-//        self.prev_state.copy_from(&self.state);
-//        self.last_input.copy_from(input);
-//
-//        self.lstm.calc_state(
-//            input,
-//            &self.prev_state,
-//            &mut self.state,
-//            &mut self.tmpbuf
-//        );
-//    }
-//
-//    #[inline]
-//    pub fn output(
-//        &self,
-//        output: &mut MathVec<OUT>,
-//        tmpbuf: &mut MathVec<MIDDLE>
-//    ) {
-//        self.lstm.calc_output(&self.last_input, &self.state, tmpbuf);
-//
-//        self.output_layer.calc(tmpbuf, None, output);
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLEncoderCache<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> {
-//    lstm_state_caches: Vec<MLLSTMStateCache<MIDDLE, IN>>,
-//    lstm_state_caches_len: usize,
-//
-//    lstm_output_cache: MLLSTMOutputCache<MIDDLE, IN>,
-//
-//    output_layer_cache: MLCache<OUT, MIDDLE>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> MLEncoderCache<OUT, MIDDLE, IN> {
-//    #[inline]
-//    pub fn new(capacity: usize) -> Self {
-//        Self {
-//            lstm_state_caches: vec![
-//                MLLSTMStateCache::<MIDDLE, IN>::new(); capacity
-//            ],
-//            lstm_state_caches_len: 0,
-//
-//            lstm_output_cache: MLLSTMOutputCache::<MIDDLE, IN>::new(),
-//
-//            output_layer_cache: MLCache::<OUT, MIDDLE>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn lstm_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
-//        &self.lstm_state_caches[..self.lstm_state_caches_len]
-//    }
-//
-//    #[inline]
-//    pub fn lstm_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
-//        &self.lstm_output_cache
-//    }
-//
-//    #[inline]
-//    pub fn output_layer_cache(&self) -> &MLCache<OUT, MIDDLE> {
-//        &self.output_layer_cache
-//    }
-//
-//    #[inline]
-//    pub fn output(&self) -> &MathVec<OUT> {
-//        &self.output_layer_cache.output
-//    }
-//
-//    #[inline]
-//    pub fn calc_output_error(
-//        &self,
-//        train_out: &MathVec<OUT>,
-//        output_error: &mut MathVec<OUT>
-//    ) {
-//        output_error.copy_from(&self.output_layer_cache.output);
-//        *output_error -= train_out;
-//    }
-//
-//    #[inline]
-//    pub fn clear(&mut self) {
-//        self.lstm_state_caches_len = 0;
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitMLEncoder<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> {
-//    lstm: MLLSTM<MIDDLE, IN>,
-//    output_layer: MLLayer<OUT, MIDDLE>,
-//
-//    cache: MLEncoderCache<OUT, MIDDLE, IN>,
-//
-//    prev_state: MathVec<MIDDLE>,
-//
-//    tmp_output_error: MathVec<OUT>,
-//    tmp_middle_output_error: MathVec<MIDDLE>,
-//    tmp_state_error: MathVec<MIDDLE>,
-//    tmp_input_error_one: MathVec<IN>,
-//
-//    original_prev_state: MathVec<MIDDLE>,
-//    original_state: MathVec<MIDDLE>,
-//    original_last_input: MathVec<IN>,
-//
-//    original_tmpbuf: MathVec<MIDDLE>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitMLEncoder<OUT, MIDDLE, IN> {
-//    pub fn new(encoder: ChobitEncoder<OUT, MIDDLE, IN>) -> Self {
-//        let ChobitEncoder::<OUT, MIDDLE, IN> {
-//            lstm,
-//            output_layer,
-//            prev_state,
-//            state,
-//            last_input,
-//            tmpbuf
-//        } = encoder;
-//
-//        Self {
-//            lstm: MLLSTM::<MIDDLE, IN>::new(lstm),
-//            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
-//
-//            cache: MLEncoderCache::<OUT, MIDDLE, IN>::new(0),
-//
-//            prev_state: MathVec::<MIDDLE>::new(),
-//
-//            tmp_output_error: MathVec::<OUT>::new(),
-//            tmp_middle_output_error: MathVec::<MIDDLE>::new(),
-//            tmp_state_error: MathVec::<MIDDLE>::new(),
-//            tmp_input_error_one: MathVec::<IN>::new(),
-//
-//            original_prev_state: prev_state,
-//            original_state: state,
-//            original_last_input: last_input,
-//            original_tmpbuf: tmpbuf
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn drop(self) -> ChobitEncoder<OUT, MIDDLE, IN> {
-//        let Self {
-//            lstm,
-//            output_layer,
-//            original_prev_state,
-//            original_state,
-//            original_last_input,
-//            original_tmpbuf,
-//            ..
-//        } = self;
-//
-//        ChobitEncoder::<OUT, MIDDLE, IN> {
-//            lstm: lstm.drop(),
-//            output_layer: output_layer.drop(),
-//            prev_state: original_prev_state,
-//            state: original_state,
-//            last_input: original_last_input,
-//            tmpbuf: original_tmpbuf
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.lstm.clear_study_data();
-//        self.output_layer.clear_study_data();
-//    }
-//
-//    pub fn study(
-//        &mut self,
-//        train_in: &[MathVec<IN>],
-//        prev_state: &MathVec<MIDDLE>,
-//        train_out: &MathVec<OUT>,
-//        input_error: &mut MathVec<IN>,
-//        prev_state_error: &mut MathVec<MIDDLE>,
-//    ) {
-//        self.ready_state_cache(train_in, prev_state);
-//        self.ready_output_cache();
-//
-//        self.cache.calc_output_error(train_out, &mut self.tmp_output_error);
-//
-//        let mut iter = self.cache.lstm_state_caches().iter().rev();
-//
-//        self.tmp_state_error.clear();
-//
-//        if let Some(lstm_state_cache) = iter.next() {
-//            self.output_layer.study(
-//                &self.tmp_output_error,
-//                None,
-//                &self.cache.output_layer_cache,
-//                &mut self.tmp_middle_output_error,
-//                None
-//            );
-//
-//            self.lstm.study_with_output_error(
-//                &self.tmp_middle_output_error,
-//                &lstm_state_cache,
-//                &self.cache.lstm_output_cache,
-//                input_error,
-//                prev_state_error
-//            );
-//        }
-//
-//        self.tmp_state_error.copy_from(prev_state_error);
-//
-//        iter.for_each(|lstm_state_cache| {
-//            self.lstm.study_with_state_error(
-//                &self.tmp_state_error,
-//                lstm_state_cache,
-//                &mut self.tmp_input_error_one,
-//                prev_state_error
-//            );
-//
-//            self.tmp_state_error.copy_from(prev_state_error);
-//            *input_error += &self.tmp_input_error_one;
-//        });
-//
-//        self.cache.clear();
-//    }
-//
-//    fn ready_state_cache(
-//        &mut self,
-//        train_in: &[MathVec<IN>],
-//        prev_state: &MathVec<MIDDLE>
-//    ) {
-//        self.cache.lstm_state_caches_len = train_in.len();
-//        if self.cache.lstm_state_caches.len() < train_in.len() {
-//            self.cache.lstm_state_caches.resize(
-//                train_in.len(),
-//                MLLSTMStateCache::<MIDDLE, IN>::new()
-//            );
-//        }
-//
-//        self.prev_state.copy_from(prev_state);
-//
-//        train_in.iter().zip(
-//            &mut self.cache.lstm_state_caches
-//        ).for_each(|(train_in_one, cache)| {
-//            self.lstm.ready_state_cache(
-//                train_in_one,
-//                &self.prev_state,
-//                cache
-//            );
-//
-//            self.prev_state.copy_from(&cache.state);
-//        })
-//    }
-//
-//    fn ready_output_cache(&mut self) {
-//        if let Some(last_state_cache) = self.cache.lstm_state_caches.get(
-//            self.cache.lstm_state_caches_len.wrapping_sub(1)
-//        ) {
-//            self.lstm.ready_output_cache(
-//                last_state_cache,
-//                &mut self.cache.lstm_output_cache
-//            );
-//
-//            self.output_layer.ready(
-//                &self.cache.lstm_output_cache.output,
-//                None,
-//                &mut self.cache.output_layer_cache
-//            )
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.lstm.update(rate);
-//        self.output_layer.update(rate);
-//    }
-//}
-//
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitEncoder<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> {
+    lstm: LSTM<MIDDLE, IN>,
+    output_layer: Layer<OUT, MIDDLE>,
+
+    prev_state: MathVec<MIDDLE>,
+    state: MathVec<MIDDLE>,
+    last_input: MathVec<IN>,
+
+    tmpbuf: MathVec<MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitEncoder<OUT, MIDDLE, IN> {
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            lstm: LSTM::<MIDDLE, IN>::new(),
+            output_layer: Layer::<OUT, MIDDLE>::new(activation),
+
+            prev_state: MathVec::<MIDDLE>::new(),
+            state: MathVec::<MIDDLE>::new(),
+            last_input: MathVec::<IN>::new(),
+
+            tmpbuf: MathVec::<MIDDLE>::new()
+        }
+    }
+
+    #[inline]
+    pub fn lstm(&self) -> &LSTM<MIDDLE, IN> {&self.lstm}
+
+    #[inline]
+    pub fn lstm_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {&mut self.lstm}
+
+    #[inline]
+    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
+
+    #[inline]
+    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
+        &mut self.output_layer
+    }
+
+    #[inline]
+    pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
+
+    #[inline]
+    pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.state}
+
+    #[inline]
+    pub fn last_input(&self) -> &MathVec<IN> {&self.last_input}
+
+    #[inline]
+    pub fn input_next(&mut self, input: &MathVec<IN>) {
+        self.prev_state.copy_from(&self.state);
+        self.last_input.copy_from(input);
+
+        self.lstm.calc_state(
+            input,
+            &self.prev_state,
+            &mut self.state,
+            &mut self.tmpbuf
+        );
+    }
+
+    #[inline]
+    pub fn output(
+        &self,
+        output: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<MIDDLE>
+    ) {
+        self.lstm.calc_output(&self.last_input, &self.state, tmpbuf);
+
+        self.output_layer.calc(tmpbuf, None, output);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLEncoderCache<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> {
+    lstm_state_caches: Vec<MLLSTMStateCache<MIDDLE, IN>>,
+    lstm_state_caches_len: usize,
+
+    lstm_output_cache: MLLSTMOutputCache<MIDDLE, IN>,
+
+    output_layer_cache: MLCache<OUT, MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> MLEncoderCache<OUT, MIDDLE, IN> {
+    #[inline]
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            lstm_state_caches: vec![
+                MLLSTMStateCache::<MIDDLE, IN>::new(); capacity
+            ],
+            lstm_state_caches_len: 0,
+
+            lstm_output_cache: MLLSTMOutputCache::<MIDDLE, IN>::new(),
+
+            output_layer_cache: MLCache::<OUT, MIDDLE>::new()
+        }
+    }
+
+    #[inline]
+    pub fn lstm_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
+        &self.lstm_state_caches[..self.lstm_state_caches_len]
+    }
+
+    #[inline]
+    pub fn lstm_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
+        &self.lstm_output_cache
+    }
+
+    #[inline]
+    pub fn output_layer_cache(&self) -> &MLCache<OUT, MIDDLE> {
+        &self.output_layer_cache
+    }
+
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {
+        &self.output_layer_cache.output
+    }
+
+    #[inline]
+    pub fn calc_output_error(
+        &self,
+        train_out: &MathVec<OUT>,
+        output_error: &mut MathVec<OUT>
+    ) {
+        output_error.copy_from(&self.output_layer_cache.output);
+        *output_error -= train_out;
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.lstm_state_caches_len = 0;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitMLEncoder<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> {
+    lstm: MLLSTM<MIDDLE, IN>,
+    output_layer: MLLayer<OUT, MIDDLE>,
+
+    cache: MLEncoderCache<OUT, MIDDLE, IN>,
+
+    prev_state: MathVec<MIDDLE>,
+
+    tmp_output_error: MathVec<OUT>,
+    tmp_middle_output_error: MathVec<MIDDLE>,
+    tmp_state_error: MathVec<MIDDLE>,
+    tmp_input_error_one: MathVec<IN>,
+
+    original_prev_state: MathVec<MIDDLE>,
+    original_state: MathVec<MIDDLE>,
+    original_last_input: MathVec<IN>,
+
+    original_tmpbuf: MathVec<MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitMLEncoder<OUT, MIDDLE, IN> {
+    pub fn new(encoder: ChobitEncoder<OUT, MIDDLE, IN>) -> Self {
+        let ChobitEncoder::<OUT, MIDDLE, IN> {
+            lstm,
+            output_layer,
+            prev_state,
+            state,
+            last_input,
+            tmpbuf
+        } = encoder;
+
+        Self {
+            lstm: MLLSTM::<MIDDLE, IN>::new(lstm),
+            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+
+            cache: MLEncoderCache::<OUT, MIDDLE, IN>::new(0),
+
+            prev_state: MathVec::<MIDDLE>::new(),
+
+            tmp_output_error: MathVec::<OUT>::new(),
+            tmp_middle_output_error: MathVec::<MIDDLE>::new(),
+            tmp_state_error: MathVec::<MIDDLE>::new(),
+            tmp_input_error_one: MathVec::<IN>::new(),
+
+            original_prev_state: prev_state,
+            original_state: state,
+            original_last_input: last_input,
+            original_tmpbuf: tmpbuf
+        }
+    }
+
+    #[inline]
+    pub fn drop(self) -> ChobitEncoder<OUT, MIDDLE, IN> {
+        let Self {
+            lstm,
+            output_layer,
+            original_prev_state,
+            original_state,
+            original_last_input,
+            original_tmpbuf,
+            ..
+        } = self;
+
+        ChobitEncoder::<OUT, MIDDLE, IN> {
+            lstm: lstm.drop(),
+            output_layer: output_layer.drop(),
+            prev_state: original_prev_state,
+            state: original_state,
+            last_input: original_last_input,
+            tmpbuf: original_tmpbuf
+        }
+    }
+
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.lstm.clear_study_data();
+        self.output_layer.clear_study_data();
+    }
+
+    pub fn study(
+        &mut self,
+        train_in: &[MathVec<IN>],
+        prev_state: &MathVec<MIDDLE>,
+        train_out: &MathVec<OUT>,
+        input_error: &mut MathVec<IN>,
+        prev_state_error: &mut MathVec<MIDDLE>,
+    ) {
+        self.ready_state_cache(train_in, prev_state);
+        self.ready_output_cache();
+
+        self.cache.calc_output_error(train_out, &mut self.tmp_output_error);
+
+        let mut iter = self.cache.lstm_state_caches().iter().rev();
+
+        self.tmp_state_error.clear();
+
+        if let Some(lstm_state_cache) = iter.next() {
+            self.output_layer.study(
+                &self.tmp_output_error,
+                None,
+                &self.cache.output_layer_cache,
+                &mut self.tmp_middle_output_error,
+                None
+            );
+
+            self.lstm.study_with_output_error(
+                &self.tmp_middle_output_error,
+                &self.tmp_state_error,
+                &lstm_state_cache,
+                &self.cache.lstm_output_cache,
+                input_error,
+                prev_state_error
+            );
+        }
+
+        self.tmp_state_error.copy_from(prev_state_error);
+
+        iter.for_each(|lstm_state_cache| {
+            self.lstm.study_with_state_error(
+                &self.tmp_state_error,
+                lstm_state_cache,
+                &mut self.tmp_input_error_one,
+                prev_state_error
+            );
+
+            self.tmp_state_error.copy_from(prev_state_error);
+            *input_error += &self.tmp_input_error_one;
+        });
+
+        self.cache.clear();
+    }
+
+    fn ready_state_cache(
+        &mut self,
+        train_in: &[MathVec<IN>],
+        prev_state: &MathVec<MIDDLE>
+    ) {
+        self.cache.lstm_state_caches_len = train_in.len();
+        if self.cache.lstm_state_caches.len() < train_in.len() {
+            self.cache.lstm_state_caches.resize(
+                train_in.len(),
+                MLLSTMStateCache::<MIDDLE, IN>::new()
+            );
+        }
+
+        self.prev_state.copy_from(prev_state);
+
+        train_in.iter().zip(
+            &mut self.cache.lstm_state_caches
+        ).for_each(|(train_in_one, cache)| {
+            self.lstm.ready_state_cache(
+                train_in_one,
+                &self.prev_state,
+                cache
+            );
+
+            self.prev_state.copy_from(&cache.state);
+        })
+    }
+
+    fn ready_output_cache(&mut self) {
+        if let Some(last_state_cache) = self.cache.lstm_state_caches.get(
+            self.cache.lstm_state_caches_len.wrapping_sub(1)
+        ) {
+            self.lstm.ready_output_cache(
+                last_state_cache,
+                &mut self.cache.lstm_output_cache
+            );
+
+            self.output_layer.ready(
+                &self.cache.lstm_output_cache.output,
+                None,
+                &mut self.cache.output_layer_cache
+            )
+        }
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.lstm.update(rate);
+        self.output_layer.update(rate);
+    }
+}
+
 //#[derive(Debug, Clone, PartialEq)]
 //pub struct ChobitDecoder<
 //    const OUT: usize,
