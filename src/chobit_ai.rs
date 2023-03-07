@@ -2288,7 +2288,8 @@ pub struct ChobitMLEncoder<
     tmp_output_error: MathVec<OUT>,
     tmp_middle_output_error: MathVec<MIDDLE>,
     tmp_state_error: MathVec<MIDDLE>,
-    tmp_input_error_one: MathVec<IN>,
+    tmp_input_error: MathVec<IN>,
+    tmp_prev_state_error: MathVec<MIDDLE>,
 
     original_prev_state: MathVec<MIDDLE>,
     original_state: MathVec<MIDDLE>,
@@ -2325,7 +2326,8 @@ impl<
             tmp_output_error: MathVec::<OUT>::new(),
             tmp_middle_output_error: MathVec::<MIDDLE>::new(),
             tmp_state_error: MathVec::<MIDDLE>::new(),
-            tmp_input_error_one: MathVec::<IN>::new(),
+            tmp_input_error: MathVec::<IN>::new(),
+            tmp_prev_state_error: MathVec::<MIDDLE>::new(),
 
             original_prev_state: prev_state,
             original_state: state,
@@ -2369,9 +2371,7 @@ impl<
         &mut self,
         train_in: &[MathVec<IN>],
         prev_state: &MathVec<MIDDLE>,
-        train_out: &MathVec<OUT>,
-        input_error: &mut MathVec<IN>,
-        prev_state_error: &mut MathVec<MIDDLE>,
+        train_out: &MathVec<OUT>
     ) {
         self.ready_state_cache(train_in, prev_state);
         self.ready_output_cache();
@@ -2396,23 +2396,22 @@ impl<
                 &self.tmp_state_error,
                 &lstm_state_cache,
                 &self.cache.lstm_output_cache,
-                input_error,
-                prev_state_error
+                &mut self.tmp_input_error,
+                &mut self.tmp_prev_state_error
             );
         }
 
-        self.tmp_state_error.copy_from(prev_state_error);
+        self.tmp_state_error.copy_from(&self.tmp_prev_state_error);
 
         iter.for_each(|lstm_state_cache| {
             self.lstm.study_state(
                 &self.tmp_state_error,
                 lstm_state_cache,
-                &mut self.tmp_input_error_one,
-                prev_state_error
+                &mut self.tmp_input_error,
+                &mut self.tmp_prev_state_error
             );
 
-            self.tmp_state_error.copy_from(prev_state_error);
-            *input_error += &self.tmp_input_error_one;
+            self.tmp_state_error.copy_from(&self.tmp_prev_state_error);
         });
 
         self.cache.clear();

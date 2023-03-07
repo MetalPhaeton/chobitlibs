@@ -1408,8 +1408,6 @@ fn chobit_encoder_test_1() {
 
     let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
     let prev_state = MathVec::<MIDDLE>::new();
-    let mut input_error = MathVec::<IN>::new();
-    let mut prev_state_error = MathVec::<MIDDLE>::new();
 
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
@@ -1419,8 +1417,6 @@ fn chobit_encoder_test_1() {
                 &data,
                 &prev_state,
                 &japanese,
-                &mut input_error,
-                &mut prev_state_error
             );
         }
 
@@ -1496,8 +1492,6 @@ fn chobit_encoder_test_2() {
 
     let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
     let prev_state = MathVec::<MIDDLE>::new();
-    let mut input_error = MathVec::<IN>::new();
-    let mut prev_state_error = MathVec::<MIDDLE>::new();
 
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
@@ -1507,8 +1501,6 @@ fn chobit_encoder_test_2() {
                 &data,
                 &prev_state,
                 &japanese,
-                &mut input_error,
-                &mut prev_state_error
             );
 
             english_data(&mut rng, &mut data);
@@ -1517,8 +1509,6 @@ fn chobit_encoder_test_2() {
                 &data,
                 &prev_state,
                 &english,
-                &mut input_error,
-                &mut prev_state_error
             );
         }
 
