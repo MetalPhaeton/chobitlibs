@@ -2643,7 +2643,7 @@ pub struct ChobitMLDecoder<
     tmp_middle_output_error: MathVec<MIDDLE>,
     tmp_prev_state_error: MathVec<MIDDLE>,
     tmp_state_error: MathVec<MIDDLE>,
-    tmp_input_error_one: MathVec<IN>,
+    tmp_input_error: MathVec<IN>,
 
     original_input: MathVec<IN>,
     original_prev_state: MathVec<MIDDLE>,
@@ -2681,7 +2681,7 @@ impl<
             tmp_middle_output_error: MathVec::<MIDDLE>::new(),
             tmp_prev_state_error: MathVec::<MIDDLE>::new(),
             tmp_state_error: MathVec::<MIDDLE>::new(),
-            tmp_input_error_one: MathVec::<IN>::new(),
+            tmp_input_error: MathVec::<IN>::new(),
 
             original_input: input,
             original_prev_state: prev_state,
@@ -2727,8 +2727,6 @@ impl<
         train_in: &MathVec<IN>,
         prev_state: &MathVec<MIDDLE>,
         train_out: &[MathVec<OUT>],
-        input_error: &mut MathVec<IN>,
-        prev_state_error: &mut MathVec<MIDDLE>
     ) {
         self.ready(train_in, prev_state, train_out);
 
@@ -2740,9 +2738,6 @@ impl<
         }
 
         self.cache.calc_output_error(train_out, &mut self.tmp_output_error);
-
-        input_error.clear();
-        prev_state_error.clear();
 
         self.tmp_state_error.clear();
 
@@ -2769,12 +2764,10 @@ impl<
                 &self.tmp_state_error,
                 lstm_state_cache,
                 lstm_output_cache,
-                &mut self.tmp_input_error_one,
-                prev_state_error
+                &mut self.tmp_input_error,
+                &mut self.tmp_prev_state_error
             );
-            self.tmp_state_error.copy_from(prev_state_error);
-
-            *input_error += &self.tmp_input_error_one;
+            self.tmp_state_error.copy_from(&self.tmp_prev_state_error);
         });
 
         self.cache.clear();

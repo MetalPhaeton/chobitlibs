@@ -1615,17 +1615,13 @@ fn chobit_decoder_test_1() {
     let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
 
     let prev_state = MathVec::<MIDDLE>::new();
-    let mut input_error = MathVec::<IN>::new();
-    let mut prev_state_error = MathVec::<MIDDLE>::new();
 
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
             decoder.study(
                 &japanese_in,
                 &prev_state,
-                japanese_out.as_slice(),
-                &mut input_error,
-                &mut prev_state_error
+                japanese_out.as_slice()
             );
         }
 
@@ -1690,7 +1686,7 @@ fn chobit_decoder_test_2() {
         assert_ne!(output, english_out);
     }
 
-    const EPOCH: usize = 100000;
+    const EPOCH: usize = 50000;
     const BATCH_SIZE: usize = 1;
     const RATE: f32 = 0.01;
 
@@ -1698,25 +1694,19 @@ fn chobit_decoder_test_2() {
 
     let prev_state_j = MathVec::<MIDDLE>::new();
     let prev_state_e = MathVec::<MIDDLE>::new();
-    let mut input_error = MathVec::<IN>::new();
-    let mut prev_state_error = MathVec::<MIDDLE>::new();
 
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
             decoder.study(
                 &japanese_in,
                 &prev_state_j,
-                japanese_out.as_slice(),
-                &mut input_error,
-                &mut prev_state_error
+                japanese_out.as_slice()
             );
 
             decoder.study(
                 &english_in,
                 &prev_state_e,
-                english_out.as_slice(),
-                &mut input_error,
-                &mut prev_state_error
+                english_out.as_slice()
             );
         }
 
