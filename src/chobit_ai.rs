@@ -39,7 +39,6 @@ use core::{
         Deref,
         DerefMut
     },
-    slice::{from_raw_parts, from_raw_parts_mut},
     mem::size_of,
     iter::Iterator
 };
@@ -62,22 +61,19 @@ fn sqrt(x: f32) -> f32 {
 
 macro_rules! pointwise_op {
     ($self:expr, $other:expr, $ops:tt) => {{
-        for i in 0..N {
-            unsafe {
-                *$self.body.get_unchecked_mut(i)
-                    $ops *$other.body.get_unchecked(i);
+        $self.body.iter_mut().zip($other.body.iter()).for_each(
+            |(self_val, other_val)| {
+                *self_val $ops *other_val;
             }
-        }
+        );
     }};
 }
 
 macro_rules! scalar_op {
     ($self:expr, $other:expr, $ops:tt) => {{
-        for i in 0..N {
-            unsafe {
-                *$self.body.get_unchecked_mut(i) $ops $other;
-            }
-        }
+        $self.body.iter_mut().for_each(
+            |self_val| {*self_val $ops $other;}
+        );
     }};
 }
 
@@ -91,16 +87,15 @@ fn u8_slice_to_f32_slice(
 
     if (f32_len * SIZE_OF_U32) != u8_slice.len() {return None;}
 
-    for i in 0..f32_len {
+    for (f32_val, i) in f32_slice.iter_mut().zip(0..f32_len) {
         let u8_start = i * SIZE_OF_U32;
         let u8_end = u8_start + SIZE_OF_U32;
 
         let val = u32::from_le_bytes(
             u8_slice[u8_start..u8_end].try_into().ok()?
         );
-        let val = f32::from_bits(val);
 
-        *(f32_slice.get_mut(i)?) = val;
+        *f32_val = f32::from_bits(val);
     }
 
     Some(())
@@ -114,15 +109,12 @@ fn f32_slice_to_u8_slice(
 
     if (f32_len * SIZE_OF_U32) != u8_slice.len() {return None;}
 
-    for i in 0..f32_len {
+    for (f32_val, i) in f32_slice.iter().zip(0..f32_len) {
         let u8_start = i * SIZE_OF_U32;
         let u8_end = u8_start + SIZE_OF_U32;
 
-        let val = *(f32_slice.get(i)?);
-        let val = val.to_bits();
-
         u8_slice[u8_start..u8_end].copy_from_slice(
-            val.to_le_bytes().as_slice()
+            f32_val.to_bits().to_le_bytes().as_slice()
         );
     }
 
@@ -146,17 +138,15 @@ impl<const N: usize> MathVec<N> {
         }
     }
 
-    /// Gets this as immutable slice.
-    ///
-    /// * _Return_ : slice.
     #[inline]
-    pub fn as_slice(&self) -> &[f32] {&*self.body}
+    pub fn as_array(&self) -> &[f32; N] {
+        unsafe {&*(self.body.as_ptr() as *const [f32; N])}
+    }
 
-    /// Gets this as mutable slice.
-    ///
-    /// * _Return_ : slice.
     #[inline]
-    pub fn as_mut_slice(&mut self) -> &mut [f32] {&mut *self.body}
+    pub fn as_mut_array(&mut self) -> &mut [f32; N] {
+        unsafe {&mut *(self.body.as_mut_ptr() as *mut [f32; N])}
+    }
 
     /// Resets all value into 0.
     #[inline]
@@ -238,7 +228,7 @@ impl<const N: usize> MathVec<N> {
     /// * `other` : Another vector.
     #[inline]
     pub fn copy_to(&self, other: &mut Self) {
-        other.body.copy_from_slice(self.as_slice());
+        other.body.copy_from_slice(&*self.body);
     }
 
     #[inline]
@@ -548,31 +538,56 @@ macro_rules! weights_len {
 pub struct Weights<const OUT: usize, const IN: usize> {
     body: Box<[f32]>,
 
-    ptr_b: *const f32,
-    ptr_i: *const [f32; IN],
-    ptr_s: *const [f32; OUT],
+    ptr_b: *const [f32; OUT],
+    ptr_i: *const [[f32; IN]; OUT],
+    ptr_s: *const [[f32; OUT]; OUT],
 
-    mut_ptr_b: *mut f32,
-    mut_ptr_i: *mut [f32; IN],
-    mut_ptr_s: *mut [f32; OUT]
+    mut_ptr_b: *mut [f32; OUT],
+    mut_ptr_i: *mut [[f32; IN]; OUT],
+    mut_ptr_s: *mut [[f32; OUT]; OUT]
 }
 
 impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     #[inline]
     pub fn new() -> Self {
-        let offset_i: usize = OUT;
-        let offset_s: usize = offset_i + (OUT * IN);
-        let length: usize = offset_s + (OUT * OUT);
+        let mut body = vec![f32::default(); weights_len!()].into_boxed_slice();
 
-        let mut body = vec![f32::default(); length].into_boxed_slice();
+        let ptr_b = body.as_ptr() as *const [f32; OUT];
+        let ptr_i = unsafe {ptr_b.add(1) as *const [[f32; IN]; OUT]};
+        let ptr_s = unsafe {ptr_i.add(1) as *const [[f32; OUT]; OUT]};
 
-        let ptr_b = body.as_ptr();
-        let ptr_i = unsafe {ptr_b.add(offset_i) as *const [f32; IN]};
-        let ptr_s = unsafe {ptr_b.add(offset_s) as *const [f32; OUT]};
+        let mut_ptr_b = body.as_mut_ptr() as *mut [f32; OUT];
+        let mut_ptr_i = unsafe {mut_ptr_b.add(1) as *mut [[f32; IN]; OUT]};
+        let mut_ptr_s = unsafe {mut_ptr_i.add(1) as *mut [[f32; OUT]; OUT]};
 
-        let mut_ptr_b = body.as_mut_ptr();
-        let mut_ptr_i = unsafe {mut_ptr_b.add(offset_i) as *mut [f32; IN]};
-        let mut_ptr_s = unsafe {mut_ptr_b.add(offset_s) as *mut [f32; OUT]};
+        if cfg!(debug_assertions) {
+            unsafe {
+                assert_eq!(ptr_b as usize, mut_ptr_b as usize);
+                assert_eq!(ptr_i as usize, mut_ptr_i as usize);
+                assert_eq!(ptr_s as usize, mut_ptr_s as usize);
+
+                let body_ptr = body.as_ptr();
+                assert_eq!(ptr_b as usize, body_ptr as usize);
+
+                let body_ptr = body_ptr.add(OUT);
+                assert_eq!(ptr_i as usize, body_ptr as usize);
+                assert_eq!(ptr_i as usize, ptr_b.add(1) as usize);
+
+                let body_ptr = body_ptr.add(OUT * IN);
+                assert_eq!(ptr_s as usize, body_ptr as usize);
+                assert_eq!(ptr_s as usize, ptr_i.add(1) as usize);
+
+                let body_ptr = body_ptr.add(OUT * OUT);
+                assert_eq!(
+                    body.as_ptr().add(body.len()) as usize,
+                    body_ptr as usize
+                );
+                assert_eq!(
+                    body.as_ptr().add(body.len()) as usize,
+                    ptr_s.add(1) as usize
+                );
+            }
+        }
 
         Self {
             body: body,
@@ -597,45 +612,33 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     pub fn clear(&mut self) {self.body.fill(f32::default());}
 
     #[inline]
-    pub fn bias(&self) -> &[f32] {
-        unsafe {
-            from_raw_parts(self.ptr_b, OUT)
-        }
+    pub fn bias(&self) -> &[f32; OUT] {
+        unsafe {&*self.ptr_b}
     }
 
     #[inline]
-    pub fn bias_mut(&mut self) -> &mut [f32] {
-        unsafe {
-            from_raw_parts_mut(self.mut_ptr_b, OUT)
-        }
+    pub fn bias_mut(&mut self) -> &mut [f32; OUT] {
+        unsafe {&mut *self.mut_ptr_b}
     }
 
     #[inline]
-    pub fn input_weights(&self) -> &[[f32; IN]] {
-        unsafe {
-            from_raw_parts(self.ptr_i, OUT)
-        }
+    pub fn input_weights(&self) -> &[[f32; IN]; OUT] {
+        unsafe {&*self.ptr_i}
     }
 
     #[inline]
-    pub fn input_weights_mut(&mut self) -> &mut [[f32; IN]] {
-        unsafe {
-            from_raw_parts_mut(self.mut_ptr_i, OUT)
-        }
+    pub fn input_weights_mut(&mut self) -> &mut [[f32; IN]; OUT] {
+        unsafe {&mut *self.mut_ptr_i}
     }
 
     #[inline]
-    pub fn state_weights(&self) -> &[[f32; OUT]] {
-        unsafe {
-            from_raw_parts(self.ptr_s, OUT)
-        }
+    pub fn state_weights(&self) -> &[[f32; OUT]; OUT] {
+        unsafe {&*self.ptr_s}
     }
 
     #[inline]
-    pub fn state_weights_mut(&mut self) -> &mut [[f32; OUT]] {
-        unsafe {
-            from_raw_parts_mut(self.mut_ptr_s, OUT)
-        }
+    pub fn state_weights_mut(&mut self) -> &mut [[f32; OUT]; OUT] {
+        unsafe {&mut *self.mut_ptr_s}
     }
 
     pub fn calc(
@@ -655,39 +658,29 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
 
     #[inline]
     fn init_output_with_bias(&self, output: &mut MathVec<OUT>) {
-        unsafe {
-            output.as_mut_ptr().copy_from(self.ptr_b, OUT);
-        }
+        *output.as_mut_array() = *self.bias();
     }
 
     #[inline]
     fn calc_input(&self, input: &MathVec<IN>, output: &mut MathVec<OUT>) {
-        for i in 0..OUT {
-            let weights = unsafe {(*self.ptr_i.add(i)).as_slice()};
-
-            for j in 0..IN {
-                unsafe {
-                    *output.get_unchecked_mut(i) +=
-                        *weights.get_unchecked(j)
-                        * *input.get_unchecked(j);
-                }
-            }
-        }
+        self.input_weights().iter().zip(
+            output.as_mut_array().iter_mut()
+        ).for_each(|(weights, output_one)| {
+            weights.iter().zip(input.as_array().iter()).for_each(
+                |(w, i)| {*output_one += *w * *i;}
+            );
+        });
     }
 
     #[inline]
     fn calc_state(&self, state: &MathVec<OUT>, output: &mut MathVec<OUT>) {
-        for i in 0..OUT {
-            let weights = unsafe {(*self.ptr_s.add(i)).as_slice()};
-
-            for j in 0..OUT {
-                unsafe {
-                    *output.get_unchecked_mut(i) +=
-                        *weights.get_unchecked(j)
-                        * *state.get_unchecked(j)
-                }
-            }
-        }
+        self.state_weights().iter().zip(
+            output.as_mut_array().iter_mut()
+        ).for_each(|(weights, output_one)| {
+            weights.iter().zip(state.as_array().iter()).for_each(
+                |(w, s)| {*output_one += *w * *s;}
+            );
+        });
     }
 
     pub fn grad_with_input(
@@ -697,17 +690,15 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     ) {
         grad.clear();
 
-        for i in 0..OUT {
-            let weights = unsafe {(*self.ptr_i.add(i)).as_slice()};
-
-            for j in 0..IN {
-                unsafe {
-                    *grad.get_unchecked_mut(j) +=
-                        *coefficient.get_unchecked(i)
-                        * *weights.get_unchecked(j);
-                }
+        self.input_weights().iter().zip(
+            coefficient.as_array().iter()
+        ).for_each(
+            |(weights, c)| {
+                weights.iter().zip(grad.as_mut_array().iter_mut()).for_each(
+                    |(w, g)| {*g += *c * *w;}
+                );
             }
-        }
+        );
     }
 
     pub fn grad_with_state(
@@ -717,17 +708,15 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     ) {
         grad.clear();
 
-        for i in 0..OUT {
-            let weights = unsafe {(*self.ptr_s.add(i)).as_slice()};
-
-            for j in 0..OUT {
-                unsafe {
-                    *grad.get_unchecked_mut(j) +=
-                        *coefficient.get_unchecked(i)
-                        * *weights.get_unchecked(j);
-                }
+        self.state_weights().iter().zip(
+            coefficient.as_array().iter()
+        ).for_each(
+            |(weights, c)| {
+                weights.iter().zip(grad.as_mut_array().iter_mut()).for_each(
+                    |(w, g)| {*g += *c * *w;}
+                );
             }
-        }
+        );
     }
 
     pub fn grad_with_weights(
@@ -748,7 +737,7 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
 
     #[inline]
     fn grad_with_weights_b(coefficient: &MathVec<OUT>, grad: &mut Self) {
-        unsafe {coefficient.as_ptr().copy_to(grad.mut_ptr_b, OUT)}
+        *grad.bias_mut() = *coefficient.as_array();
     }
 
     #[inline]
@@ -757,17 +746,15 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
         input: &MathVec<IN>,
         grad: &mut Self
     ) {
-        for i in 0..OUT {
-            let grad_slice = unsafe {(*grad.mut_ptr_i.add(i)).as_mut_slice()};
-
-            for j in 0..IN {
-                unsafe {
-                    *grad_slice.get_unchecked_mut(j) +=
-                        *coefficient.get_unchecked(i)
-                        * *input.get_unchecked(j);
-                }
+        grad.input_weights_mut().iter_mut().zip(
+            coefficient.as_array().iter()
+        ).for_each(
+            |(grad_i, c)| {
+                grad_i.iter_mut().zip(input.as_array().iter()).for_each(
+                    |(g, i)| {*g += *c * *i;}
+                );
             }
-        }
+        );
     }
 
     #[inline]
@@ -776,17 +763,15 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
         state: &MathVec<OUT>,
         grad: &mut Self
     ) {
-        for i in 0..OUT {
-            let grad_slice = unsafe {(*grad.mut_ptr_s.add(i)).as_mut_slice()};
-
-            for j in 0..OUT {
-                unsafe {
-                    *grad_slice.get_unchecked_mut(j) +=
-                        *coefficient.get_unchecked(i)
-                        * *state.get_unchecked(j);
-                }
+        grad.state_weights_mut().iter_mut().zip(
+            coefficient.as_array().iter()
+        ).for_each(
+            |(grad_s, c)| {
+                grad_s.iter_mut().zip(state.as_array().iter()).for_each(
+                    |(g, i)| {*g += *c * *i;}
+                );
             }
-        }
+        );
     }
 
     #[inline]
@@ -822,19 +807,44 @@ impl<const OUT: usize, const IN: usize> Default for Weights<OUT, IN> {
 impl<const OUT: usize, const IN: usize> Clone for Weights<OUT, IN> {
     #[inline]
     fn clone(&self) -> Self {
-
-        let offset_i: usize = OUT;
-        let offset_s: usize = offset_i + (OUT * IN);
-
         let mut body = self.body.clone();
 
-        let ptr_b = body.as_ptr();
-        let ptr_i = unsafe {ptr_b.add(offset_i) as *const [f32; IN]};
-        let ptr_s = unsafe {ptr_b.add(offset_s) as *const [f32; OUT]};
+        let ptr_b = body.as_ptr() as *const [f32; OUT];
+        let ptr_i = unsafe {ptr_b.add(1) as *const [[f32; IN]; OUT]};
+        let ptr_s = unsafe {ptr_i.add(1) as *const [[f32; OUT]; OUT]};
 
-        let mut_ptr_b = body.as_mut_ptr();
-        let mut_ptr_i = unsafe {mut_ptr_b.add(offset_i) as *mut [f32; IN]};
-        let mut_ptr_s = unsafe {mut_ptr_b.add(offset_s) as *mut [f32; OUT]};
+        let mut_ptr_b = body.as_mut_ptr() as *mut [f32; OUT];
+        let mut_ptr_i = unsafe {mut_ptr_b.add(1) as *mut [[f32; IN]; OUT]};
+        let mut_ptr_s = unsafe {mut_ptr_i.add(1) as *mut [[f32; OUT]; OUT]};
+
+        if cfg!(debug_assertions) {
+            unsafe {
+                assert_eq!(ptr_b as usize, mut_ptr_b as usize);
+                assert_eq!(ptr_i as usize, mut_ptr_i as usize);
+                assert_eq!(ptr_s as usize, mut_ptr_s as usize);
+
+                let body_ptr = body.as_ptr();
+                assert_eq!(ptr_b as usize, body_ptr as usize);
+
+                let body_ptr = body_ptr.add(OUT);
+                assert_eq!(ptr_i as usize, body_ptr as usize);
+                assert_eq!(ptr_i as usize, ptr_b.add(1) as usize);
+
+                let body_ptr = body_ptr.add(OUT * IN);
+                assert_eq!(ptr_s as usize, body_ptr as usize);
+                assert_eq!(ptr_s as usize, ptr_i.add(1) as usize);
+
+                let body_ptr = body_ptr.add(OUT * OUT);
+                assert_eq!(
+                    body.as_ptr().add(body.len()) as usize,
+                    body_ptr as usize
+                );
+                assert_eq!(
+                    body.as_ptr().add(body.len()) as usize,
+                    ptr_s.add(1) as usize
+                );
+            }
+        }
 
         Self {
             body: body,
@@ -1110,17 +1120,11 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
         self.layer.weights.calc(input, state, &mut cache.middle_value);
 
-        for i in 0..OUT {
-            debug_assert!(cache.output.get(i).is_some());
-            debug_assert!(cache.middle_value.get(i).is_some());
-
-            unsafe {
-                *cache.output.get_unchecked_mut(i) =
-                    self.layer.activation.activate(
-                        *cache.middle_value.get_unchecked(i)
-                    );
-            }
-        }
+        cache.output.as_mut_array().iter_mut().zip(
+            cache.middle_value.as_array().iter()
+        ).for_each(|(output_one, m_value)| {
+            *output_one = self.layer.activation.activate(*m_value);
+        });
     }
 
     pub fn study(
@@ -1141,12 +1145,11 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
             &mut self.tmp_grad
         );
 
-        for i in 0..weights_len!() {
-            unsafe {
-                *self.total_grad.get_unchecked_mut(i) +=
-                    *self.tmp_grad.get_unchecked(i);
+        self.total_grad.iter_mut().zip(self.tmp_grad.iter()).for_each(
+            |(total_g, tmp_g)| {
+                *total_g += *tmp_g;
             }
-        }
+        );
 
         // calc errors ----------
         self.layer.weights.grad_with_input(&self.tmp_error, input_error);
@@ -1178,19 +1181,16 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
             }
         }
 
-        for i in 0..OUT {
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cache.middle_value.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) +=
-                    *output_error.get_unchecked(i)
-                    * self.layer.activation.d_activate(
-                        *cache.middle_value.get_unchecked(i)
-                    )
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            cache.middle_value.as_array().iter()
+        ).for_each(
+            |((tmp_e, output_e), m_value)| {
+                *tmp_e +=
+                    *output_e * self.layer.activation.d_activate(*m_value);
             }
-        }
+        );
     }
 
     pub fn update(&mut self, rate: f32) {
@@ -1212,63 +1212,35 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
                 *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate_2;
 
-                for j in 0..IN {
-                    debug_assert!(
-                        self.total_grad
-                            .input_weights()
-                            .get_unchecked(i)
-                            .get(j)
-                            .is_some()
-                    );
+                self.total_grad
+                    .input_weights_mut()
+                    .get_unchecked_mut(i)
+                    .iter_mut()
+                    .for_each(|g| {*g *= rate_2;});
 
-                    *self.total_grad
-                        .input_weights_mut()
-                        .get_unchecked_mut(i)
-                        .get_unchecked_mut(j) *= rate_2;
-                }
-
-                for j in 0..OUT {
-                    debug_assert!(
-                        self.total_grad
-                            .state_weights()
-                            .get_unchecked(i)
-                            .get(j)
-                            .is_some()
-                    );
-                    *self.total_grad
-                        .state_weights_mut()
-                        .get_unchecked_mut(i)
-                        .get_unchecked_mut(j) *= rate_2;
-                }
+                self.total_grad
+                    .state_weights_mut()
+                    .get_unchecked_mut(i)
+                    .iter_mut()
+                    .for_each(|g| {*g *= rate_2;});
             }
         }
 
         // updates weights.
-        for i in 0..weights_len!() {
-            debug_assert!(self.layer.weights.get(i).is_some());
-            debug_assert!(self.total_grad.get(i).is_some());
-
-            unsafe {
-                *self.layer.weights.get_unchecked_mut(i) -=
-                    *self.total_grad.get_unchecked(i);
-            }
-        }
+        self.layer.weights.iter_mut().zip(self.total_grad.iter()).for_each(
+            |(w, g)| {*w -= *g;}
+        );
 
         self.total_grad.clear();
     }
 
     #[inline]
     fn next_momentum_1(&mut self) {
-        for i in 0..weights_len!() {
-            debug_assert!(self.momentum_1.get(i).is_some());
-            debug_assert!(self.total_grad.get(i).is_some());
-
-            unsafe {
-                *self.momentum_1.get_unchecked_mut(i) =
-                    (BETA_1 * *self.momentum_1.get_unchecked(i))
-                    + (BETA_INV_1 * *self.total_grad.get_unchecked(i));
+        self.momentum_1.iter_mut().zip(self.total_grad.iter()).for_each(
+            |(mom, grad)| {
+                *mom = (BETA_1 * *mom) + (BETA_INV_1 * *grad);
             }
-        }
+        );
     }
 
     #[inline]
@@ -1285,39 +1257,17 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
                 let bias = *self.total_grad.bias().get_unchecked(i);
                 dot_product += bias * bias;
 
-                for j in 0..IN {
-                    debug_assert!(
-                        self.total_grad
-                            .input_weights()
-                            .get_unchecked(i)
-                            .get(j)
-                            .is_some()
-                    );
+                self.total_grad
+                    .input_weights()
+                    .get_unchecked(i)
+                    .iter()
+                    .for_each(|val| {dot_product += *val * *val;});
 
-                    let val = *self.total_grad
-                        .input_weights()
-                        .get_unchecked(i)
-                        .get_unchecked(j);
-
-                    dot_product += val * val;
-                }
-
-                for j in 0..OUT {
-                    debug_assert!(
-                        self.total_grad
-                            .state_weights()
-                            .get_unchecked(i)
-                            .get(j)
-                            .is_some()
-                    );
-
-                    let val = *self.total_grad
-                        .state_weights()
-                        .get_unchecked(i)
-                        .get_unchecked(j);
-
-                    dot_product += val * val;
-                }
+                self.total_grad
+                    .state_weights()
+                    .get_unchecked(i)
+                    .iter()
+                    .for_each(|val| {dot_product += *val * *val;});
 
                 *self.momentum_2.get_unchecked_mut(i) =
                     (BETA_2 * *self.momentum_2.get_unchecked(i))
@@ -1545,15 +1495,11 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
         // output = o_gate * tanh(state)
         self.o_gate.calc(input, Some(prev_state), output);
 
-        for i in 0..OUT {
-            debug_assert!(next_state.get(i).is_some());
-            debug_assert!(output.get(i).is_some());
-
-            unsafe {
-                *output.get_unchecked_mut(i) *=
-                    self.tanh.activate(*next_state.get_unchecked(i));
-            }
-        }
+        output.as_mut_array().iter_mut().zip(
+            next_state.as_array().iter()
+        ).for_each(|(output_one, next_s)| {
+            *output_one *= self.tanh.activate(*next_s);
+        });
     }
 }
 
@@ -1755,21 +1701,17 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.f_gate.ready(input, Some(prev_state), &mut cache.f_gate_cache);
         self.i_gate.ready(input, Some(prev_state), &mut cache.i_gate_cache);
 
-        for i in 0..OUT {
-            debug_assert!(cache.state.get(i).is_some());
-            debug_assert!(prev_state.get(i).is_some());
-            debug_assert!(cache.f_gate_cache.output.get(i).is_some());
-            debug_assert!(cache.i_gate_cache.output.get(i).is_some());
-            debug_assert!(cache.main_layer_cache.output.get(i).is_some());
-
-            unsafe {
-                *cache.state.get_unchecked_mut(i) =
-                    (*prev_state.get_unchecked(i)
-                        * *cache.f_gate_cache.output.get_unchecked(i))
-                    + (*cache.i_gate_cache.output.get_unchecked(i)
-                        * *cache.main_layer_cache.output.get_unchecked(i));
-            }
-        }
+        cache.state.as_mut_array().iter_mut().zip(
+            prev_state.as_array().iter()
+        ).zip(
+            cache.f_gate_cache.output.as_array().iter()
+        ).zip(
+            cache.i_gate_cache.output.as_array().iter()
+        ).zip(
+            cache.main_layer_cache.output.as_array().iter()
+        ).for_each(|((((state_one, p_state), f_out), i_out), main_out)| {
+            *state_one = (*p_state * *f_out) + (*i_out * *main_out);
+        });
     }
 
     pub fn ready_output_cache(
@@ -1783,29 +1725,21 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             &mut output_cache.o_gate_cache
         );
 
-        for i in 0..OUT {
-            debug_assert!(last_state_cache.state.get(i).is_some());
-            debug_assert!(output_cache.tanh_c.get(i).is_some());
-            debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(output_cache.output.get(i).is_some());
-            debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
-
-            unsafe {
-                *output_cache.tanh_c.get_unchecked_mut(i) =
-                    self.tanh.activate(
-                        *last_state_cache.state.get_unchecked(i)
-                    );
-
-                *output_cache.d_tanh_c.get_unchecked_mut(i) =
-                    self.tanh.d_activate(
-                        *last_state_cache.state.get_unchecked(i)
-                    );
-
-                *output_cache.output.get_unchecked_mut(i) =
-                    *output_cache.o_gate_cache.output.get_unchecked(i)
-                    * *output_cache.tanh_c.get_unchecked(i);
+        last_state_cache.state.as_array().iter().zip(
+            output_cache.tanh_c.as_mut_array().iter_mut()
+        ).zip(
+            output_cache.d_tanh_c.as_mut_array().iter_mut()
+        ).zip(
+            output_cache.output.as_mut_array().iter_mut()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).for_each(
+            |((((s, tanh_c_one), d_tanh_c_one), output_one), o_out)| {
+                *tanh_c_one = self.tanh.activate(*s);
+                *d_tanh_c_one = self.tanh.d_activate(*s);
+                *output_one = *o_out * *tanh_c_one;
             }
-        }
+        );
     }
 
     pub fn study_state(
@@ -1827,17 +1761,13 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         *prev_state_error += &self.prev_state_error_f_by_state_error;
         *prev_state_error += &self.prev_state_error_i_by_state_error;
 
-        for i in 0..OUT {
-            debug_assert!(prev_state_error.get(i).is_some());
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(cache.f_gate_cache.output.get(i).is_some());
-
-            unsafe {
-                *prev_state_error.get_unchecked_mut(i) +=
-                    *state_error.get_unchecked(i)
-                    * *cache.f_gate_cache.output.get_unchecked(i);
-            }
-        }
+        prev_state_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.f_gate_cache.output.as_array().iter()
+        ).for_each(|((p_state_e, state_e), f_out)| {
+            *p_state_e += *state_e * *f_out;
+        });
     }
 
 
@@ -1846,17 +1776,13 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         state_error: &MathVec<OUT>,
         cache: &MLLSTMStateCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(cache.i_gate_cache.output.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *state_error.get_unchecked(i)
-                    * *cache.i_gate_cache.output.get_unchecked(i);
-            }
-        }
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.i_gate_cache.output.as_array().iter()
+        ).for_each(|((tmp_e, state_e), i_out)| {
+            *tmp_e = *state_e * *i_out;
+        });
 
         self.main_layer.study(
             &self.tmp_error,
@@ -1872,17 +1798,13 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         state_error: &MathVec<OUT>,
         cache: &MLLSTMStateCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(cache.prev_state.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *state_error.get_unchecked(i)
-                    * *cache.prev_state.get_unchecked(i);
-            }
-        }
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.prev_state.as_array().iter()
+        ).for_each(|((tmp_e, state_e), p_state)| {
+            *tmp_e = *state_e * *p_state;
+        });
 
         self.f_gate.study(
             &self.tmp_error,
@@ -1898,17 +1820,13 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         state_error: &MathVec<OUT>,
         cache: &MLLSTMStateCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(cache.main_layer_cache.output.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *state_error.get_unchecked(i)
-                    * *cache.main_layer_cache.output.get_unchecked(i);
-            }
-        }
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.main_layer_cache.output.as_array().iter()
+        ).for_each(|((tmp_e, state_e), main_out)| {
+            *tmp_e = *state_e * *main_out;
+        });
 
         self.i_gate.study(
             &self.tmp_error,
@@ -1963,23 +1881,17 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         *prev_state_error += &self.prev_state_error_i_by_output_error;
         *prev_state_error += &self.prev_state_error_o_by_output_error;
 
-        for i in 0..OUT {
-            debug_assert!(prev_state_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
-            debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(
-                state_cache.f_gate_cache.output.get(i).is_some()
-            );
-
-            unsafe {
-                *prev_state_error.get_unchecked_mut(i) +=
-                    *output_error.get_unchecked(i)
-                    * *output_cache.o_gate_cache.output.get_unchecked(i)
-                    * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *state_cache.f_gate_cache.output.get_unchecked(i);
-            }
-        }
+        prev_state_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.f_gate_cache.output.as_array().iter()
+        ).for_each(|((((p_state_e, out_e), o_out), d_tanh_c_one), f_out)| {
+            *p_state_e += *out_e * *o_out * *d_tanh_c_one * *f_out;
+        });
     }
 
     fn study_main_layer(
@@ -1989,26 +1901,22 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
-            debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(state_cache.i_gate_cache.output.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *output_error.get_unchecked(i)
-                    * *output_cache.o_gate_cache.output.get_unchecked(i)
-                    * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *state_cache.i_gate_cache.output.get_unchecked(i);
-
-                *self.tmp_error.get_unchecked_mut(i) +=
-                    *state_error.get_unchecked(i)
-                    * *state_cache.i_gate_cache.output.get_unchecked(i);
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.i_gate_cache.output.as_array().iter()
+        ).zip(
+            state_error.as_array().iter()
+        ).for_each(
+            |(((((tmp_e, out_e), o_out), d_tanh_c_one), i_out), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *i_out;
+                *tmp_e += *state_e * *i_out;
             }
-        }
+        );
 
         self.main_layer.study(
             &self.tmp_error,
@@ -2026,26 +1934,22 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
-            debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(state_cache.prev_state.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *output_error.get_unchecked(i)
-                    * *output_cache.o_gate_cache.output.get_unchecked(i)
-                    * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *state_cache.prev_state.get_unchecked(i);
-
-                *self.tmp_error.get_unchecked_mut(i) +=
-                    *state_error.get_unchecked(i)
-                    * *state_cache.prev_state.get_unchecked(i);
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.prev_state.as_array().iter()
+        ).zip(
+            state_error.as_array().iter()
+        ).for_each(
+            |(((((tmp_e, out_e), o_out), d_tanh_c_one), p_state), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *p_state;
+                *tmp_e += *state_e * *p_state;
             }
-        }
+        );
 
         self.f_gate.study(
             &self.tmp_error,
@@ -2063,28 +1967,22 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         state_cache: &MLLSTMStateCache<OUT, IN>,
         output_cache: &MLLSTMOutputCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(state_error.get(i).is_some());
-            debug_assert!(output_cache.o_gate_cache.output.get(i).is_some());
-            debug_assert!(output_cache.d_tanh_c.get(i).is_some());
-            debug_assert!(
-                state_cache.main_layer_cache.output.get(i).is_some()
-            );
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *output_error.get_unchecked(i)
-                    * *output_cache.o_gate_cache.output.get_unchecked(i)
-                    * *output_cache.d_tanh_c.get_unchecked(i)
-                    * *state_cache.main_layer_cache.output.get_unchecked(i);
-
-                *self.tmp_error.get_unchecked_mut(i) +=
-                    *state_error.get_unchecked(i)
-                    * *state_cache.main_layer_cache.output.get_unchecked(i);
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.main_layer_cache.output.as_array().iter()
+        ).zip(
+            state_error.as_array().iter()
+        ).for_each(
+            |(((((tmp_e, out_e), o_out), d_tanh_c_one), main_out), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *main_out;
+                *tmp_e += *state_e * *main_out;
             }
-        }
+        );
 
         self.i_gate.study(
             &self.tmp_error,
@@ -2100,17 +1998,13 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         output_error: &MathVec<OUT>,
         cache: &MLLSTMOutputCache<OUT, IN>
     ) {
-        for i in 0..OUT {
-            debug_assert!(self.tmp_error.get(i).is_some());
-            debug_assert!(output_error.get(i).is_some());
-            debug_assert!(cache.tanh_c.get(i).is_some());
-
-            unsafe {
-                *self.tmp_error.get_unchecked_mut(i) =
-                    *output_error.get_unchecked(i)
-                    * *cache.tanh_c.get_unchecked(i);
-            }
-        }
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            cache.tanh_c.as_array().iter()
+        ).for_each(|((tmp_e, out_e),  tanh_c_one)| {
+            *tmp_e = *out_e * *tanh_c_one;
+        });
 
         self.o_gate.study(
             &self.tmp_error,

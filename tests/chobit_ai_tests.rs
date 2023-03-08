@@ -56,13 +56,13 @@ fn rand_math_vec<const N: usize>(rng: &mut ChobitRand, vec: &mut MathVec<N>) {
 fn math_vec_test_1() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 1.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0;});
+        vec_3.as_mut_array().iter_mut().for_each(|x| {*x = 3.0;});
 
         let vec_4 = &vec_1 + &vec_2;
         assert_eq!(vec_3, vec_4);
@@ -72,13 +72,13 @@ fn math_vec_test_1() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 3.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 1.0;});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_3.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let vec_4 = &vec_1 - &vec_2;
         assert_eq!(vec_3, vec_4);
@@ -92,12 +92,12 @@ fn math_vec_test_1() {
 fn math_vec_test_2() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let scalar: f32 = 3.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 6.0;});
 
         let vec_3 = &vec_1 * scalar;
         assert_eq!(vec_3, vec_2);
@@ -107,12 +107,12 @@ fn math_vec_test_2() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 6.0;});
 
         let scalar: f32 = 3.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let vec_3 = &vec_1 / scalar;
         assert_eq!(vec_3, vec_2);
@@ -122,12 +122,12 @@ fn math_vec_test_2() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 12.0;});
 
         let scalar: f32 = 10.0;
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let vec_3 = &vec_1 % scalar;
         assert_eq!(vec_3, vec_2);
@@ -141,10 +141,10 @@ fn math_vec_test_2() {
 fn math_vec_test_3() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 3.0;});
 
         let scalar_1: f32 = 2.0 * 3.0 * 10.0;
 
@@ -157,13 +157,13 @@ fn math_vec_test_3() {
 fn math_vec_test_4() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 3.0;});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0;});
+        vec_3.as_mut_array().iter_mut().for_each(|x| {*x = 6.0;});
 
         let vec_4 = vec_1.pointwise_mul(&vec_2);
         assert_eq!(vec_4, vec_3);
@@ -173,13 +173,13 @@ fn math_vec_test_4() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 6.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 6.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 3.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 3.0;});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_3.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let vec_4 = vec_1.pointwise_div(&vec_2);
         assert_eq!(vec_4, vec_3);
@@ -189,13 +189,13 @@ fn math_vec_test_4() {
     }
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 12.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 12.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 10.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 10.0;});
 
         let mut vec_3 = MathVec::<10>::new();
-        vec_3.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_3.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         let vec_4 = vec_1.pointwise_rem(&vec_2);
         assert_eq!(vec_4, vec_3);
@@ -209,10 +209,10 @@ fn math_vec_test_4() {
 fn math_vec_test_5() {
     {
         let mut vec_1 = MathVec::<10>::new();
-        vec_1.as_mut_slice().iter_mut().for_each(|x| {*x = 1.0;});
+        vec_1.as_mut_array().iter_mut().for_each(|x| {*x = 1.0;});
 
         let mut vec_2 = MathVec::<10>::new();
-        vec_2.as_mut_slice().iter_mut().for_each(|x| {*x = 2.0;});
+        vec_2.as_mut_array().iter_mut().for_each(|x| {*x = 2.0;});
 
         vec_1.copy_from(&vec_2);
         assert_eq!(vec_1, vec_2);
@@ -422,7 +422,7 @@ fn weights_test_2() {
 
     let mut weight_i = WEIGHT_I;
     let mut weight_s = WEIGHT_S;
-    for output_val in output.as_slice() {
+    for output_val in output.as_array() {
         let output_val = ((*output_val) * 10.0).round();
 
         let val_i = weight_i * VALUE_I * (IN as f32);
@@ -473,7 +473,7 @@ fn weights_test_3() {
 
     let mut feedback = MathVec::<OUT>::new();
     let mut v: f32 = 1.0;
-    for feedback_val in feedback.as_mut_slice() {
+    for feedback_val in feedback.as_mut_array() {
         *feedback_val = v;
 
         v += 1.0;
@@ -517,7 +517,7 @@ fn weights_test_3() {
 
         Weights::grad_with_weights(&feedback, &input, Some(&state), &mut grad);
 
-        assert_eq!(grad.bias(), feedback.as_slice());
+        assert_eq!(grad.bias(), feedback.as_array());
 
         for i in 0..OUT {
             for j in 0..IN {
@@ -1725,7 +1725,10 @@ fn chobit_decoder_test_2() {
             println!("{:?}", char::from_u32(output_one.to_u32_label()));
         });
 
-        assert_ne!(output, japanese_out);
+        assert_eq!(
+            data_to_string(output.as_slice()),
+            data_to_string(japanese_out.as_slice())
+        );
     }
 
     println!("-----");
@@ -1741,7 +1744,10 @@ fn chobit_decoder_test_2() {
             println!("{:?}", char::from_u32(output_one.to_u32_label()));
         });
 
-        assert_ne!(output, english_out);
+        assert_eq!(
+            data_to_string(output.as_slice()),
+            data_to_string(english_out.as_slice())
+        );
     }
 }
 
