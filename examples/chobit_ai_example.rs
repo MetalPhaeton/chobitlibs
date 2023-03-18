@@ -9,6 +9,8 @@ use std::mem::size_of;
 // ChobitAI Example //
 //==================//
 
+// AI to judge whether a word is Japanese, English, or Rune.
+
 const NUM_CHAR_BITS: usize = size_of::<u32>() * 8;
 const WORD_SIZE: usize = 4;
 
@@ -56,12 +58,8 @@ fn gen_rune_letter(rng: &mut ChobitRand) -> char {
 }
 
 #[inline]
-fn letter_to_vec(letter: char) -> MathVec<NUM_CHAR_BITS> {
-    let mut ret = MathVec::<NUM_CHAR_BITS>::new();
-
-    ret.load_u32_label(letter as u32);
-
-    ret
+fn letter_to_vec(letter: char, vec: &mut MathVec<NUM_CHAR_BITS>) {
+    vec.load_u32_label(letter as u32);
 }
 
 #[inline]
@@ -71,44 +69,29 @@ fn vec_to_letter(vec: &MathVec<NUM_CHAR_BITS>) -> Option<char> {
 
 fn gen_word(
     rng: &mut ChobitRand,
-    gen_letter: fn(&mut ChobitRand) -> char
-) -> String {
-    let mut ret = String::with_capacity(WORD_SIZE);
+    gen_letter: fn(&mut ChobitRand) -> char,
+    word: &mut String
+) {
+    word.clear();
 
-    ret.push(gen_letter(rng));
-    ret.push(gen_letter(rng));
-    ret.push(gen_letter(rng));
-    ret.push(gen_letter(rng));
-
-    ret
+    for _ in 0..WORD_SIZE {
+        word.push(gen_letter(rng));
+    }
 }
 
-fn word_to_data(word: &String) -> MathVec<IN> {
-    let mut ret = MathVec::<IN>::new();
-
-    let mut iter = word.chars();
-
-    if let Some(letter) = iter.next() {
-        let vec = letter_to_vec(letter);
-        ret[..NUM_CHAR_BITS].copy_from_slice(&vec);
-    }
-
-    if let Some(letter) = iter.next() {
-        let vec = letter_to_vec(letter);
-        ret[NUM_CHAR_BITS..(NUM_CHAR_BITS * 2)].copy_from_slice(&vec);
-    }
-
-    if let Some(letter) = iter.next() {
-        let vec = letter_to_vec(letter);
-        ret[(NUM_CHAR_BITS * 2)..(NUM_CHAR_BITS * 3)].copy_from_slice(&vec);
-    }
-
-    if let Some(letter) = iter.next() {
-        let vec = letter_to_vec(letter);
-        ret[(NUM_CHAR_BITS * 3)..(NUM_CHAR_BITS * 4)].copy_from_slice(&vec);
-    }
-
-    ret
+fn word_to_data(
+    word: &String,
+    data: &mut MathVec<IN>,
+    tmpbuf: &mut MathVec<NUM_CHAR_BITS>
+) {
+    data.chunks_mut(NUM_CHAR_BITS).zip(
+        word.chars()
+    ).for_each(
+        |(chunk, letter)| {
+            tmpbuf.load_u32_label(letter as u32);
+            chunk.copy_from_slice(&tmpbuf);
+        }
+    );
 }
 
 const JAPANESE_FLAG: char = '日';
@@ -120,12 +103,12 @@ fn main() {
     // Ready //
     //=======//
     // Generates random number generator.
-    let mut rng = ChobitRand::new("This is ChobitAI Example".as_bytes());
+    let mut rng = ChobitRand::new("ChobitAI Example".as_bytes());
 
     // Generates AI.
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai = ChobitAI::<OUT, MIDDLE, IN >::new(Activation::SoftSign);
 
-    // Initializes weights with random number.
+    // Randomise weights.
     ai.middle_layer_mut().mut_weights().iter_mut().for_each(|val| {
         *val = ((rng.next_f64() as f32) * 2.0) - 1.0;  // (-1.0, 1.0)
     });
@@ -141,58 +124,63 @@ fn main() {
     println!("//========================//");
 
     // Buffer for output.
+    let mut word = String::with_capacity(WORD_SIZE);
+    let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
 
-    // Temporary buffer for AI to work.
-    let mut tmpbuf = MathVec::<MIDDLE>::new();
+    let mut tmpbuf_1 = MathVec::<NUM_CHAR_BITS>::new();
+    let mut tmpbuf_2 = MathVec::<MIDDLE>::new();
 
-    // japanese_word -> JAPANESE_FLAG? ... No yet!
+    // Japanese word -> JAPANESE_FLAG? ... No yet!
     for _ in 0..10 {
-        let japanese_word = gen_word(&mut rng, gen_japanese_letter);
+        gen_word(&mut rng, gen_japanese_letter, &mut word);
 
-        let data = word_to_data(&japanese_word);
+        word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-        ai.calc(&data, &mut output, &mut tmpbuf);
+        // Outputs result.
+        ai.calc(&input, &mut output, &mut tmpbuf_2);
 
         assert_ne!(vec_to_letter(&output), Some(JAPANESE_FLAG));
 
         println!(
             "Generated japanese word: {}, flag: {:?}",
-            japanese_word,
+            word,
             vec_to_letter(&output)
         );
     }
 
-    // english_word -> ENGLISH_FLAG? ... No yet!
+    // English word -> ENGLISH_FLAG? ... No yet!
     for _ in 0..10 {
-        let english_word = gen_word(&mut rng, gen_english_letter);
+        gen_word(&mut rng, gen_english_letter, &mut word);
 
-        let data = word_to_data(&english_word);
+        word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-        ai.calc(&data, &mut output, &mut tmpbuf);
+        // Outputs result.
+        ai.calc(&input, &mut output, &mut tmpbuf_2);
 
         assert_ne!(vec_to_letter(&output), Some(ENGLISH_FLAG));
 
         println!(
             "Generated english word: {}, flag: {:?}",
-            english_word,
+            word,
             vec_to_letter(&output)
         );
     }
 
-    // rune_word -> RUNE_FLAG? ... No yet!
+    // Rune word -> RUNE_FLAG? ... No yet!
     for _ in 0..10 {
-        let rune_word = gen_word(&mut rng, gen_rune_letter);
+        gen_word(&mut rng, gen_rune_letter, &mut word);
 
-        let data = word_to_data(&rune_word);
+        word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-        ai.calc(&data, &mut output, &mut tmpbuf);
+        // Outputs result.
+        ai.calc(&input, &mut output, &mut tmpbuf_2);
 
         assert_ne!(vec_to_letter(&output), Some(RUNE_FLAG));
 
         println!(
             "Generated rune word: {}, flag: {:?}",
-            rune_word,
+            word,
             vec_to_letter(&output)
         );
     }
@@ -202,42 +190,39 @@ fn main() {
     //==================//
     // Wraps with ChobitMLAI for machine learning.
     let mut ml_ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+    let mut train_out = MathVec::<OUT>::new();
 
     const EPOCH: usize = 1000;
     const BATCH_SIZE: usize = 20;
     const RATE: f32 = 0.01;
 
-    // Flags to vectors.
-    let japanese_flag = letter_to_vec(JAPANESE_FLAG);
-    let english_flag = letter_to_vec(ENGLISH_FLAG);
-    let rune_flag = letter_to_vec(RUNE_FLAG);
-
-    // Machine learning.
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
-            // Studies japanese word.
-            let japanese_word = gen_word(&mut rng, gen_japanese_letter);
+            // Studies Japanese.
+            gen_word(&mut rng, gen_japanese_letter, &mut word);
+            word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-            let data = word_to_data(&japanese_word);
+            letter_to_vec(JAPANESE_FLAG, &mut train_out);
 
-            ml_ai.study(&data, &japanese_flag);
+            ml_ai.study(&input, &train_out);
 
-            // Studies english word.
-            let english_word = gen_word(&mut rng, gen_english_letter);
+            // Studies English.
+            gen_word(&mut rng, gen_english_letter, &mut word);
+            word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-            let data = word_to_data(&english_word);
+            letter_to_vec(ENGLISH_FLAG, &mut train_out);
 
-            ml_ai.study(&data, &english_flag);
+            ml_ai.study(&input, &train_out);
 
-            // Studies rune word.
-            let rune_word = gen_word(&mut rng, gen_rune_letter);
+            // Studies Rune.
+            gen_word(&mut rng, gen_rune_letter, &mut word);
+            word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-            let data = word_to_data(&rune_word);
+            letter_to_vec(RUNE_FLAG, &mut train_out);
 
-            ml_ai.study(&data, &rune_flag);
+            ml_ai.study(&input, &train_out);
         }
 
-        // Updates weights.
         ml_ai.update(RATE);
     }
 
@@ -248,56 +233,58 @@ fn main() {
     println!("// After machine learning //");
     println!("//========================//");
 
-    // Unwraps AI from ChobitMLAI.
     let ai = ml_ai.drop();
 
-    // japanese_word -> JAPANESE_FLAG? ... Yes!
+    // Japanese word -> JAPANESE_FLAG? ... Yes!
     for _ in 0..10 {
-        let japanese_word = gen_word(&mut rng, gen_japanese_letter);
+        gen_word(&mut rng, gen_japanese_letter, &mut word);
 
-        let data = word_to_data(&japanese_word);
+        word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-        ai.calc(&data, &mut output, &mut tmpbuf);
+        // Outputs result.
+        ai.calc(&input, &mut output, &mut tmpbuf_2);
 
         assert_eq!(vec_to_letter(&output), Some(JAPANESE_FLAG));
 
         println!(
             "Generated japanese word: {}, flag: {:?}",
-            japanese_word,
+            word,
             vec_to_letter(&output)
         );
     }
 
-    // english_word -> ENGLISH_FLAG? ... Yes!
+    // English word -> ENGLISH_FLAG? ... Yes!
     for _ in 0..10 {
-        let english_word = gen_word(&mut rng, gen_english_letter);
+        gen_word(&mut rng, gen_english_letter, &mut word);
 
-        let data = word_to_data(&english_word);
+        word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-        ai.calc(&data, &mut output, &mut tmpbuf);
+        // Outputs result.
+        ai.calc(&input, &mut output, &mut tmpbuf_2);
 
         assert_eq!(vec_to_letter(&output), Some(ENGLISH_FLAG));
 
         println!(
             "Generated english word: {}, flag: {:?}",
-            english_word,
+            word,
             vec_to_letter(&output)
         );
     }
 
-    // rune_word -> RUNE_FLAG? ... Yes!
+    // Rune word -> RUNE_FLAG? ... Yes!
     for _ in 0..10 {
-        let rune_word = gen_word(&mut rng, gen_rune_letter);
+        gen_word(&mut rng, gen_rune_letter, &mut word);
 
-        let data = word_to_data(&rune_word);
+        word_to_data(&word, &mut input, &mut tmpbuf_1);
 
-        ai.calc(&data, &mut output, &mut tmpbuf);
+        // Outputs result.
+        ai.calc(&input, &mut output, &mut tmpbuf_2);
 
         assert_eq!(vec_to_letter(&output), Some(RUNE_FLAG));
 
         println!(
             "Generated rune word: {}, flag: {:?}",
-            rune_word,
+            word,
             vec_to_letter(&output)
         );
     }
