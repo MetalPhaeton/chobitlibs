@@ -1936,6 +1936,20 @@ impl<
     }
 }
 
+/// [Peephole LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_LSTM)
+///
+/// | Formula |
+/// |:-:|
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>tanh</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>f</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mo stretchy="false">+</mo> <msub> <mi>i</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>o</mi> <mi>i</mi> </msub> </mrow> <mi>tanh</mi> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Kronecker&apos;s delta</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">≝</mo> <mtext>Hyperbolic tangent.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">→</mo> <mtext>soft sign</mtext> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">≝</mo> <mtext>Sigmoid function.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">→</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mtext>soft sign</mtext> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mn>1</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">÷</mo> <mn>2</mn> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">≝</mo> <mtext>Previous state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output</mtext> </mrow> <mi>.</mi> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+///
+/// - `OUT` : Dimension of output.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LSTM<const OUT: usize, const IN: usize> {
     main_layer: Layer<OUT, IN>,
@@ -1948,6 +1962,10 @@ pub struct LSTM<const OUT: usize, const IN: usize> {
 }
 
 impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
+    /// Creates LSTM.
+    ///
+    /// - _Return_ : LSTM.
+    #[inline]
     pub fn new() -> Self {
         Self {
             main_layer: Layer::<OUT, IN>::new(Activation::SoftSign),
@@ -1960,32 +1978,62 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
         }
     }
 
+    /// Gets immutable main layer.
+    ///
+    /// - _Return_ : Main layer.
     #[inline]
     pub fn main_layer(&self) -> &Layer<OUT, IN> {&self.main_layer}
 
+    /// Gets mutable main layer.
+    ///
+    /// - _Return_ : Main layer.
     #[inline]
     pub fn main_layer_mut(&mut self) -> &mut Layer<OUT, IN> {
         &mut self.main_layer
     }
 
+    /// Gets immutable forget gate.
+    ///
+    /// - _Return_ : Forget gate.
     #[inline]
     pub fn f_gate(&self) -> &Layer<OUT, IN> {&self.f_gate}
 
+    /// Gets mutable forget gate.
+    ///
+    /// - _Return_ : Forget gate.
     #[inline]
     pub fn f_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.f_gate}
 
+    /// Gets immutable input gate.
+    ///
+    /// - _Return_ : Input gate.
     #[inline]
     pub fn i_gate(&self) -> &Layer<OUT, IN> {&self.i_gate}
 
+    /// Gets mutable input gate.
+    ///
+    /// - _Return_ : Input gate.
     #[inline]
     pub fn i_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.i_gate}
 
+    /// Gets immutable output gate.
+    ///
+    /// - _Return_ : Output gate.
     #[inline]
     pub fn o_gate(&self) -> &Layer<OUT, IN> {&self.o_gate}
 
+    /// Gets mutable output gate.
+    ///
+    /// - _Return_ : Output gate.
     #[inline]
     pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
 
+    /// Calculates only state.
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `next_state` : Buffer for next state.
+    /// - `tmpbuf` : Temporary buffer for this function to work.
     pub fn calc_state(
         &self,
         input: &MathVec<IN>,
@@ -2004,6 +2052,13 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
         *next_state += tmpbuf;
     }
 
+    /// Calculates state and output.
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `output` : Buffer for output.
+    /// - `next_state` : Buffer for next state.
+    /// - `tmpbuf` : Temporary buffer for this function to work.
     pub fn calc(
         &self,
         input: &MathVec<IN>,
