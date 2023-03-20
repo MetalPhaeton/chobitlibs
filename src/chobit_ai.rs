@@ -124,9 +124,12 @@ fn f32_slice_to_u8_slice(
 /// Vector for mathematics.
 ///
 /// - `N` : Dimension.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct MathVec<const N: usize> {
-    body: Box<[f32]>
+    body: Box<[f32]>,
+
+    ptr: *const [f32; N],
+    mut_ptr: *mut [f32; N]
 }
 
 impl<const N: usize> MathVec<N> {
@@ -135,8 +138,32 @@ impl<const N: usize> MathVec<N> {
     /// - _Return_ : MathVec.
     #[inline]
     pub fn new() -> Self {
+        let mut body = vec![f32::default(); N].into_boxed_slice();
+
+        let ptr = body.as_ptr() as *const [f32; N];
+        let mut_ptr = body.as_mut_ptr() as *mut [f32; N];
+
+        if cfg!(debug_assertions) {
+            unsafe {
+                assert_eq!(ptr as usize, mut_ptr as usize);
+
+                assert_eq!(
+                    ptr.add(1) as usize,
+                    body.as_ptr().add(N) as usize
+                );
+
+                assert_eq!(
+                    mut_ptr.add(1) as usize,
+                    body.as_mut_ptr().add(N) as usize
+                );
+            }
+        }
+
         Self {
-            body: vec![f32::default(); N].into_boxed_slice()
+            body: body,
+
+            ptr: ptr,
+            mut_ptr: mut_ptr
         }
     }
 
@@ -145,7 +172,7 @@ impl<const N: usize> MathVec<N> {
     /// - _Return_ : Self as array.
     #[inline]
     pub fn as_array(&self) -> &[f32; N] {
-        unsafe {&*(self.body.as_ptr() as *const [f32; N])}
+        unsafe {&*self.ptr}
     }
 
     /// Gets self as mutable array.
@@ -153,7 +180,7 @@ impl<const N: usize> MathVec<N> {
     /// - _Return_ : Self as mutable array.
     #[inline]
     pub fn as_mut_array(&mut self) -> &mut [f32; N] {
-        unsafe {&mut *(self.body.as_mut_ptr() as *mut [f32; N])}
+        unsafe {&mut *self.mut_ptr}
     }
 
     /// Resets all values into 0.
@@ -263,6 +290,24 @@ impl<const N: usize> MathVec<N> {
 impl<const N: usize> Default for MathVec<N> {
     #[inline]
     fn default() -> Self {Self::new()}
+}
+
+impl<const N: usize> Clone for MathVec<N> {
+    #[inline]
+    fn clone(&self) -> Self {
+        let mut ret = Self::new();
+
+        ret.body.copy_from_slice(&*self.body);
+
+        ret
+    }
+}
+
+impl<const N: usize> PartialEq for MathVec<N> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        (&*self.body) == (&*other.body)
+    }
 }
 
 impl<const N: usize> Add<&MathVec<N>> for &MathVec<N> {
