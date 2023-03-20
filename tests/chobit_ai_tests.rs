@@ -939,160 +939,160 @@ fn weights_test_10() {
     }
 }
 
-//#[test]
-//fn layer_test_1() {
-//    const OUT: usize = 7;
-//    const IN: usize = 13;
-//
-//    // ready
-//    let mut rng = ChobitRand::new("layer_test_1".as_bytes());
-//
-//    let mut layer_1 = Layer::<OUT, IN>::new(Activation::SoftSign);
-//
-//    rand_weights(&mut rng, layer_1.mut_weights());
-//
-//    let mut layer_2 = Layer::<OUT, IN>::new(Activation::SoftSign);
-//
-//    rand_weights(&mut rng, layer_2.mut_weights());
-//
-//    assert_ne!(layer_1, layer_2);
-//
-//    let mut input = MathVec::<IN>::new();
-//    rand_math_vec(&mut rng, &mut input);
-//
-//    let mut state = MathVec::<OUT>::new();
-//    rand_math_vec(&mut rng, &mut state);
-//
-//    let mut output_1 = MathVec::<OUT>::new();
-//    let mut output_2 = MathVec::<OUT>::new();
-//
-//    layer_1.calc(&input, Some(&state), &mut output_1);
-//    layer_2.calc(&input, Some(&state), &mut output_2);
-//
-//    // checks before machine learning.
-//    const EPSILON_1: f32 = 0.01;
-//    for i in 0..OUT {
-//        let diff = (output_1[i] - output_2[i]).abs();
-//        assert!(diff > EPSILON_1);
-//    }
-//
-//    // machine learning.
-//    const EPOCH: usize = 1000;
-//    const BATCH_SIZE: usize = 10;
-//    const RATE: f32 = 0.1;
-//
-//    let mut ml_layer = MLLayer::new(layer_2);
-//    let mut cache = MLCache::new();
-//    let mut output_error = MathVec::<OUT>::new();
-//    let mut prev_state_error = MathVec::<OUT>::new();
-//    let mut input_error = MathVec::<IN>::new();
-//    let mut state_error = MathVec::<OUT>::new();
-//
-//    for _ in 0..EPOCH {
-//        for _ in 0..BATCH_SIZE {
-//            ml_layer.ready(&input, Some(&state), &mut cache);
-//
-//            cache.calc_output_error(&output_1, &mut output_error);
-//
-//            prev_state_error.clear();
-//
-//            ml_layer.study(
-//                &output_error,
-//                Some(&prev_state_error),
-//                &cache,
-//                &mut input_error,
-//                Some(&mut state_error)
-//            );
-//        }
-//
-//        ml_layer.update(RATE);
-//    }
-//
-//    let layer_2 = ml_layer.drop();
-//
-//    layer_1.calc(&input, Some(&state), &mut output_1);
-//    layer_2.calc(&input, Some(&state), &mut output_2);
-//
-//    // checks after machine learning.
-//    const EPSILON_2: f32 = 0.000001;
-//    for i in 0..OUT {
-//        let diff = (output_1[i] - output_2[i]).abs();
-//        assert!(diff < EPSILON_2);
-//    }
-//}
-//
-//#[test]
-//fn layer_test_2() {
-//    const OUT: usize = 7;
-//    const IN: usize = 13;
-//
-//    // ready
-//    let mut rng = ChobitRand::new("layer_test_2".as_bytes());
-//
-//    let mut layer_1 = Layer::<OUT, IN>::new(Activation::SoftSign);
-//    rand_weights(&mut rng, layer_1.mut_weights());
-//
-//    let mut layer_2 = Layer::<OUT, IN>::new(Activation::SoftSign);
-//    rand_weights(&mut rng, layer_2.mut_weights());
-//
-//    assert_ne!(layer_1, layer_2);
-//
-//    let mut input = MathVec::<IN>::new();
-//    rand_math_vec(&mut rng, &mut input);
-//
-//    let mut output_1 = MathVec::<OUT>::new();
-//    let mut output_2 = MathVec::<OUT>::new();
-//
-//    layer_1.calc(&input, None, &mut output_1);
-//    layer_2.calc(&input, None, &mut output_2);
-//
-//    // checks before machine learning.
-//    const EPSILON_1: f32 = 0.05;
-//    for i in 0..OUT {
-//        let diff = (output_1[i] - output_2[i]).abs();
-//        assert!(diff > EPSILON_1);
-//    }
-//
-//    // machine learning.
-//    const EPOCH: usize = 1000;
-//    const BATCH_SIZE: usize = 10;
-//    const RATE: f32 = 0.1;
-//
-//    let mut ml_layer = MLLayer::new(layer_2);
-//    let mut cache = MLCache::new();
-//    let mut output_error = MathVec::<OUT>::new();
-//    let mut input_error = MathVec::<IN>::new();
-//
-//    for _ in 0..EPOCH {
-//        for _ in 0..BATCH_SIZE {
-//            ml_layer.ready(&input, None, &mut cache);
-//            cache.calc_output_error(&output_1, &mut output_error);
-//
-//            ml_layer.study(
-//                &output_error,
-//                None,
-//                &cache,
-//                &mut input_error,
-//                None
-//            );
-//        }
-//
-//        ml_layer.update(RATE);
-//    }
-//
-//    let layer_2 = ml_layer.drop();
-//
-//    layer_1.calc(&input, None, &mut output_1);
-//    layer_2.calc(&input, None, &mut output_2);
-//
-//    // checks after machine learning.
-//    const EPSILON_2: f32 = 0.000001;
-//    for i in 0..OUT {
-//        let diff = (output_1[i] - output_2[i]).abs();
-//        assert!(diff < EPSILON_2);
-//    }
-//}
-//
+#[test]
+fn layer_test_1() {
+    const OUT: usize = 7;
+    const IN: usize = 13;
+
+    // ready
+    let mut rng = ChobitRand::new("layer_test_1".as_bytes());
+
+    let mut layer_1 = Layer::<OUT, IN>::new(Activation::SoftSign, true);
+
+    rand_weights(&mut rng, layer_1.mut_weights());
+
+    let mut layer_2 = Layer::<OUT, IN>::new(Activation::SoftSign, true);
+
+    rand_weights(&mut rng, layer_2.mut_weights());
+
+    assert_ne!(layer_1, layer_2);
+
+    let mut input = MathVec::<IN>::new();
+    rand_math_vec(&mut rng, &mut input);
+
+    let mut state = MathVec::<OUT>::new();
+    rand_math_vec(&mut rng, &mut state);
+
+    let mut output_1 = MathVec::<OUT>::new();
+    let mut output_2 = MathVec::<OUT>::new();
+
+    layer_1.calc(&input, Some(&state), &mut output_1);
+    layer_2.calc(&input, Some(&state), &mut output_2);
+
+    // checks before machine learning.
+    const EPSILON_1: f32 = 0.01;
+    for i in 0..OUT {
+        let diff = (output_1[i] - output_2[i]).abs();
+        assert!(diff > EPSILON_1);
+    }
+
+    // machine learning.
+    const EPOCH: usize = 1000;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.1;
+
+    let mut ml_layer = MLLayer::new(layer_2);
+    let mut cache = MLCache::new();
+    let mut output_error = MathVec::<OUT>::new();
+    let mut prev_state_error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+    let mut state_error = MathVec::<OUT>::new();
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            ml_layer.ready(&input, Some(&state), &mut cache);
+
+            cache.calc_output_error(&output_1, &mut output_error);
+
+            prev_state_error.clear();
+
+            ml_layer.study(
+                &output_error,
+                Some(&prev_state_error),
+                &cache,
+                &mut input_error,
+                Some(&mut state_error)
+            );
+        }
+
+        ml_layer.update(RATE);
+    }
+
+    let layer_2 = ml_layer.drop();
+
+    layer_1.calc(&input, Some(&state), &mut output_1);
+    layer_2.calc(&input, Some(&state), &mut output_2);
+
+    // checks after machine learning.
+    const EPSILON_2: f32 = 0.000001;
+    for i in 0..OUT {
+        let diff = (output_1[i] - output_2[i]).abs();
+        assert!(diff < EPSILON_2);
+    }
+}
+
+#[test]
+fn layer_test_2() {
+    const OUT: usize = 7;
+    const IN: usize = 13;
+
+    // ready
+    let mut rng = ChobitRand::new("layer_test_2".as_bytes());
+
+    let mut layer_1 = Layer::<OUT, IN>::new(Activation::SoftSign, false);
+    rand_weights(&mut rng, layer_1.mut_weights());
+
+    let mut layer_2 = Layer::<OUT, IN>::new(Activation::SoftSign, false);
+    rand_weights(&mut rng, layer_2.mut_weights());
+
+    assert_ne!(layer_1, layer_2);
+
+    let mut input = MathVec::<IN>::new();
+    rand_math_vec(&mut rng, &mut input);
+
+    let mut output_1 = MathVec::<OUT>::new();
+    let mut output_2 = MathVec::<OUT>::new();
+
+    layer_1.calc(&input, None, &mut output_1);
+    layer_2.calc(&input, None, &mut output_2);
+
+    // checks before machine learning.
+    const EPSILON_1: f32 = 0.05;
+    for i in 0..OUT {
+        let diff = (output_1[i] - output_2[i]).abs();
+        assert!(diff > EPSILON_1);
+    }
+
+    // machine learning.
+    const EPOCH: usize = 1000;
+    const BATCH_SIZE: usize = 10;
+    const RATE: f32 = 0.1;
+
+    let mut ml_layer = MLLayer::new(layer_2);
+    let mut cache = MLCache::new();
+    let mut output_error = MathVec::<OUT>::new();
+    let mut input_error = MathVec::<IN>::new();
+
+    for _ in 0..EPOCH {
+        for _ in 0..BATCH_SIZE {
+            ml_layer.ready(&input, None, &mut cache);
+            cache.calc_output_error(&output_1, &mut output_error);
+
+            ml_layer.study(
+                &output_error,
+                None,
+                &cache,
+                &mut input_error,
+                None
+            );
+        }
+
+        ml_layer.update(RATE);
+    }
+
+    let layer_2 = ml_layer.drop();
+
+    layer_1.calc(&input, None, &mut output_1);
+    layer_2.calc(&input, None, &mut output_2);
+
+    // checks after machine learning.
+    const EPSILON_2: f32 = 0.000001;
+    for i in 0..OUT {
+        let diff = (output_1[i] - output_2[i]).abs();
+        assert!(diff < EPSILON_2);
+    }
+}
+
 //#[test]
 //fn chobit_ai_test_1() {
 //    const OUT: usize = 8;

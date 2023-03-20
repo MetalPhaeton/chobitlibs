@@ -1118,416 +1118,424 @@ impl Activation {
     }
 }
 
-///// Layer for neural network only for calculating.
-/////
-///// | Formula |
-///// |:-:|
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
-/////
-///// - `OUT` : Dimension of output.
-///// - `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct Layer<const OUT: usize, const IN: usize> {
-//    weights: Weights<OUT, IN>,
-//    activation: Activation
-//}
-//
-//impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
-//    /// Creates Neuron.
-//    ///
-//    /// - `activation` : Activation function.
-//    /// - _Return_ : Neuron.
-//    #[inline]
-//    pub fn new(activation: Activation) -> Self {
-//        Self {
-//            weights: Weights::<OUT, IN>::default(),
-//            activation: activation
-//        }
-//    }
-//
-//    /// Gets immutable weights.
-//    ///
-//    /// - _Return_ : Weights.
-//    #[inline]
-//    pub fn weights(&self) -> &Weights<OUT, IN> {&self.weights}
-//
-//    /// Gets mutable weights.
-//    ///
-//    /// - _Return_ : Weights.
-//    #[inline]
-//    pub fn mut_weights(&mut self) -> &mut Weights<OUT, IN> {&mut self.weights}
-//
-//    /// Gets immutable activation function.
-//    ///
-//    /// - _Return_ : Weights.
-//    #[inline]
-//    pub fn activation(&self) -> &Activation {&self.activation}
-//
-//    /// Gets mutable activation function.
-//    ///
-//    /// - _Return_ : Weights.
-//    #[inline]
-//    pub fn mut_activation(&mut self) -> &mut Activation {&mut self.activation}
-//
-//    /// Calculates neural network layer.
-//    ///
-//    /// - `input` : Input.
-//    /// - `state` : State if it exists.
-//    /// - `output` : Buffer for output.
-//    #[inline]
-//    pub fn calc(
-//        &self,
-//        input: &MathVec<IN>,
-//        state: Option<&MathVec<OUT>>,
-//        output: &mut MathVec<OUT>
-//    ) {
-//        self.weights.calc(input, state, output);
-//
-//        output.iter_mut().for_each(
-//            |val| {*val = self.activation.activate(*val);}
-//        );
-//    }
-//}
-//
-///// Cache for MLLayer.
-/////
-///// - `OUT` : Output of [`MLLayer`].
-///// - `IN` : Input of [`MLLayer`].
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLCache<const OUT: usize, const IN: usize> {
-//    input: MathVec<IN>,
-//    state: MathVec<OUT>,
-//    has_state: bool,
-//
-//    middle_value: MathVec<OUT>,
-//
-//    output: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
-//    /// Creates MLCache.
-//    ///
-//    /// - _Return_ : MLCache.
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            input: MathVec::<IN>::new(),
-//            state: MathVec::<OUT>::new(),
-//            has_state: false,
-//
-//            middle_value: MathVec::<OUT>::new(),
-//
-//            output: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    /// Calculates output error.
-//    ///
-//    /// | Formula |
-//    /// |:-:|
-//    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-//    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
-//    ///
-//    /// - `train_out` : Correct output.
-//    /// - `output_error` : Buffer for output error.
-//    #[inline]
-//    pub fn calc_output_error(
-//        &self,
-//        train_out: &MathVec<OUT>,
-//        output_error: &mut MathVec<OUT>
-//    ) {
-//        output_error.copy_from(&self.output);
-//        *output_error -= train_out;
-//    }
-//
-//    /// Gets input.
-//    ///
-//    /// - _Return_ : Input.
-//    #[inline]
-//    pub fn input(&self) -> &MathVec<IN> {&self.input}
-//
-//    /// Gets state.
-//    ///
-//    /// - _Return_ : State.
-//    #[inline]
-//    pub fn state(&self) -> Option<&MathVec<OUT>> {
-//        self.has_state.then(|| &self.state)
-//    }
-//
-//    /// Gets middle value. (Output before activate.)
-//    ///
-//    /// - _Return_ : Middle value.
-//    #[inline]
-//    pub fn middle_value(&self) -> &MathVec<OUT> {&self.middle_value}
-//
-//    /// Gets output. (Output after activate.)
-//    ///
-//    /// - _Return_ : Output.
-//    #[inline]
-//    pub fn output(&self) -> &MathVec<OUT> {&self.output}
-//}
-//
-///// Layer for neural network only for machine learning.
-/////
-///// | Formula |
-///// |:-:|
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
-/////
-///// - `OUT` : Dimension of output.
-///// - `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLLayer<const OUT: usize, const IN: usize> {
-//    layer: Layer<OUT, IN>,
-//
-//    total_grad: Weights<OUT, IN>,
-//    momentum_1: Weights<OUT, IN>,
-//    momentum_2: MathVec<OUT>,
-//
-//    tmp_error: MathVec<OUT>,
-//    tmp_grad: Weights<OUT, IN>
-//}
-//
-//const BETA_1: f32 = 0.9;
-//const BETA_INV_1: f32 = 1.0 - BETA_1;
-//
-//const BETA_2: f32 = 0.999;
-//const BETA_INV_2: f32 = 1.0 - BETA_2;
-//impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
-//    /// Creates MLLayer.
-//    ///
-//    /// - `layer` : Base layer.
-//    /// - _Return_ : MLLayer.
-//    #[inline]
-//    pub fn new(layer: Layer<OUT, IN>) -> Self {
-//        Self {
-//            layer: layer,
-//
-//            total_grad: Weights::<OUT, IN>::default(),
-//            momentum_1: Weights::<OUT, IN>::default(),
-//            momentum_2: MathVec::<OUT>::default(),
-//
-//            tmp_error: MathVec::<OUT>::default(),
-//            tmp_grad: Weights::<OUT, IN>::default()
-//        }
-//    }
-//
-//    /// Drop Base layer.
-//    ///
-//    /// - _Return_ : Base Layer.
-//    #[inline]
-//    pub fn drop(self) -> Layer<OUT, IN> {self.layer}
-//
-//    /// Clears internal data for study.
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.total_grad.clear();
-//        self.momentum_1.clear();
-//        self.momentum_2.clear();
-//    }
-//
-//    /// Generates MLCache for [MLLayer::study].
-//    ///
-//    /// - `input` : Input.
-//    /// - `state` : State if it exists.
-//    /// - `cache` : Cache that use on [MLLayer::study].
-//    pub fn ready(
-//        &self,
-//        input: &MathVec<IN>,
-//        state: Option<&MathVec<OUT>>,
-//        cache: &mut MLCache<OUT, IN>
-//    ) {
-//        cache.input.copy_from(input);
-//
-//        match state {
-//            Some(state) => {
-//                cache.state.copy_from(state);
-//                cache.has_state = true;
-//            },
-//
-//            None => {
-//                cache.has_state = false;
-//            }
-//        }
-//
-//        self.layer.weights.calc(input, state, &mut cache.middle_value);
-//
-//        cache.output.as_mut_array().iter_mut().zip(
-//            cache.middle_value.as_array().iter()
-//        ).for_each(|(output_one, m_value)| {
-//            *output_one = self.layer.activation.activate(*m_value);
-//        });
-//    }
-//
-//    /// Studies weights from MLCache.
-//    ///
-//    /// - `output_error` : Backpropagated output error.
-//    /// - `next_state_error` : Backpropagated state error if it exists.
-//    /// - `cache` : Cache generated by [MLLayer::ready].
-//    /// - `input_error` : Error for previous output.
-//    /// - `prev_state_error` : Error for previous state.
-//    pub fn study(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        next_state_error: Option<&MathVec<OUT>>,
-//        cache: &MLCache<OUT, IN>,
-//        input_error: &mut MathVec<IN>,
-//        prev_state_error: Option<&mut MathVec<OUT>>
-//    ) {
-//        self.calc_tmp_error(output_error, next_state_error, cache);
-//
-//        // add self.total_grad ----------
-//        Weights::grad_with_weights(
-//            &self.tmp_error,
-//            &cache.input,
-//            cache.has_state.then(|| &cache.state),
-//            &mut self.tmp_grad
-//        );
-//
-//        self.total_grad.iter_mut().zip(self.tmp_grad.iter()).for_each(
-//            |(total_g, tmp_g)| {
-//                *total_g += *tmp_g;
-//            }
-//        );
-//
-//        // calc errors ----------
-//        self.layer.weights.grad_with_input(&self.tmp_error, input_error);
-//
-//        if let Some(prev_state_error) = prev_state_error {
-//            if cache.has_state {
-//                self.layer.weights.grad_with_state(
-//                    &self.tmp_error,
-//                    prev_state_error
-//                );
-//            }
-//        }
-//    }
-//
-//    #[inline]
-//    fn calc_tmp_error(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        next_state_error: Option<&MathVec<OUT>>,
-//        cache: &MLCache<OUT, IN>
-//    ) {
-//        match next_state_error {
-//            Some(next_state_error) => {
-//                self.tmp_error.copy_from(next_state_error);
-//            },
-//
-//            None => {
-//                self.tmp_error.clear();
-//            }
-//        }
-//
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            output_error.as_array().iter()
-//        ).zip(
-//            cache.middle_value.as_array().iter()
-//        ).for_each(
-//            |((tmp_e, output_e), m_value)| {
-//                *tmp_e +=
-//                    *output_e * self.layer.activation.d_activate(*m_value);
-//            }
-//        );
-//    }
-//
-//    /// Updates weights with Adam.
-//    ///
-//    /// | Formula |
-//    /// |:-:|
-//    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>1</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
-//    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mi>s</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>2</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <msup> <mi>G</mi> <mn>2</mn> </msup> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
-//    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">−</mo> <mfrac> <mi>η</mi> <mrow> <msqrt> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> </msqrt> <mo stretchy="false">+</mo> <mi>ε</mi> </mrow> </mfrac> </mrow> </mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> </mrow> </semantics> </math> |
-//    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Total gradient.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>s</mi> <mo stretchy="false">≝</mo> <mtext>Previous momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">≝</mo> <mtext>Next momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 1.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">=</mo> <mn>0.9</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 2.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">=</mo> <mn>0.999</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>η</mi> <mo stretchy="false">≝</mo> <mtext>Learning rate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>ε</mi> <mo stretchy="false">≝</mo> <mtext>Machine epsilon.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
-//    ///
-//    /// - `rate` : Learning rate.
-//    pub fn update(&mut self, rate: f32) {
-//        self.next_momentum_1();
-//        self.next_momentum_2();
-//
-//        self.total_grad.copy_from(&self.momentum_1);
-//
-//        // calc delta weights.
-//        for i in 0..OUT {
-//            debug_assert!(self.momentum_2.get(i).is_some());
-//            debug_assert!(self.total_grad.input_weights().get(i).is_some());
-//            debug_assert!(self.total_grad.state_weights().get(i).is_some());
-//            debug_assert!(self.total_grad.bias().get(i).is_some());
-//
-//            unsafe {
-//                let rate_2 = rate
-//                    / (sqrt(*self.momentum_2.get_unchecked(i)) + f32::EPSILON);
-//
-//                *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate_2;
-//
-//                self.total_grad
-//                    .input_weights_mut()
-//                    .get_unchecked_mut(i)
-//                    .iter_mut()
-//                    .for_each(|g| {*g *= rate_2;});
-//
-//                self.total_grad
-//                    .state_weights_mut()
-//                    .get_unchecked_mut(i)
-//                    .iter_mut()
-//                    .for_each(|g| {*g *= rate_2;});
-//            }
-//        }
-//
-//        // updates weights.
-//        self.layer.weights.iter_mut().zip(self.total_grad.iter()).for_each(
-//            |(w, g)| {*w -= *g;}
-//        );
-//
-//        self.total_grad.clear();
-//    }
-//
-//    #[inline]
-//    fn next_momentum_1(&mut self) {
-//        self.momentum_1.iter_mut().zip(self.total_grad.iter()).for_each(
-//            |(mom, grad)| {
-//                *mom = (BETA_1 * *mom) + (BETA_INV_1 * *grad);
-//            }
-//        );
-//    }
-//
-//    #[inline]
-//    fn next_momentum_2(&mut self) {
-//        for i in 0..OUT {
-//            debug_assert!(self.momentum_2.get(i).is_some());
-//            debug_assert!(self.total_grad.input_weights().get(i).is_some());
-//            debug_assert!(self.total_grad.state_weights().get(i).is_some());
-//            debug_assert!(self.total_grad.bias().get(i).is_some());
-//
-//            let mut dot_product: f32 = 0.0;
-//
-//            unsafe {
-//                let bias = *self.total_grad.bias().get_unchecked(i);
-//                dot_product += bias * bias;
-//
-//                self.total_grad
-//                    .input_weights()
-//                    .get_unchecked(i)
-//                    .iter()
-//                    .for_each(|val| {dot_product += *val * *val;});
-//
-//                self.total_grad
-//                    .state_weights()
-//                    .get_unchecked(i)
-//                    .iter()
-//                    .for_each(|val| {dot_product += *val * *val;});
-//
-//                *self.momentum_2.get_unchecked_mut(i) =
-//                    (BETA_2 * *self.momentum_2.get_unchecked(i))
-//                    + (BETA_INV_2 * dot_product);
-//            }
-//
-//        }
-//    }
-//}
-//
+/// Layer for neural network only for calculating.
+///
+/// | Formula |
+/// |:-:|
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
+///
+/// - `OUT` : Dimension of output.
+/// - `IN` : Dimension of input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Layer<const OUT: usize, const IN: usize> {
+    weights: Weights<OUT, IN>,
+    activation: Activation
+}
+
+impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
+    /// Creates Neuron.
+    ///
+    /// - `activation` : Activation function.
+    /// - `accept_state` : If `true`, this accepts state.
+    /// - _Return_ : Neuron.
+    #[inline]
+    pub fn new(activation: Activation, accept_state: bool) -> Self {
+        Self {
+            weights: Weights::<OUT, IN>::new(accept_state),
+            activation: activation
+        }
+    }
+
+    /// Gets immutable weights.
+    ///
+    /// - _Return_ : Weights.
+    #[inline]
+    pub fn weights(&self) -> &Weights<OUT, IN> {&self.weights}
+
+    /// Gets mutable weights.
+    ///
+    /// - _Return_ : Weights.
+    #[inline]
+    pub fn mut_weights(&mut self) -> &mut Weights<OUT, IN> {&mut self.weights}
+
+    /// Gets immutable activation function.
+    ///
+    /// - _Return_ : Weights.
+    #[inline]
+    pub fn activation(&self) -> &Activation {&self.activation}
+
+    /// Gets mutable activation function.
+    ///
+    /// - _Return_ : Weights.
+    #[inline]
+    pub fn mut_activation(&mut self) -> &mut Activation {&mut self.activation}
+
+    /// Calculates neural network layer.
+    ///
+    /// - `input` : Input.
+    /// - `state` : State if it exists.
+    /// - `output` : Buffer for output.
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        state: Option<&MathVec<OUT>>,
+        output: &mut MathVec<OUT>
+    ) {
+        self.weights.calc(input, state, output);
+
+        output.iter_mut().for_each(
+            |val| {*val = self.activation.activate(*val);}
+        );
+    }
+}
+
+/// Cache for MLLayer.
+///
+/// - `OUT` : Output of [`MLLayer`].
+/// - `IN` : Input of [`MLLayer`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLCache<const OUT: usize, const IN: usize> {
+    input: MathVec<IN>,
+    state: MathVec<OUT>,
+    has_state: bool,
+
+    middle_value: MathVec<OUT>,
+
+    output: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
+    /// Creates MLCache.
+    ///
+    /// - _Return_ : MLCache.
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            input: MathVec::<IN>::new(),
+            state: MathVec::<OUT>::new(),
+            has_state: false,
+
+            middle_value: MathVec::<OUT>::new(),
+
+            output: MathVec::<OUT>::new()
+        }
+    }
+
+    /// Calculates output error.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `train_out` : Correct output.
+    /// - `output_error` : Buffer for output error.
+    #[inline]
+    pub fn calc_output_error(
+        &self,
+        train_out: &MathVec<OUT>,
+        output_error: &mut MathVec<OUT>
+    ) {
+        output_error.copy_from(&self.output);
+        *output_error -= train_out;
+    }
+
+    /// Gets input.
+    ///
+    /// - _Return_ : Input.
+    #[inline]
+    pub fn input(&self) -> &MathVec<IN> {&self.input}
+
+    /// Gets state.
+    ///
+    /// - _Return_ : State.
+    #[inline]
+    pub fn state(&self) -> Option<&MathVec<OUT>> {
+        self.has_state.then(|| &self.state)
+    }
+
+    /// Gets middle value. (Output before activate.)
+    ///
+    /// - _Return_ : Middle value.
+    #[inline]
+    pub fn middle_value(&self) -> &MathVec<OUT> {&self.middle_value}
+
+    /// Gets output. (Output after activate.)
+    ///
+    /// - _Return_ : Output.
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {&self.output}
+}
+
+/// Layer for neural network only for machine learning.
+///
+/// | Formula |
+/// |:-:|
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
+///
+/// - `OUT` : Dimension of output.
+/// - `IN` : Dimension of input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLLayer<const OUT: usize, const IN: usize> {
+    layer: Layer<OUT, IN>,
+
+    total_grad: Weights<OUT, IN>,
+    momentum_1: Weights<OUT, IN>,
+    momentum_2: MathVec<OUT>,
+
+    tmp_error: MathVec<OUT>,
+    tmp_grad: Weights<OUT, IN>
+}
+
+const BETA_1: f32 = 0.9;
+const BETA_INV_1: f32 = 1.0 - BETA_1;
+
+const BETA_2: f32 = 0.999;
+const BETA_INV_2: f32 = 1.0 - BETA_2;
+impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
+    /// Creates MLLayer.
+    ///
+    /// - `layer` : Base layer.
+    /// - _Return_ : MLLayer.
+    #[inline]
+    pub fn new(layer: Layer<OUT, IN>) -> Self {
+        let has_state_weights = layer.weights.ptr_s.is_some();
+
+        Self {
+            layer: layer,
+
+            total_grad: Weights::<OUT, IN>::new(has_state_weights),
+            momentum_1: Weights::<OUT, IN>::new(has_state_weights),
+            momentum_2: MathVec::<OUT>::default(),
+
+            tmp_error: MathVec::<OUT>::default(),
+            tmp_grad: Weights::<OUT, IN>::new(has_state_weights)
+        }
+    }
+
+    /// Drop Base layer.
+    ///
+    /// - _Return_ : Base Layer.
+    #[inline]
+    pub fn drop(self) -> Layer<OUT, IN> {self.layer}
+
+    /// Clears internal data for study.
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.total_grad.clear();
+        self.momentum_1.clear();
+        self.momentum_2.clear();
+    }
+
+    /// Generates MLCache for [MLLayer::study].
+    ///
+    /// - `input` : Input.
+    /// - `state` : State if it exists.
+    /// - `cache` : Cache that use on [MLLayer::study].
+    pub fn ready(
+        &self,
+        input: &MathVec<IN>,
+        state: Option<&MathVec<OUT>>,
+        cache: &mut MLCache<OUT, IN>
+    ) {
+        cache.input.copy_from(input);
+
+        match state {
+            Some(state) => {
+                cache.state.copy_from(state);
+                cache.has_state = true;
+            },
+
+            None => {
+                cache.has_state = false;
+            }
+        }
+
+        self.layer.weights.calc(input, state, &mut cache.middle_value);
+
+        cache.output.as_mut_array().iter_mut().zip(
+            cache.middle_value.as_array().iter()
+        ).for_each(|(output_one, m_value)| {
+            *output_one = self.layer.activation.activate(*m_value);
+        });
+    }
+
+    /// Studies weights from MLCache.
+    ///
+    /// - `output_error` : Backpropagated output error.
+    /// - `next_state_error` : Backpropagated state error if it exists.
+    /// - `cache` : Cache generated by [MLLayer::ready].
+    /// - `input_error` : Error for previous output.
+    /// - `prev_state_error` : Error for previous state.
+    pub fn study(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        next_state_error: Option<&MathVec<OUT>>,
+        cache: &MLCache<OUT, IN>,
+        input_error: &mut MathVec<IN>,
+        prev_state_error: Option<&mut MathVec<OUT>>
+    ) {
+        self.calc_tmp_error(output_error, next_state_error, cache);
+
+        // add self.total_grad ----------
+        Weights::grad_with_weights(
+            &self.tmp_error,
+            &cache.input,
+            cache.has_state.then(|| &cache.state),
+            &mut self.tmp_grad
+        );
+
+        self.total_grad.iter_mut().zip(self.tmp_grad.iter()).for_each(
+            |(total_g, tmp_g)| {
+                *total_g += *tmp_g;
+            }
+        );
+
+        // calc errors ----------
+        self.layer.weights.grad_with_input(&self.tmp_error, input_error);
+
+        if let Some(prev_state_error) = prev_state_error {
+            if cache.has_state {
+                self.layer.weights.grad_with_state(
+                    &self.tmp_error,
+                    prev_state_error
+                );
+            }
+        }
+    }
+
+    #[inline]
+    fn calc_tmp_error(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        next_state_error: Option<&MathVec<OUT>>,
+        cache: &MLCache<OUT, IN>
+    ) {
+        match next_state_error {
+            Some(next_state_error) => {
+                self.tmp_error.copy_from(next_state_error);
+            },
+
+            None => {
+                self.tmp_error.clear();
+            }
+        }
+
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            cache.middle_value.as_array().iter()
+        ).for_each(
+            |((tmp_e, output_e), m_value)| {
+                *tmp_e +=
+                    *output_e * self.layer.activation.d_activate(*m_value);
+            }
+        );
+    }
+
+    /// Updates weights with Adam.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>1</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mi>s</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>2</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <msup> <mi>G</mi> <mn>2</mn> </msup> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">−</mo> <mfrac> <mi>η</mi> <mrow> <msqrt> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> </msqrt> <mo stretchy="false">+</mo> <mi>ε</mi> </mrow> </mfrac> </mrow> </mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Total gradient.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>s</mi> <mo stretchy="false">≝</mo> <mtext>Previous momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">≝</mo> <mtext>Next momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 1.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">=</mo> <mn>0.9</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 2.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">=</mo> <mn>0.999</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>η</mi> <mo stretchy="false">≝</mo> <mtext>Learning rate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>ε</mi> <mo stretchy="false">≝</mo> <mtext>Machine epsilon.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `rate` : Learning rate.
+    pub fn update(&mut self, rate: f32) {
+        self.next_momentum_1();
+        self.next_momentum_2();
+
+        self.total_grad.copy_from(&self.momentum_1);
+
+        // calc delta weights.
+        for i in 0..OUT {
+            debug_assert!(self.momentum_2.get(i).is_some());
+            debug_assert!(self.total_grad.input_weights().get(i).is_some());
+            debug_assert!(self.total_grad.bias().get(i).is_some());
+
+            unsafe {
+                let rate_2 = rate
+                    / (sqrt(*self.momentum_2.get_unchecked(i)) + f32::EPSILON);
+
+                *self.total_grad.bias_mut().get_unchecked_mut(i) *= rate_2;
+
+                self.total_grad
+                    .input_weights_mut()
+                    .get_unchecked_mut(i)
+                    .iter_mut()
+                    .for_each(|g| {*g *= rate_2;});
+
+                if let Some(state_weights) =
+                    self.total_grad.state_weights_mut()
+                {
+                    debug_assert!(state_weights.get(i).is_some());
+
+                    state_weights
+                        .get_unchecked_mut(i)
+                        .iter_mut()
+                        .for_each(|g| {*g *= rate_2;});
+                }
+            }
+        }
+
+        // updates weights.
+        self.layer.weights.iter_mut().zip(self.total_grad.iter()).for_each(
+            |(w, g)| {*w -= *g;}
+        );
+
+        self.total_grad.clear();
+    }
+
+    #[inline]
+    fn next_momentum_1(&mut self) {
+        self.momentum_1.iter_mut().zip(self.total_grad.iter()).for_each(
+            |(mom, grad)| {
+                *mom = (BETA_1 * *mom) + (BETA_INV_1 * *grad);
+            }
+        );
+    }
+
+    #[inline]
+    fn next_momentum_2(&mut self) {
+        for i in 0..OUT {
+            debug_assert!(self.momentum_2.get(i).is_some());
+            debug_assert!(self.total_grad.input_weights().get(i).is_some());
+            debug_assert!(self.total_grad.bias().get(i).is_some());
+
+            let mut dot_product: f32 = 0.0;
+
+            unsafe {
+                let bias = *self.total_grad.bias().get_unchecked(i);
+                dot_product += bias * bias;
+
+                self.total_grad
+                    .input_weights()
+                    .get_unchecked(i)
+                    .iter()
+                    .for_each(|val| {dot_product += *val * *val;});
+
+                if let Some(state_weights) = self.total_grad.state_weights() {
+                    debug_assert!(state_weights.get(i).is_some());
+                    state_weights
+                        .get_unchecked(i)
+                        .iter()
+                        .for_each(|val| {dot_product += *val * *val;});
+                }
+
+                *self.momentum_2.get_unchecked_mut(i) =
+                    (BETA_2 * *self.momentum_2.get_unchecked(i))
+                    + (BETA_INV_2 * dot_product);
+            }
+
+        }
+    }
+}
+
 ///// AI for fixed length data.
 /////
 ///// # Example
