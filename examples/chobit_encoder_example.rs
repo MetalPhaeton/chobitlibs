@@ -5,9 +5,9 @@ use chobitlibs::chobit_rand::*;
 
 use std::mem::size_of;
 
-//==================//
-// ChobitAI Example //
-//==================//
+//=======================//
+// ChobitEncoder Example //
+//=======================//
 
 const NUM_CHAR_BITS: usize = size_of::<u32>() * 8;
 const MAX_WORD_SIZE: usize = 10;
@@ -255,11 +255,6 @@ fn main() {
     let rune_flag = letter_to_vec(RUNE_FLAG);
 
     // Machine learning.
-    let mut input_error =
-        MathVec::<IN>::new();  // Not use in this example.
-    let mut state_error =
-        MathVec::<MIDDLE>::new();  // Not use in this example.
-
     for _ in 0..EPOCH {
         for _ in 0..BATCH_SIZE {
 
@@ -271,9 +266,7 @@ fn main() {
             ml_encoder.study(
                 &data,
                 &prev_state,
-                &japanese_flag,
-                &mut input_error,
-                &mut state_error
+                &japanese_flag
             );
 
             // Studies english word.
@@ -284,9 +277,7 @@ fn main() {
             ml_encoder.study(
                 &data,
                 &prev_state,
-                &english_flag,
-                &mut input_error,
-                &mut state_error
+                &english_flag
             );
 
             // Studies rune word.
@@ -297,9 +288,7 @@ fn main() {
             ml_encoder.study(
                 &data,
                 &prev_state,
-                &rune_flag,
-                &mut input_error,
-                &mut state_error
+                &rune_flag
             );
         }
 
