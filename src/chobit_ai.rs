@@ -1363,7 +1363,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         });
     }
 
-    /// Studies weights from MLCache.
+    /// Studies weights from [`MLCache`].
     ///
     /// - `output_error` : Backpropagated output error.
     /// - `next_state_error` : Backpropagated state error if it exists.
@@ -1903,7 +1903,7 @@ impl<
 
 /// Wrapper of [`ChobitAI`] for machine learning.
 ///
-/// See [`ChobitAI`] for detail.
+/// See [`ChobitAI`] for details.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: MLLayer<MIDDLE, IN>,
@@ -2152,6 +2152,10 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
     }
 }
 
+/// Cache for state error of MLLSTM.
+///
+/// - `OUT` : Output of [`MLLSTM`].
+/// - `IN` : Input of [`MLLSTM`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLLSTMStateCache<const OUT: usize, const IN: usize> {
     input: MathVec<IN>,
@@ -2166,6 +2170,9 @@ pub struct MLLSTMStateCache<const OUT: usize, const IN: usize> {
 }
 
 impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
+    /// Creates MLLSTMStateCache.
+    ///
+    /// - _Return_ : MLLSTMStateCache.
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -2180,50 +2187,84 @@ impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
         }
     }
 
+    /// Gets input.
+    ///
+    /// - _Return_ : Input.
     #[inline]
     pub fn input(&self) -> &MathVec<IN> {&self.input}
 
+    /// Gets previous state.
+    ///
+    /// - _Return_ : Previous state.
     #[inline]
     pub fn prev_state(&self) -> &MathVec<OUT> {&self.prev_state}
 
+    /// Gets cache of main layer.
+    ///
+    /// - _Return_ : Cache of main layer.
     #[inline]
     pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
         &self.main_layer_cache
     }
 
+    /// Gets cache of forget gate.
+    ///
+    /// - _Return_ : Cache of forget gate.
     #[inline]
     pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
 
+    /// Gets cache of input gate.
+    ///
+    /// - _Return_ : Cache of input gate.
     #[inline]
     pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
 
+    /// Gets state.
+    ///
+    /// - _Return_ : State.
     #[inline]
     pub fn state(&self) -> &MathVec<OUT> {&self.state}
 }
 
+/// Cache for output error of MLLSTM.
+///
+/// - `OUT` : Output of [`MLLSTM`].
+/// - `IN` : Input of [`MLLSTM`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
     o_gate_cache: MLCache<OUT, IN>,
 
-    tanh_c: MathVec<OUT>,
-    d_tanh_c: MathVec<OUT>,
+    tanh_s: MathVec<OUT>,
+    d_tanh_s: MathVec<OUT>,
 
     output: MathVec<OUT>
 }
 
 impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
+    /// Creates MLLSTMOutputCache.
+    ///
+    /// - _Return_ : MLLSTMOutputCache.
     #[inline]
     pub fn new() -> Self {
         Self {
             o_gate_cache: MLCache::<OUT, IN>::new(),
 
-            tanh_c: MathVec::<OUT>::new(),
-            d_tanh_c: MathVec::<OUT>::new(),
+            tanh_s: MathVec::<OUT>::new(),
+            d_tanh_s: MathVec::<OUT>::new(),
 
             output: MathVec::<OUT>::new()
         }
     }
 
+    /// Calculates output error.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `train_out` : Correct output.
+    /// - `output_error` : Buffer for output error.
     #[inline]
     pub fn calc_output_error(
         &self,
@@ -2234,19 +2275,37 @@ impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
         *output_error -= train_out;
     }
 
+    /// Gets cache of output gate.
+    ///
+    /// - _Return_ : Cache of output gate.
     #[inline]
     pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
 
+    /// Gets output of tanh(state).
+    ///
+    /// - _Return_ : Output of tanh(state).
     #[inline]
-    pub fn tanh_c(&self) -> &MathVec<OUT> {&self.tanh_c}
+    pub fn tanh_s(&self) -> &MathVec<OUT> {&self.tanh_s}
 
+    /// Gets derivative of tanh(state).
+    ///
+    /// - _Return_ : Derivative of tanh(state).
     #[inline]
-    pub fn d_tanh_c(&self) -> &MathVec<OUT> {&self.d_tanh_c}
+    pub fn d_tanh_s(&self) -> &MathVec<OUT> {&self.d_tanh_s}
 
+    /// Gets output.
+    ///
+    /// - _Return_ : Output.
     #[inline]
     pub fn output(&self) -> &MathVec<OUT> {&self.output}
 }
 
+/// LSTM for machine learning.
+///
+/// See [`LSTM`] for details.
+///
+/// - `OUT` : Dimension of output.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLLSTM<const OUT: usize, const IN: usize> {
     main_layer: MLLayer<OUT, IN>,
@@ -2277,6 +2336,10 @@ pub struct MLLSTM<const OUT: usize, const IN: usize> {
 }
 
 impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
+    /// Creates MLLSTM.
+    ///
+    /// - `lstm` : Base LSTM.
+    /// - _Return_ : MLLSTM.
     #[inline]
     pub fn new(lstm: LSTM<OUT, IN>) -> Self {
         let LSTM::<OUT, IN> {main_layer, f_gate, i_gate, o_gate, tanh} = lstm;
@@ -2310,6 +2373,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         }
     }
 
+    /// Drop Base LSTM.
+    ///
+    /// - _Return_ : Base LSTM.
     #[inline]
     pub fn drop(self) -> LSTM<OUT, IN> {
         let Self {main_layer, f_gate, i_gate, o_gate, tanh, ..} = self;
@@ -2325,6 +2391,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         }
     }
 
+    /// Clears internal data for study.
     #[inline]
     pub fn clear_study_data(&mut self) {
         self.main_layer.clear_study_data();
@@ -2333,6 +2400,11 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.clear_study_data();
     }
 
+    /// Generates MLLSTMStateCache for [MLLSTM::study_state] or [MLLSTM::study].
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `cache` : Cache that use on [MLLSTM::study_state] or [MLLSTM::study].
     pub fn ready_state_cache(
         &self,
         input: &MathVec<IN>,
@@ -2363,6 +2435,10 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         });
     }
 
+    /// Generates MLLSTMOutputCache for [MLLSTM::study].
+    ///
+    /// - `last_state_cache` : [`MLLSTMStateCache`] generated before.
+    /// - `cache` : Cache that use on [MLLSTM::study].
     pub fn ready_output_cache(
         &self,
         last_state_cache: &MLLSTMStateCache<OUT, IN>,
@@ -2375,22 +2451,28 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         );
 
         last_state_cache.state.as_array().iter().zip(
-            output_cache.tanh_c.as_mut_array().iter_mut()
+            output_cache.tanh_s.as_mut_array().iter_mut()
         ).zip(
-            output_cache.d_tanh_c.as_mut_array().iter_mut()
+            output_cache.d_tanh_s.as_mut_array().iter_mut()
         ).zip(
             output_cache.output.as_mut_array().iter_mut()
         ).zip(
             output_cache.o_gate_cache.output.as_array().iter()
         ).for_each(
-            |((((s, tanh_c_one), d_tanh_c_one), output_one), o_out)| {
-                *tanh_c_one = self.tanh.activate(*s);
-                *d_tanh_c_one = self.tanh.d_activate(*s);
-                *output_one = *o_out * *tanh_c_one;
+            |((((s, tanh_s_one), d_tanh_s_one), output_one), o_out)| {
+                *tanh_s_one = self.tanh.activate(*s);
+                *d_tanh_s_one = self.tanh.d_activate(*s);
+                *output_one = *o_out * *tanh_s_one;
             }
         );
     }
 
+    /// Studies weights without output error.
+    ///
+    /// - `state_error` : Backpropagated state error.
+    /// - `cache` : Cache generated by [MLLSTM::ready_state_cache].
+    /// - `input_error` : Error for previous output.
+    /// - `prev_state_error` : Error for previous state.
     pub fn study_state(
         &mut self,
         state_error: &MathVec<OUT>,
@@ -2418,7 +2500,6 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
             *p_state_e += *state_e * *f_out;
         });
     }
-
 
     fn study_main_layer_with_state_error(
         &mut self,
@@ -2486,6 +2567,14 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         );
     }
 
+    /// Studies weights with output error and state_error.
+    ///
+    /// - `output_error` : Backpropagated output error.
+    /// - `state_error` : Backpropagated state error.
+    /// - `state_cache` : Cache generated by [MLLSTM::ready_state_cache].
+    /// - `output_cache` : Cache generated by [MLLSTM::ready_output_cache].
+    /// - `input_error` : Error for previous output.
+    /// - `prev_state_error` : Error for previous state.
     pub fn study(
         &mut self,
         output_error: &MathVec<OUT>,
@@ -2535,11 +2624,11 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         ).zip(
             output_cache.o_gate_cache.output.as_array().iter()
         ).zip(
-            output_cache.d_tanh_c.as_array().iter()
+            output_cache.d_tanh_s.as_array().iter()
         ).zip(
             state_cache.f_gate_cache.output.as_array().iter()
-        ).for_each(|((((p_state_e, out_e), o_out), d_tanh_c_one), f_out)| {
-            *p_state_e += *out_e * *o_out * *d_tanh_c_one * *f_out;
+        ).for_each(|((((p_state_e, out_e), o_out), d_tanh_s_one), f_out)| {
+            *p_state_e += *out_e * *o_out * *d_tanh_s_one * *f_out;
         });
     }
 
@@ -2555,14 +2644,14 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         ).zip(
             output_cache.o_gate_cache.output.as_array().iter()
         ).zip(
-            output_cache.d_tanh_c.as_array().iter()
+            output_cache.d_tanh_s.as_array().iter()
         ).zip(
             state_cache.i_gate_cache.output.as_array().iter()
         ).zip(
             state_error.as_array().iter()
         ).for_each(
-            |(((((tmp_e, out_e), o_out), d_tanh_c_one), i_out), state_e)| {
-                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *i_out;
+            |(((((tmp_e, out_e), o_out), d_tanh_s_one), i_out), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_s_one * *i_out;
                 *tmp_e += *state_e * *i_out;
             }
         );
@@ -2588,14 +2677,14 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         ).zip(
             output_cache.o_gate_cache.output.as_array().iter()
         ).zip(
-            output_cache.d_tanh_c.as_array().iter()
+            output_cache.d_tanh_s.as_array().iter()
         ).zip(
             state_cache.prev_state.as_array().iter()
         ).zip(
             state_error.as_array().iter()
         ).for_each(
-            |(((((tmp_e, out_e), o_out), d_tanh_c_one), p_state), state_e)| {
-                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *p_state;
+            |(((((tmp_e, out_e), o_out), d_tanh_s_one), p_state), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_s_one * *p_state;
                 *tmp_e += *state_e * *p_state;
             }
         );
@@ -2621,14 +2710,14 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         ).zip(
             output_cache.o_gate_cache.output.as_array().iter()
         ).zip(
-            output_cache.d_tanh_c.as_array().iter()
+            output_cache.d_tanh_s.as_array().iter()
         ).zip(
             state_cache.main_layer_cache.output.as_array().iter()
         ).zip(
             state_error.as_array().iter()
         ).for_each(
-            |(((((tmp_e, out_e), o_out), d_tanh_c_one), main_out), state_e)| {
-                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *main_out;
+            |(((((tmp_e, out_e), o_out), d_tanh_s_one), main_out), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_s_one * *main_out;
                 *tmp_e += *state_e * *main_out;
             }
         );
@@ -2650,9 +2739,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.tmp_error.as_mut_array().iter_mut().zip(
             output_error.as_array().iter()
         ).zip(
-            cache.tanh_c.as_array().iter()
-        ).for_each(|((tmp_e, out_e),  tanh_c_one)| {
-            *tmp_e = *out_e * *tanh_c_one;
+            cache.tanh_s.as_array().iter()
+        ).for_each(|((tmp_e, out_e),  tanh_s_one)| {
+            *tmp_e = *out_e * *tanh_s_one;
         });
 
         self.o_gate.study(
@@ -2664,6 +2753,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         );
     }
 
+    /// Update weights.
+    ///
+    /// - `rate` : Learning rate.
     #[inline]
     pub fn update(&mut self, rate: f32) {
         self.main_layer.update(rate);
