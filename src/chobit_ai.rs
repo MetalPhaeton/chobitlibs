@@ -2008,671 +2008,671 @@ impl<
     }
 }
 
-///// [Peephole LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_LSTM)
-/////
-///// | Formula |
-///// |:-:|
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>tanh</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>f</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mo stretchy="false">+</mo> <msub> <mi>i</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>o</mi> <mi>i</mi> </msub> </mrow> <mi>tanh</mi> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </semantics> </math> |
-///// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Kronecker&apos;s delta</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">≝</mo> <mtext>Hyperbolic tangent.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">→</mo> <mtext>soft sign</mtext> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">≝</mo> <mtext>Sigmoid function.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">→</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mtext>soft sign</mtext> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mn>1</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">÷</mo> <mn>2</mn> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">≝</mo> <mtext>Previous state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output</mtext> </mrow> <mi>.</mi> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
-/////
-///// - `OUT` : Dimension of output.
-///// - `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct LSTM<const OUT: usize, const IN: usize> {
-//    main_layer: Layer<OUT, IN>,
-//
-//    f_gate: Layer<OUT, IN>,
-//    i_gate: Layer<OUT, IN>,
-//    o_gate: Layer<OUT, IN>,
-//
-//    tanh: Activation
-//}
-//
-//impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
-//    /// Creates LSTM.
-//    ///
-//    /// - _Return_ : LSTM.
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            main_layer: Layer::<OUT, IN>::new(Activation::SoftSign),
-//
-//            f_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
-//            i_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
-//            o_gate: Layer::<OUT, IN>::new(Activation::Sigmoid),
-//
-//            tanh: Activation::SoftSign
-//        }
-//    }
-//
-//    /// Gets immutable main layer.
-//    ///
-//    /// - _Return_ : Main layer.
-//    #[inline]
-//    pub fn main_layer(&self) -> &Layer<OUT, IN> {&self.main_layer}
-//
-//    /// Gets mutable main layer.
-//    ///
-//    /// - _Return_ : Main layer.
-//    #[inline]
-//    pub fn main_layer_mut(&mut self) -> &mut Layer<OUT, IN> {
-//        &mut self.main_layer
-//    }
-//
-//    /// Gets immutable forget gate.
-//    ///
-//    /// - _Return_ : Forget gate.
-//    #[inline]
-//    pub fn f_gate(&self) -> &Layer<OUT, IN> {&self.f_gate}
-//
-//    /// Gets mutable forget gate.
-//    ///
-//    /// - _Return_ : Forget gate.
-//    #[inline]
-//    pub fn f_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.f_gate}
-//
-//    /// Gets immutable input gate.
-//    ///
-//    /// - _Return_ : Input gate.
-//    #[inline]
-//    pub fn i_gate(&self) -> &Layer<OUT, IN> {&self.i_gate}
-//
-//    /// Gets mutable input gate.
-//    ///
-//    /// - _Return_ : Input gate.
-//    #[inline]
-//    pub fn i_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.i_gate}
-//
-//    /// Gets immutable output gate.
-//    ///
-//    /// - _Return_ : Output gate.
-//    #[inline]
-//    pub fn o_gate(&self) -> &Layer<OUT, IN> {&self.o_gate}
-//
-//    /// Gets mutable output gate.
-//    ///
-//    /// - _Return_ : Output gate.
-//    #[inline]
-//    pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
-//
-//    /// Calculates only state.
-//    ///
-//    /// - `input` : Input.
-//    /// - `prev_state` : Previous state.
-//    /// - `next_state` : Buffer for next state.
-//    /// - `tmpbuf` : Temporary buffer for this function to work.
-//    pub fn calc_state(
-//        &self,
-//        input: &MathVec<IN>,
-//        prev_state: &MathVec<OUT>,
-//        next_state: &mut MathVec<OUT>,
-//        tmpbuf: &mut MathVec<OUT>
-//    ) {
-//        // state = (f_gate * prev_state) + (i_gate * main_layer);
-//        self.main_layer.calc(input, Some(prev_state), next_state);
-//        self.i_gate.calc(input, Some(prev_state), tmpbuf);
-//        next_state.pointwise_mul_assign(tmpbuf);
-//
-//        self.f_gate.calc(input, Some(prev_state), tmpbuf);
-//        tmpbuf.pointwise_mul_assign(prev_state);
-//
-//        *next_state += tmpbuf;
-//    }
-//
-//    /// Calculates state and output.
-//    ///
-//    /// - `input` : Input.
-//    /// - `prev_state` : Previous state.
-//    /// - `output` : Buffer for output.
-//    /// - `next_state` : Buffer for next state.
-//    /// - `tmpbuf` : Temporary buffer for this function to work.
-//    pub fn calc(
-//        &self,
-//        input: &MathVec<IN>,
-//        prev_state: &MathVec<OUT>,
-//        output: &mut MathVec<OUT>,
-//        next_state: &mut MathVec<OUT>,
-//        tmpbuf: &mut MathVec<OUT>
-//    ) {
-//        self.calc_state(input, prev_state, next_state, tmpbuf);
-//
-//        // output = o_gate * tanh(state)
-//        self.o_gate.calc(input, Some(prev_state), output);
-//
-//        output.as_mut_array().iter_mut().zip(
-//            next_state.as_array().iter()
-//        ).for_each(|(output_one, next_s)| {
-//            *output_one *= self.tanh.activate(*next_s);
-//        });
-//    }
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLLSTMStateCache<const OUT: usize, const IN: usize> {
-//    input: MathVec<IN>,
-//    prev_state: MathVec<OUT>,
-//
-//    main_layer_cache: MLCache<OUT, IN>,
-//
-//    f_gate_cache: MLCache<OUT, IN>,
-//    i_gate_cache: MLCache<OUT, IN>,
-//
-//    state: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            input: MathVec::<IN>::new(),
-//            prev_state: MathVec::<OUT>::new(),
-//
-//            main_layer_cache: MLCache::<OUT, IN>::new(),
-//            f_gate_cache: MLCache::<OUT, IN>::new(),
-//            i_gate_cache: MLCache::<OUT, IN>::new(),
-//
-//            state: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn input(&self) -> &MathVec<IN> {&self.input}
-//
-//    #[inline]
-//    pub fn prev_state(&self) -> &MathVec<OUT> {&self.prev_state}
-//
-//    #[inline]
-//    pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
-//        &self.main_layer_cache
-//    }
-//
-//    #[inline]
-//    pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
-//
-//    #[inline]
-//    pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
-//
-//    #[inline]
-//    pub fn state(&self) -> &MathVec<OUT> {&self.state}
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
-//    o_gate_cache: MLCache<OUT, IN>,
-//
-//    tanh_c: MathVec<OUT>,
-//    d_tanh_c: MathVec<OUT>,
-//
-//    output: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
-//    #[inline]
-//    pub fn new() -> Self {
-//        Self {
-//            o_gate_cache: MLCache::<OUT, IN>::new(),
-//
-//            tanh_c: MathVec::<OUT>::new(),
-//            d_tanh_c: MathVec::<OUT>::new(),
-//
-//            output: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn calc_output_error(
-//        &self,
-//        train_out: &MathVec<OUT>,
-//        output_error: &mut MathVec<OUT>
-//    ) {
-//        output_error.copy_from(&self.output);
-//        *output_error -= train_out;
-//    }
-//
-//    #[inline]
-//    pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
-//
-//    #[inline]
-//    pub fn tanh_c(&self) -> &MathVec<OUT> {&self.tanh_c}
-//
-//    #[inline]
-//    pub fn d_tanh_c(&self) -> &MathVec<OUT> {&self.d_tanh_c}
-//
-//    #[inline]
-//    pub fn output(&self) -> &MathVec<OUT> {&self.output}
-//}
-//
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct MLLSTM<const OUT: usize, const IN: usize> {
-//    main_layer: MLLayer<OUT, IN>,
-//    f_gate: MLLayer<OUT, IN>,
-//    i_gate: MLLayer<OUT, IN>,
-//    o_gate: MLLayer<OUT, IN>,
-//    tanh: Activation,
-//
-//    input_error_main_by_output_error: MathVec<IN>,
-//    input_error_main_by_state_error: MathVec<IN>,
-//    input_error_f_by_output_error: MathVec<IN>,
-//    input_error_f_by_state_error: MathVec<IN>,
-//    input_error_i_by_output_error: MathVec<IN>,
-//    input_error_i_by_state_error: MathVec<IN>,
-//    input_error_o_by_output_error: MathVec<IN>,
-//    input_error_o_by_state_error: MathVec<IN>,
-//
-//    prev_state_error_main_by_output_error: MathVec<OUT>,
-//    prev_state_error_main_by_state_error: MathVec<OUT>,
-//    prev_state_error_f_by_output_error: MathVec<OUT>,
-//    prev_state_error_f_by_state_error: MathVec<OUT>,
-//    prev_state_error_i_by_output_error: MathVec<OUT>,
-//    prev_state_error_i_by_state_error: MathVec<OUT>,
-//    prev_state_error_o_by_output_error: MathVec<OUT>,
-//    prev_state_error_o_by_state_error: MathVec<OUT>,
-//
-//    tmp_error: MathVec<OUT>
-//}
-//
-//impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
-//    #[inline]
-//    pub fn new(lstm: LSTM<OUT, IN>) -> Self {
-//        let LSTM::<OUT, IN> {main_layer, f_gate, i_gate, o_gate, tanh} = lstm;
-//
-//        Self {
-//            main_layer: MLLayer::<OUT, IN>::new(main_layer),
-//            f_gate: MLLayer::<OUT, IN>::new(f_gate),
-//            i_gate: MLLayer::<OUT, IN>::new(i_gate),
-//            o_gate: MLLayer::<OUT, IN>::new(o_gate),
-//            tanh: tanh,
-//
-//            input_error_main_by_output_error: MathVec::<IN>::new(),
-//            input_error_main_by_state_error: MathVec::<IN>::new(),
-//            input_error_f_by_output_error: MathVec::<IN>::new(),
-//            input_error_f_by_state_error: MathVec::<IN>::new(),
-//            input_error_i_by_output_error: MathVec::<IN>::new(),
-//            input_error_i_by_state_error: MathVec::<IN>::new(),
-//            input_error_o_by_output_error: MathVec::<IN>::new(),
-//            input_error_o_by_state_error: MathVec::<IN>::new(),
-//
-//            prev_state_error_main_by_output_error: MathVec::<OUT>::new(),
-//            prev_state_error_main_by_state_error: MathVec::<OUT>::new(),
-//            prev_state_error_f_by_output_error: MathVec::<OUT>::new(),
-//            prev_state_error_f_by_state_error: MathVec::<OUT>::new(),
-//            prev_state_error_i_by_output_error: MathVec::<OUT>::new(),
-//            prev_state_error_i_by_state_error: MathVec::<OUT>::new(),
-//            prev_state_error_o_by_output_error: MathVec::<OUT>::new(),
-//            prev_state_error_o_by_state_error: MathVec::<OUT>::new(),
-//
-//            tmp_error: MathVec::<OUT>::new()
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn drop(self) -> LSTM<OUT, IN> {
-//        let Self {main_layer, f_gate, i_gate, o_gate, tanh, ..} = self;
-//
-//        LSTM::<OUT, IN> {
-//            main_layer: main_layer.drop(),
-//
-//            f_gate: f_gate.drop(),
-//            i_gate: i_gate.drop(),
-//            o_gate: o_gate.drop(),
-//
-//            tanh: tanh
-//        }
-//    }
-//
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.main_layer.clear_study_data();
-//        self.f_gate.clear_study_data();
-//        self.i_gate.clear_study_data();
-//        self.o_gate.clear_study_data();
-//    }
-//
-//    pub fn ready_state_cache(
-//        &self,
-//        input: &MathVec<IN>,
-//        prev_state: &MathVec<OUT>,
-//        cache: &mut MLLSTMStateCache<OUT, IN>
-//    ) {
-//        cache.input.copy_from(input);
-//        cache.prev_state.copy_from(prev_state);
-//
-//        self.main_layer.ready(
-//            input,
-//            Some(prev_state),
-//            &mut cache.main_layer_cache
-//        );
-//        self.f_gate.ready(input, Some(prev_state), &mut cache.f_gate_cache);
-//        self.i_gate.ready(input, Some(prev_state), &mut cache.i_gate_cache);
-//
-//        cache.state.as_mut_array().iter_mut().zip(
-//            prev_state.as_array().iter()
-//        ).zip(
-//            cache.f_gate_cache.output.as_array().iter()
-//        ).zip(
-//            cache.i_gate_cache.output.as_array().iter()
-//        ).zip(
-//            cache.main_layer_cache.output.as_array().iter()
-//        ).for_each(|((((state_one, p_state), f_out), i_out), main_out)| {
-//            *state_one = (*p_state * *f_out) + (*i_out * *main_out);
-//        });
-//    }
-//
-//    pub fn ready_output_cache(
-//        &self,
-//        last_state_cache: &MLLSTMStateCache<OUT, IN>,
-//        output_cache: &mut MLLSTMOutputCache<OUT, IN>
-//    ) {
-//        self.o_gate.ready(
-//            &last_state_cache.input,
-//            Some(&last_state_cache.prev_state),
-//            &mut output_cache.o_gate_cache
-//        );
-//
-//        last_state_cache.state.as_array().iter().zip(
-//            output_cache.tanh_c.as_mut_array().iter_mut()
-//        ).zip(
-//            output_cache.d_tanh_c.as_mut_array().iter_mut()
-//        ).zip(
-//            output_cache.output.as_mut_array().iter_mut()
-//        ).zip(
-//            output_cache.o_gate_cache.output.as_array().iter()
-//        ).for_each(
-//            |((((s, tanh_c_one), d_tanh_c_one), output_one), o_out)| {
-//                *tanh_c_one = self.tanh.activate(*s);
-//                *d_tanh_c_one = self.tanh.d_activate(*s);
-//                *output_one = *o_out * *tanh_c_one;
-//            }
-//        );
-//    }
-//
-//    pub fn study_state(
-//        &mut self,
-//        state_error: &MathVec<OUT>,
-//        cache: &MLLSTMStateCache<OUT, IN>,
-//        input_error: &mut MathVec<IN>,
-//        prev_state_error: &mut MathVec<OUT>
-//    ) {
-//        self.study_main_layer_with_state_error(state_error, cache);
-//        self.study_f_gate_with_state_error(state_error, cache);
-//        self.study_i_gate_with_state_error(state_error, cache);
-//
-//        input_error.copy_from(&self.input_error_main_by_state_error);
-//        *input_error += &self.input_error_f_by_state_error;
-//        *input_error += &self.input_error_i_by_state_error;
-//
-//        prev_state_error.copy_from(&self.prev_state_error_main_by_state_error);
-//        *prev_state_error += &self.prev_state_error_f_by_state_error;
-//        *prev_state_error += &self.prev_state_error_i_by_state_error;
-//
-//        prev_state_error.as_mut_array().iter_mut().zip(
-//            state_error.as_array().iter()
-//        ).zip(
-//            cache.f_gate_cache.output.as_array().iter()
-//        ).for_each(|((p_state_e, state_e), f_out)| {
-//            *p_state_e += *state_e * *f_out;
-//        });
-//    }
-//
-//
-//    fn study_main_layer_with_state_error(
-//        &mut self,
-//        state_error: &MathVec<OUT>,
-//        cache: &MLLSTMStateCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            state_error.as_array().iter()
-//        ).zip(
-//            cache.i_gate_cache.output.as_array().iter()
-//        ).for_each(|((tmp_e, state_e), i_out)| {
-//            *tmp_e = *state_e * *i_out;
-//        });
-//
-//        self.main_layer.study(
-//            &self.tmp_error,
-//            None,
-//            &cache.main_layer_cache,
-//            &mut self.input_error_main_by_state_error,
-//            Some(&mut self.prev_state_error_main_by_state_error)
-//        );
-//    }
-//
-//    fn study_f_gate_with_state_error(
-//        &mut self,
-//        state_error: &MathVec<OUT>,
-//        cache: &MLLSTMStateCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            state_error.as_array().iter()
-//        ).zip(
-//            cache.prev_state.as_array().iter()
-//        ).for_each(|((tmp_e, state_e), p_state)| {
-//            *tmp_e = *state_e * *p_state;
-//        });
-//
-//        self.f_gate.study(
-//            &self.tmp_error,
-//            None,
-//            &cache.f_gate_cache,
-//            &mut self.input_error_f_by_state_error,
-//            Some(&mut self.prev_state_error_f_by_state_error)
-//        );
-//    }
-//
-//    fn study_i_gate_with_state_error(
-//        &mut self,
-//        state_error: &MathVec<OUT>,
-//        cache: &MLLSTMStateCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            state_error.as_array().iter()
-//        ).zip(
-//            cache.main_layer_cache.output.as_array().iter()
-//        ).for_each(|((tmp_e, state_e), main_out)| {
-//            *tmp_e = *state_e * *main_out;
-//        });
-//
-//        self.i_gate.study(
-//            &self.tmp_error,
-//            None,
-//            &cache.i_gate_cache,
-//            &mut self.input_error_i_by_state_error,
-//            Some(&mut self.prev_state_error_i_by_state_error)
-//        );
-//    }
-//
-//    pub fn study(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        state_error: &MathVec<OUT>,
-//        state_cache: &MLLSTMStateCache<OUT, IN>,
-//        output_cache: &MLLSTMOutputCache<OUT, IN>,
-//        input_error: &mut MathVec<IN>,
-//        prev_state_error: &mut MathVec<OUT>
-//    ) {
-//        self.study_main_layer(
-//            output_error,
-//            state_error,
-//            state_cache,
-//            output_cache,
-//        );
-//        self.study_f_gate(
-//            output_error,
-//            state_error,
-//            state_cache,
-//            output_cache,
-//        );
-//        self.study_i_gate(
-//            output_error,
-//            state_error,
-//            state_cache,
-//            output_cache,
-//        );
-//        self.study_o_gate(
-//            output_error,
-//            output_cache,
-//        );
-//
-//        input_error.copy_from(&self.input_error_main_by_output_error);
-//        *input_error += &self.input_error_f_by_output_error;
-//        *input_error += &self.input_error_i_by_output_error;
-//        *input_error += &self.input_error_o_by_output_error;
-//
-//        prev_state_error.copy_from(
-//            &self.prev_state_error_main_by_output_error
-//        );
-//        *prev_state_error += &self.prev_state_error_f_by_output_error;
-//        *prev_state_error += &self.prev_state_error_i_by_output_error;
-//        *prev_state_error += &self.prev_state_error_o_by_output_error;
-//
-//        prev_state_error.as_mut_array().iter_mut().zip(
-//            output_error.as_array().iter()
-//        ).zip(
-//            output_cache.o_gate_cache.output.as_array().iter()
-//        ).zip(
-//            output_cache.d_tanh_c.as_array().iter()
-//        ).zip(
-//            state_cache.f_gate_cache.output.as_array().iter()
-//        ).for_each(|((((p_state_e, out_e), o_out), d_tanh_c_one), f_out)| {
-//            *p_state_e += *out_e * *o_out * *d_tanh_c_one * *f_out;
-//        });
-//    }
-//
-//    fn study_main_layer(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        state_error: &MathVec<OUT>,
-//        state_cache: &MLLSTMStateCache<OUT, IN>,
-//        output_cache: &MLLSTMOutputCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            output_error.as_array().iter()
-//        ).zip(
-//            output_cache.o_gate_cache.output.as_array().iter()
-//        ).zip(
-//            output_cache.d_tanh_c.as_array().iter()
-//        ).zip(
-//            state_cache.i_gate_cache.output.as_array().iter()
-//        ).zip(
-//            state_error.as_array().iter()
-//        ).for_each(
-//            |(((((tmp_e, out_e), o_out), d_tanh_c_one), i_out), state_e)| {
-//                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *i_out;
-//                *tmp_e += *state_e * *i_out;
-//            }
-//        );
-//
-//        self.main_layer.study(
-//            &self.tmp_error,
-//            None,
-//            &state_cache.main_layer_cache,
-//            &mut self.input_error_main_by_output_error,
-//            Some(&mut self.prev_state_error_main_by_output_error)
-//        );
-//    }
-//
-//    fn study_f_gate(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        state_error: &MathVec<OUT>,
-//        state_cache: &MLLSTMStateCache<OUT, IN>,
-//        output_cache: &MLLSTMOutputCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            output_error.as_array().iter()
-//        ).zip(
-//            output_cache.o_gate_cache.output.as_array().iter()
-//        ).zip(
-//            output_cache.d_tanh_c.as_array().iter()
-//        ).zip(
-//            state_cache.prev_state.as_array().iter()
-//        ).zip(
-//            state_error.as_array().iter()
-//        ).for_each(
-//            |(((((tmp_e, out_e), o_out), d_tanh_c_one), p_state), state_e)| {
-//                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *p_state;
-//                *tmp_e += *state_e * *p_state;
-//            }
-//        );
-//
-//        self.f_gate.study(
-//            &self.tmp_error,
-//            None,
-//            &state_cache.f_gate_cache,
-//            &mut self.input_error_f_by_output_error,
-//            Some(&mut self.prev_state_error_f_by_output_error)
-//        );
-//    }
-//
-//    fn study_i_gate(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        state_error: &MathVec<OUT>,
-//        state_cache: &MLLSTMStateCache<OUT, IN>,
-//        output_cache: &MLLSTMOutputCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            output_error.as_array().iter()
-//        ).zip(
-//            output_cache.o_gate_cache.output.as_array().iter()
-//        ).zip(
-//            output_cache.d_tanh_c.as_array().iter()
-//        ).zip(
-//            state_cache.main_layer_cache.output.as_array().iter()
-//        ).zip(
-//            state_error.as_array().iter()
-//        ).for_each(
-//            |(((((tmp_e, out_e), o_out), d_tanh_c_one), main_out), state_e)| {
-//                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *main_out;
-//                *tmp_e += *state_e * *main_out;
-//            }
-//        );
-//
-//        self.i_gate.study(
-//            &self.tmp_error,
-//            None,
-//            &state_cache.i_gate_cache,
-//            &mut self.input_error_i_by_output_error,
-//            Some(&mut self.prev_state_error_i_by_output_error)
-//        );
-//    }
-//
-//    fn study_o_gate(
-//        &mut self,
-//        output_error: &MathVec<OUT>,
-//        cache: &MLLSTMOutputCache<OUT, IN>
-//    ) {
-//        self.tmp_error.as_mut_array().iter_mut().zip(
-//            output_error.as_array().iter()
-//        ).zip(
-//            cache.tanh_c.as_array().iter()
-//        ).for_each(|((tmp_e, out_e),  tanh_c_one)| {
-//            *tmp_e = *out_e * *tanh_c_one;
-//        });
-//
-//        self.o_gate.study(
-//            &self.tmp_error,
-//            None,
-//            &cache.o_gate_cache,
-//            &mut self.input_error_o_by_output_error,
-//            Some(&mut self.prev_state_error_o_by_output_error)
-//        );
-//    }
-//
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.main_layer.update(rate);
-//        self.f_gate.update(rate);
-//        self.i_gate.update(rate);
-//        self.o_gate.update(rate);
-//    }
-//}
-//
+/// [Peephole LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_LSTM)
+///
+/// | Formula |
+/// |:-:|
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>tanh</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>f</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mo stretchy="false">+</mo> <msub> <mi>i</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>o</mi> <mi>i</mi> </msub> </mrow> <mi>tanh</mi> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Kronecker&apos;s delta</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">≝</mo> <mtext>Hyperbolic tangent.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">→</mo> <mtext>soft sign</mtext> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">≝</mo> <mtext>Sigmoid function.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">→</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mtext>soft sign</mtext> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mn>1</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">÷</mo> <mn>2</mn> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">≝</mo> <mtext>Previous state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output</mtext> </mrow> <mi>.</mi> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+///
+/// - `OUT` : Dimension of output.
+/// - `IN` : Dimension of input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LSTM<const OUT: usize, const IN: usize> {
+    main_layer: Layer<OUT, IN>,
+
+    f_gate: Layer<OUT, IN>,
+    i_gate: Layer<OUT, IN>,
+    o_gate: Layer<OUT, IN>,
+
+    tanh: Activation
+}
+
+impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
+    /// Creates LSTM.
+    ///
+    /// - _Return_ : LSTM.
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            main_layer: Layer::<OUT, IN>::new(Activation::SoftSign, true),
+
+            f_gate: Layer::<OUT, IN>::new(Activation::Sigmoid, true),
+            i_gate: Layer::<OUT, IN>::new(Activation::Sigmoid, true),
+            o_gate: Layer::<OUT, IN>::new(Activation::Sigmoid, true),
+
+            tanh: Activation::SoftSign
+        }
+    }
+
+    /// Gets immutable main layer.
+    ///
+    /// - _Return_ : Main layer.
+    #[inline]
+    pub fn main_layer(&self) -> &Layer<OUT, IN> {&self.main_layer}
+
+    /// Gets mutable main layer.
+    ///
+    /// - _Return_ : Main layer.
+    #[inline]
+    pub fn main_layer_mut(&mut self) -> &mut Layer<OUT, IN> {
+        &mut self.main_layer
+    }
+
+    /// Gets immutable forget gate.
+    ///
+    /// - _Return_ : Forget gate.
+    #[inline]
+    pub fn f_gate(&self) -> &Layer<OUT, IN> {&self.f_gate}
+
+    /// Gets mutable forget gate.
+    ///
+    /// - _Return_ : Forget gate.
+    #[inline]
+    pub fn f_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.f_gate}
+
+    /// Gets immutable input gate.
+    ///
+    /// - _Return_ : Input gate.
+    #[inline]
+    pub fn i_gate(&self) -> &Layer<OUT, IN> {&self.i_gate}
+
+    /// Gets mutable input gate.
+    ///
+    /// - _Return_ : Input gate.
+    #[inline]
+    pub fn i_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.i_gate}
+
+    /// Gets immutable output gate.
+    ///
+    /// - _Return_ : Output gate.
+    #[inline]
+    pub fn o_gate(&self) -> &Layer<OUT, IN> {&self.o_gate}
+
+    /// Gets mutable output gate.
+    ///
+    /// - _Return_ : Output gate.
+    #[inline]
+    pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
+
+    /// Calculates only state.
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `next_state` : Buffer for next state.
+    /// - `tmpbuf` : Temporary buffer for this function to work.
+    pub fn calc_state(
+        &self,
+        input: &MathVec<IN>,
+        prev_state: &MathVec<OUT>,
+        next_state: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<OUT>
+    ) {
+        // state = (f_gate * prev_state) + (i_gate * main_layer);
+        self.main_layer.calc(input, Some(prev_state), next_state);
+        self.i_gate.calc(input, Some(prev_state), tmpbuf);
+        next_state.pointwise_mul_assign(tmpbuf);
+
+        self.f_gate.calc(input, Some(prev_state), tmpbuf);
+        tmpbuf.pointwise_mul_assign(prev_state);
+
+        *next_state += tmpbuf;
+    }
+
+    /// Calculates state and output.
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `output` : Buffer for output.
+    /// - `next_state` : Buffer for next state.
+    /// - `tmpbuf` : Temporary buffer for this function to work.
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        prev_state: &MathVec<OUT>,
+        output: &mut MathVec<OUT>,
+        next_state: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<OUT>
+    ) {
+        self.calc_state(input, prev_state, next_state, tmpbuf);
+
+        // output = o_gate * tanh(state)
+        self.o_gate.calc(input, Some(prev_state), output);
+
+        output.as_mut_array().iter_mut().zip(
+            next_state.as_array().iter()
+        ).for_each(|(output_one, next_s)| {
+            *output_one *= self.tanh.activate(*next_s);
+        });
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLLSTMStateCache<const OUT: usize, const IN: usize> {
+    input: MathVec<IN>,
+    prev_state: MathVec<OUT>,
+
+    main_layer_cache: MLCache<OUT, IN>,
+
+    f_gate_cache: MLCache<OUT, IN>,
+    i_gate_cache: MLCache<OUT, IN>,
+
+    state: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            input: MathVec::<IN>::new(),
+            prev_state: MathVec::<OUT>::new(),
+
+            main_layer_cache: MLCache::<OUT, IN>::new(),
+            f_gate_cache: MLCache::<OUT, IN>::new(),
+            i_gate_cache: MLCache::<OUT, IN>::new(),
+
+            state: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn input(&self) -> &MathVec<IN> {&self.input}
+
+    #[inline]
+    pub fn prev_state(&self) -> &MathVec<OUT> {&self.prev_state}
+
+    #[inline]
+    pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
+        &self.main_layer_cache
+    }
+
+    #[inline]
+    pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
+
+    #[inline]
+    pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
+
+    #[inline]
+    pub fn state(&self) -> &MathVec<OUT> {&self.state}
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
+    o_gate_cache: MLCache<OUT, IN>,
+
+    tanh_c: MathVec<OUT>,
+    d_tanh_c: MathVec<OUT>,
+
+    output: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            o_gate_cache: MLCache::<OUT, IN>::new(),
+
+            tanh_c: MathVec::<OUT>::new(),
+            d_tanh_c: MathVec::<OUT>::new(),
+
+            output: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn calc_output_error(
+        &self,
+        train_out: &MathVec<OUT>,
+        output_error: &mut MathVec<OUT>
+    ) {
+        output_error.copy_from(&self.output);
+        *output_error -= train_out;
+    }
+
+    #[inline]
+    pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
+
+    #[inline]
+    pub fn tanh_c(&self) -> &MathVec<OUT> {&self.tanh_c}
+
+    #[inline]
+    pub fn d_tanh_c(&self) -> &MathVec<OUT> {&self.d_tanh_c}
+
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {&self.output}
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLLSTM<const OUT: usize, const IN: usize> {
+    main_layer: MLLayer<OUT, IN>,
+    f_gate: MLLayer<OUT, IN>,
+    i_gate: MLLayer<OUT, IN>,
+    o_gate: MLLayer<OUT, IN>,
+    tanh: Activation,
+
+    input_error_main_by_output_error: MathVec<IN>,
+    input_error_main_by_state_error: MathVec<IN>,
+    input_error_f_by_output_error: MathVec<IN>,
+    input_error_f_by_state_error: MathVec<IN>,
+    input_error_i_by_output_error: MathVec<IN>,
+    input_error_i_by_state_error: MathVec<IN>,
+    input_error_o_by_output_error: MathVec<IN>,
+    input_error_o_by_state_error: MathVec<IN>,
+
+    prev_state_error_main_by_output_error: MathVec<OUT>,
+    prev_state_error_main_by_state_error: MathVec<OUT>,
+    prev_state_error_f_by_output_error: MathVec<OUT>,
+    prev_state_error_f_by_state_error: MathVec<OUT>,
+    prev_state_error_i_by_output_error: MathVec<OUT>,
+    prev_state_error_i_by_state_error: MathVec<OUT>,
+    prev_state_error_o_by_output_error: MathVec<OUT>,
+    prev_state_error_o_by_state_error: MathVec<OUT>,
+
+    tmp_error: MathVec<OUT>
+}
+
+impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
+    #[inline]
+    pub fn new(lstm: LSTM<OUT, IN>) -> Self {
+        let LSTM::<OUT, IN> {main_layer, f_gate, i_gate, o_gate, tanh} = lstm;
+
+        Self {
+            main_layer: MLLayer::<OUT, IN>::new(main_layer),
+            f_gate: MLLayer::<OUT, IN>::new(f_gate),
+            i_gate: MLLayer::<OUT, IN>::new(i_gate),
+            o_gate: MLLayer::<OUT, IN>::new(o_gate),
+            tanh: tanh,
+
+            input_error_main_by_output_error: MathVec::<IN>::new(),
+            input_error_main_by_state_error: MathVec::<IN>::new(),
+            input_error_f_by_output_error: MathVec::<IN>::new(),
+            input_error_f_by_state_error: MathVec::<IN>::new(),
+            input_error_i_by_output_error: MathVec::<IN>::new(),
+            input_error_i_by_state_error: MathVec::<IN>::new(),
+            input_error_o_by_output_error: MathVec::<IN>::new(),
+            input_error_o_by_state_error: MathVec::<IN>::new(),
+
+            prev_state_error_main_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_main_by_state_error: MathVec::<OUT>::new(),
+            prev_state_error_f_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_f_by_state_error: MathVec::<OUT>::new(),
+            prev_state_error_i_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_i_by_state_error: MathVec::<OUT>::new(),
+            prev_state_error_o_by_output_error: MathVec::<OUT>::new(),
+            prev_state_error_o_by_state_error: MathVec::<OUT>::new(),
+
+            tmp_error: MathVec::<OUT>::new()
+        }
+    }
+
+    #[inline]
+    pub fn drop(self) -> LSTM<OUT, IN> {
+        let Self {main_layer, f_gate, i_gate, o_gate, tanh, ..} = self;
+
+        LSTM::<OUT, IN> {
+            main_layer: main_layer.drop(),
+
+            f_gate: f_gate.drop(),
+            i_gate: i_gate.drop(),
+            o_gate: o_gate.drop(),
+
+            tanh: tanh
+        }
+    }
+
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.main_layer.clear_study_data();
+        self.f_gate.clear_study_data();
+        self.i_gate.clear_study_data();
+        self.o_gate.clear_study_data();
+    }
+
+    pub fn ready_state_cache(
+        &self,
+        input: &MathVec<IN>,
+        prev_state: &MathVec<OUT>,
+        cache: &mut MLLSTMStateCache<OUT, IN>
+    ) {
+        cache.input.copy_from(input);
+        cache.prev_state.copy_from(prev_state);
+
+        self.main_layer.ready(
+            input,
+            Some(prev_state),
+            &mut cache.main_layer_cache
+        );
+        self.f_gate.ready(input, Some(prev_state), &mut cache.f_gate_cache);
+        self.i_gate.ready(input, Some(prev_state), &mut cache.i_gate_cache);
+
+        cache.state.as_mut_array().iter_mut().zip(
+            prev_state.as_array().iter()
+        ).zip(
+            cache.f_gate_cache.output.as_array().iter()
+        ).zip(
+            cache.i_gate_cache.output.as_array().iter()
+        ).zip(
+            cache.main_layer_cache.output.as_array().iter()
+        ).for_each(|((((state_one, p_state), f_out), i_out), main_out)| {
+            *state_one = (*p_state * *f_out) + (*i_out * *main_out);
+        });
+    }
+
+    pub fn ready_output_cache(
+        &self,
+        last_state_cache: &MLLSTMStateCache<OUT, IN>,
+        output_cache: &mut MLLSTMOutputCache<OUT, IN>
+    ) {
+        self.o_gate.ready(
+            &last_state_cache.input,
+            Some(&last_state_cache.prev_state),
+            &mut output_cache.o_gate_cache
+        );
+
+        last_state_cache.state.as_array().iter().zip(
+            output_cache.tanh_c.as_mut_array().iter_mut()
+        ).zip(
+            output_cache.d_tanh_c.as_mut_array().iter_mut()
+        ).zip(
+            output_cache.output.as_mut_array().iter_mut()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).for_each(
+            |((((s, tanh_c_one), d_tanh_c_one), output_one), o_out)| {
+                *tanh_c_one = self.tanh.activate(*s);
+                *d_tanh_c_one = self.tanh.d_activate(*s);
+                *output_one = *o_out * *tanh_c_one;
+            }
+        );
+    }
+
+    pub fn study_state(
+        &mut self,
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>,
+        input_error: &mut MathVec<IN>,
+        prev_state_error: &mut MathVec<OUT>
+    ) {
+        self.study_main_layer_with_state_error(state_error, cache);
+        self.study_f_gate_with_state_error(state_error, cache);
+        self.study_i_gate_with_state_error(state_error, cache);
+
+        input_error.copy_from(&self.input_error_main_by_state_error);
+        *input_error += &self.input_error_f_by_state_error;
+        *input_error += &self.input_error_i_by_state_error;
+
+        prev_state_error.copy_from(&self.prev_state_error_main_by_state_error);
+        *prev_state_error += &self.prev_state_error_f_by_state_error;
+        *prev_state_error += &self.prev_state_error_i_by_state_error;
+
+        prev_state_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.f_gate_cache.output.as_array().iter()
+        ).for_each(|((p_state_e, state_e), f_out)| {
+            *p_state_e += *state_e * *f_out;
+        });
+    }
+
+
+    fn study_main_layer_with_state_error(
+        &mut self,
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.i_gate_cache.output.as_array().iter()
+        ).for_each(|((tmp_e, state_e), i_out)| {
+            *tmp_e = *state_e * *i_out;
+        });
+
+        self.main_layer.study(
+            &self.tmp_error,
+            None,
+            &cache.main_layer_cache,
+            &mut self.input_error_main_by_state_error,
+            Some(&mut self.prev_state_error_main_by_state_error)
+        );
+    }
+
+    fn study_f_gate_with_state_error(
+        &mut self,
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.prev_state.as_array().iter()
+        ).for_each(|((tmp_e, state_e), p_state)| {
+            *tmp_e = *state_e * *p_state;
+        });
+
+        self.f_gate.study(
+            &self.tmp_error,
+            None,
+            &cache.f_gate_cache,
+            &mut self.input_error_f_by_state_error,
+            Some(&mut self.prev_state_error_f_by_state_error)
+        );
+    }
+
+    fn study_i_gate_with_state_error(
+        &mut self,
+        state_error: &MathVec<OUT>,
+        cache: &MLLSTMStateCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            state_error.as_array().iter()
+        ).zip(
+            cache.main_layer_cache.output.as_array().iter()
+        ).for_each(|((tmp_e, state_e), main_out)| {
+            *tmp_e = *state_e * *main_out;
+        });
+
+        self.i_gate.study(
+            &self.tmp_error,
+            None,
+            &cache.i_gate_cache,
+            &mut self.input_error_i_by_state_error,
+            Some(&mut self.prev_state_error_i_by_state_error)
+        );
+    }
+
+    pub fn study(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
+        output_cache: &MLLSTMOutputCache<OUT, IN>,
+        input_error: &mut MathVec<IN>,
+        prev_state_error: &mut MathVec<OUT>
+    ) {
+        self.study_main_layer(
+            output_error,
+            state_error,
+            state_cache,
+            output_cache,
+        );
+        self.study_f_gate(
+            output_error,
+            state_error,
+            state_cache,
+            output_cache,
+        );
+        self.study_i_gate(
+            output_error,
+            state_error,
+            state_cache,
+            output_cache,
+        );
+        self.study_o_gate(
+            output_error,
+            output_cache,
+        );
+
+        input_error.copy_from(&self.input_error_main_by_output_error);
+        *input_error += &self.input_error_f_by_output_error;
+        *input_error += &self.input_error_i_by_output_error;
+        *input_error += &self.input_error_o_by_output_error;
+
+        prev_state_error.copy_from(
+            &self.prev_state_error_main_by_output_error
+        );
+        *prev_state_error += &self.prev_state_error_f_by_output_error;
+        *prev_state_error += &self.prev_state_error_i_by_output_error;
+        *prev_state_error += &self.prev_state_error_o_by_output_error;
+
+        prev_state_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.f_gate_cache.output.as_array().iter()
+        ).for_each(|((((p_state_e, out_e), o_out), d_tanh_c_one), f_out)| {
+            *p_state_e += *out_e * *o_out * *d_tanh_c_one * *f_out;
+        });
+    }
+
+    fn study_main_layer(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
+        output_cache: &MLLSTMOutputCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.i_gate_cache.output.as_array().iter()
+        ).zip(
+            state_error.as_array().iter()
+        ).for_each(
+            |(((((tmp_e, out_e), o_out), d_tanh_c_one), i_out), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *i_out;
+                *tmp_e += *state_e * *i_out;
+            }
+        );
+
+        self.main_layer.study(
+            &self.tmp_error,
+            None,
+            &state_cache.main_layer_cache,
+            &mut self.input_error_main_by_output_error,
+            Some(&mut self.prev_state_error_main_by_output_error)
+        );
+    }
+
+    fn study_f_gate(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
+        output_cache: &MLLSTMOutputCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.prev_state.as_array().iter()
+        ).zip(
+            state_error.as_array().iter()
+        ).for_each(
+            |(((((tmp_e, out_e), o_out), d_tanh_c_one), p_state), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *p_state;
+                *tmp_e += *state_e * *p_state;
+            }
+        );
+
+        self.f_gate.study(
+            &self.tmp_error,
+            None,
+            &state_cache.f_gate_cache,
+            &mut self.input_error_f_by_output_error,
+            Some(&mut self.prev_state_error_f_by_output_error)
+        );
+    }
+
+    fn study_i_gate(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        state_error: &MathVec<OUT>,
+        state_cache: &MLLSTMStateCache<OUT, IN>,
+        output_cache: &MLLSTMOutputCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            output_cache.o_gate_cache.output.as_array().iter()
+        ).zip(
+            output_cache.d_tanh_c.as_array().iter()
+        ).zip(
+            state_cache.main_layer_cache.output.as_array().iter()
+        ).zip(
+            state_error.as_array().iter()
+        ).for_each(
+            |(((((tmp_e, out_e), o_out), d_tanh_c_one), main_out), state_e)| {
+                *tmp_e = *out_e * *o_out * *d_tanh_c_one * *main_out;
+                *tmp_e += *state_e * *main_out;
+            }
+        );
+
+        self.i_gate.study(
+            &self.tmp_error,
+            None,
+            &state_cache.i_gate_cache,
+            &mut self.input_error_i_by_output_error,
+            Some(&mut self.prev_state_error_i_by_output_error)
+        );
+    }
+
+    fn study_o_gate(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        cache: &MLLSTMOutputCache<OUT, IN>
+    ) {
+        self.tmp_error.as_mut_array().iter_mut().zip(
+            output_error.as_array().iter()
+        ).zip(
+            cache.tanh_c.as_array().iter()
+        ).for_each(|((tmp_e, out_e),  tanh_c_one)| {
+            *tmp_e = *out_e * *tanh_c_one;
+        });
+
+        self.o_gate.study(
+            &self.tmp_error,
+            None,
+            &cache.o_gate_cache,
+            &mut self.input_error_o_by_output_error,
+            Some(&mut self.prev_state_error_o_by_output_error)
+        );
+    }
+
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.main_layer.update(rate);
+        self.f_gate.update(rate);
+        self.i_gate.update(rate);
+        self.o_gate.update(rate);
+    }
+}
+
 //#[derive(Debug, Clone, PartialEq)]
 //pub struct ChobitEncoder<
 //    const OUT: usize,
