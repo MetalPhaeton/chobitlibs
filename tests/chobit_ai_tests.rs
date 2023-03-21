@@ -219,27 +219,6 @@ fn math_vec_test_5() {
     }
 }
 
-#[test]
-fn math_vec_test_6() {
-    const COUNT: usize = 10000;
-
-    let mut rng = ChobitRand::new("math_vec_test_6".as_bytes());
-
-    for _ in 0..COUNT {
-        let mut vec_1 = MathVec::<10>::new();
-        rand_math_vec(&mut rng, &mut vec_1);
-
-        let mut bytes = Vec::<u8>::new();
-        vec_1.write_bytes(&mut bytes);
-
-        let mut vec_2 = MathVec::<10>::new();
-        assert_ne!(vec_2, vec_1);
-
-        vec_2.read_bytes(&bytes);
-        assert_eq!(vec_2, vec_1);
-    }
-}
-
 fn rand_weights<const OUT: usize, const IN: usize>(
     rng: &mut ChobitRand,
     weights: &mut Weights<OUT, IN>
@@ -765,53 +744,6 @@ fn weights_test_6() {
 }
 
 #[test]
-fn weights_test_7() {
-    const OUT: usize = 7;
-    const IN: usize = 13;
-
-    const COUNT: usize = 10000;
-
-    let mut rng = ChobitRand::new("weights_test_7".as_bytes());
-
-    for _ in 0..COUNT {
-        let mut weights_1 = Weights::<OUT, IN>::new(true);
-        rand_weights(&mut rng, &mut weights_1);
-
-        let mut bytes = Vec::<u8>::new();
-        weights_1.write_bytes(&mut bytes);
-
-        let mut weights_2 = Weights::<OUT, IN>::new(true);
-        assert_ne!(weights_2, weights_1);
-
-        weights_2.read_bytes(&bytes);
-        assert_eq!(weights_2, weights_1);
-    }
-}
-
-#[test]
-fn weights_test_8() {
-    const OUT: usize = 7;
-    const IN: usize = 13;
-
-    const COUNT: usize = 10000;
-
-    let mut rng = ChobitRand::new("weights_test_8".as_bytes());
-
-    for _ in 0..COUNT {
-        let mut weights_1 = Weights::<OUT, IN>::new(false);
-        rand_weights(&mut rng, &mut weights_1);
-
-        let mut bytes = Vec::<u8>::new();
-        weights_1.write_bytes(&mut bytes);
-
-        let mut weights_2 = Weights::<OUT, IN>::new(false);
-        weights_2.read_bytes(&bytes);
-
-        assert_eq!(weights_2, weights_1);
-    }
-}
-
-#[test]
 fn weights_test_9() {
     const OUT: usize = 7;
     const IN: usize = 13;
@@ -1211,6 +1143,42 @@ fn chobit_ai_test_2() {
 
         assert_eq!(label_out, label_in);
     }
+}
+
+#[test]
+fn chobit_ai_test_3() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_ai_test_3".as_bytes());
+
+    let mut ai_1 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai_2 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+
+    ai_1.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    ai_2.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(ai_1, ai_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    ai_1.for_each_weight(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    ai_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(ai_1, ai_2);
 }
 
 fn letter_data(
@@ -1734,6 +1702,41 @@ fn lstm_test_2() {
     }
 }
 
+#[test]
+fn lstm_test_3() {
+    const OUT: usize = 11;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("lstm_test_3".as_bytes());
+
+    let mut lstm_1 = LSTM::<OUT, IN>::new();
+    let mut lstm_2 = LSTM::<OUT, IN>::new();
+
+    lstm_1.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    lstm_2.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(lstm_1, lstm_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    lstm_1.for_each_weight(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    lstm_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(lstm_1, lstm_2);
+}
+
 fn gen_encoder<
     const OUT: usize,
     const MIDDLE: usize,
@@ -1937,6 +1940,41 @@ fn chobit_encoder_test_2() {
     }
 }
 
+#[test]
+fn chobit_encoder_test_3() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_encoder_test_3".as_bytes());
+
+    let mut encoder_1 =
+        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    encoder_1.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    let mut encoder_2 =
+        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    encoder_2.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(encoder_1, encoder_2);
+
+    let mut vec = Vec::<f32>::new();
+    encoder_1.for_each_weight(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+    encoder_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(encoder_1, encoder_2);
+}
+
 fn gen_decoder<
     const OUT: usize,
     const MIDDLE: usize,
@@ -2126,6 +2164,41 @@ fn chobit_decoder_test_2() {
             data_to_string(english_out.as_slice())
         );
     }
+}
+
+#[test]
+fn chobit_decoder_test_3() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_decoder_test_3".as_bytes());
+
+    let mut decoder_1 =
+        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    decoder_1.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    let mut decoder_2 =
+        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    decoder_2.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(decoder_1, decoder_2);
+
+    let mut vec = Vec::<f32>::new();
+    decoder_1.for_each_weight(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+    decoder_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(decoder_1, decoder_2);
 }
 
 fn gen_seq_ai<
@@ -2371,3 +2444,37 @@ fn chobit_seq_ai_test_2() {
     }
 }
 
+#[test]
+fn chobit_seq_ai_test_3() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_seq_ai_test_3".as_bytes());
+
+    let mut ai_1 =
+        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    ai_1.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    let mut ai_2 =
+        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    ai_2.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(ai_1, ai_2);
+
+    let mut vec = Vec::<f32>::new();
+    ai_1.for_each_weight(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+    ai_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(ai_1, ai_2);
+}
