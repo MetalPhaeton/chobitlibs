@@ -230,11 +230,12 @@ fn math_vec_test_6() {
         rand_math_vec(&mut rng, &mut vec_1);
 
         let mut bytes = Vec::<u8>::new();
-        assert!(vec_1.write_bytes(&mut bytes).is_some());
+        vec_1.write_bytes(&mut bytes);
 
         let mut vec_2 = MathVec::<10>::new();
-        assert!(vec_2.read_bytes(&bytes).is_some());
+        assert_ne!(vec_2, vec_1);
 
+        vec_2.read_bytes(&bytes);
         assert_eq!(vec_2, vec_1);
     }
 }
@@ -777,11 +778,12 @@ fn weights_test_7() {
         rand_weights(&mut rng, &mut weights_1);
 
         let mut bytes = Vec::<u8>::new();
-        assert!(weights_1.write_bytes(&mut bytes).is_some());
+        weights_1.write_bytes(&mut bytes);
 
         let mut weights_2 = Weights::<OUT, IN>::new(true);
-        assert!(weights_2.read_bytes(&bytes).is_some());
+        assert_ne!(weights_2, weights_1);
 
+        weights_2.read_bytes(&bytes);
         assert_eq!(weights_2, weights_1);
     }
 }
@@ -800,10 +802,10 @@ fn weights_test_8() {
         rand_weights(&mut rng, &mut weights_1);
 
         let mut bytes = Vec::<u8>::new();
-        assert!(weights_1.write_bytes(&mut bytes).is_some());
+        weights_1.write_bytes(&mut bytes);
 
         let mut weights_2 = Weights::<OUT, IN>::new(false);
-        assert!(weights_2.read_bytes(&bytes).is_some());
+        weights_2.read_bytes(&bytes);
 
         assert_eq!(weights_2, weights_1);
     }
