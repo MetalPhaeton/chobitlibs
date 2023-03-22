@@ -1221,7 +1221,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         }
     }
 
-    /// Drop Base layer.
+    /// Drops Base layer.
     ///
     /// - _Return_ : Base Layer.
     #[inline]
@@ -1572,6 +1572,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 ///     assert_eq!(output.to_u32_label(), label);
 /// }
 /// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hide layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: Layer<MIDDLE, IN>,
@@ -1623,22 +1627,6 @@ impl<
         &mut self.output_layer
     }
 
-    /// Calculates
-    ///
-    /// - `input` : Input.
-    /// - `output` : Buffer for output.
-    /// - `tmpbuf` : Temporary buffer for this function to work.
-    #[inline]
-    pub fn calc(
-        &self,
-        input: &MathVec<IN>,
-        output: &mut MathVec<OUT>,
-        tmpbuf: &mut MathVec<MIDDLE>
-    ) {
-        self.middle_layer.calc(input, None, tmpbuf);
-        self.output_layer.calc(tmpbuf, None, output);
-    }
-
     /// Accesses each immutable weight with closure.
     ///
     /// - `f` : Closure.
@@ -1659,11 +1647,31 @@ impl<
         self.middle_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
         self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
+
+    /// Calculates
+    ///
+    /// - `input` : Input.
+    /// - `output` : Buffer for output.
+    /// - `tmpbuf` : Temporary buffer for this function to work.
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        output: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<MIDDLE>
+    ) {
+        self.middle_layer.calc(input, None, tmpbuf);
+        self.output_layer.calc(tmpbuf, None, output);
+    }
 }
 
 /// Wrapper of [`ChobitAI`] for machine learning.
 ///
 /// See [`ChobitAI`] for details.
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hide layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: MLLayer<MIDDLE, IN>,
@@ -1703,7 +1711,7 @@ impl<
         }
     }
 
-    /// Drops [`ChobitAI`] after machine learning.
+    /// Drops [`ChobitAI`].
     ///
     /// - _Return_ : [`ChobitAI`].
     #[inline]
@@ -1860,6 +1868,31 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
     #[inline]
     pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
 
+    /// Accesses each immutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.main_layer.weights().iter().for_each(|val| {f(val)});
+        self.f_gate.weights().iter().for_each(|val| {f(val)});
+        self.i_gate.weights().iter().for_each(|val| {f(val)});
+        self.o_gate.weights().iter().for_each(|val| {f(val)});
+    }
+
+    /// Accesses each mutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.main_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.f_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.i_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.o_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
+    }
+
     /// Calculates only state.
     ///
     /// - `input` : Input.
@@ -1909,31 +1942,6 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
         ).for_each(|(output_one, next_s)| {
             *output_one *= self.tanh.activate(*next_s);
         });
-    }
-
-    /// Accesses each immutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
-        self.main_layer.weights().iter().for_each(|val| {f(val)});
-        self.f_gate.weights().iter().for_each(|val| {f(val)});
-        self.i_gate.weights().iter().for_each(|val| {f(val)});
-        self.o_gate.weights().iter().for_each(|val| {f(val)});
-    }
-
-    /// Accesses each mutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight_mut<F>(
-        &mut self,
-        mut f: F
-    ) where F: FnMut(&mut f32) {
-        self.main_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
-        self.f_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
-        self.i_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
-        self.o_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -2158,7 +2166,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         }
     }
 
-    /// Drop Base LSTM.
+    /// Drops Base LSTM.
     ///
     /// - _Return_ : Base LSTM.
     #[inline]
@@ -2671,7 +2679,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (4) Randomise 5 sets of weights.
+/// (4) Randomise weights.
 ///
 /// ```ignore
 /// # use chobitlibs::chobit_ai::{
@@ -2958,6 +2966,10 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 ///     assert_eq!(output.to_u32_label(), ENGLISH_ID as u32);
 /// }
 /// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hide layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitEncoder<
     const OUT: usize,
@@ -3045,6 +3057,27 @@ impl<
     #[inline]
     pub fn last_input(&self) -> &MathVec<IN> {&self.last_input}
 
+    /// Accesses each immutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.lstm.for_each_weight(|val| {f(val)});
+        self.output_layer.weights().iter().for_each(|val| {f(val)});
+    }
+
+    /// Accesses each mutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.lstm.for_each_weight_mut(|val| {f(val)});
+        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+    }
+
     /// Input next data.
     ///
     /// - `input` : Next data.
@@ -3077,27 +3110,6 @@ impl<
         );
 
         self.output_layer.calc(&self.middle_output, None, output);
-    }
-
-    /// Accesses each immutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
-        self.lstm.for_each_weight(|val| {f(val)});
-        self.output_layer.weights().iter().for_each(|val| {f(val)});
-    }
-
-    /// Accesses each mutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight_mut<F>(
-        &mut self,
-        mut f: F
-    ) where F: FnMut(&mut f32) {
-        self.lstm.for_each_weight_mut(|val| {f(val)});
-        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -3158,6 +3170,10 @@ impl<
 /// Wrapper of [`ChobitEncoder`] for machine learning.
 ///
 /// See [`ChobitEncoder`] for details.
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hide layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLEncoder<
     const OUT: usize,
@@ -3190,10 +3206,10 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > ChobitMLEncoder<OUT, MIDDLE, IN> {
-    /// Creates ChobitMLAI.
+    /// Creates ChobitMLEncoder.
     ///
     /// - `encoder` : [`ChobitEncoder`] to be learned.
-    /// - _Return_ : ChobitMLAI.
+    /// - _Return_ : ChobitMLEncoder.
     #[inline]
     pub fn new(encoder: ChobitEncoder<OUT, MIDDLE, IN>) -> Self {
         let ChobitEncoder::<OUT, MIDDLE, IN> {
@@ -3228,7 +3244,7 @@ impl<
         }
     }
 
-    /// Drops [`ChobitEncoder`] after machine learning.
+    /// Drops [`ChobitEncoder`].
     ///
     /// - _Return_ : [`ChobitEncoder`].
     #[inline]
@@ -3374,6 +3390,247 @@ impl<
 
 /// Decoder from fixed length data to sequence data.
 ///
+/// # Example of sentence writer.
+///
+/// (1) Defines Japanese sentence and English sentence.
+///
+/// ```ignore
+/// use chobitlibs::chobit_ai::{
+///     MathVec,
+///     ChobitDecoder,
+///     ChobitMLDecoder,
+///     Activation
+/// };
+/// use chobitlibs::chobit_rand::ChobitRand;
+///
+/// const JAPANESE_ID: char = '日';
+/// const ENGLISH_ID: char = 'E';
+///
+/// const JAPANESE_SENTENCE: &str = "これは日本語です。";
+/// const ENGLISH_SENTENCE: &str = "This is english.";
+/// ```
+///
+/// (2) Creates ChobitDecoder.
+///
+/// ```ignore
+/// # use chobitlibs::chobit_ai::{
+/// #     MathVec,
+/// #     ChobitDecoder,
+/// #     ChobitMLDecoder,
+/// #     Activation
+/// # };
+/// # use chobitlibs::chobit_rand::ChobitRand;
+/// # const JAPANESE_ID: char = '日';
+/// # const ENGLISH_ID: char = 'E';
+/// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
+/// # const ENGLISH_SENTENCE: &str = "This is english.";
+/// const IN: usize = 32; 
+/// const MIDDLE: usize = 64; 
+/// const OUT: usize = 32; 
+///
+/// let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+///
+/// let initial_state = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (3) Randomise weights.
+///
+/// ```ignore
+/// # use chobitlibs::chobit_ai::{
+/// #     MathVec,
+/// #     ChobitDecoder,
+/// #     ChobitMLDecoder,
+/// #     Activation
+/// # };
+/// # use chobitlibs::chobit_rand::ChobitRand;
+/// # const JAPANESE_ID: char = '日';
+/// # const ENGLISH_ID: char = 'E';
+/// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
+/// # const ENGLISH_SENTENCE: &str = "This is english.";
+/// # const IN: usize = 32; 
+/// # const MIDDLE: usize = 64; 
+/// # const OUT: usize = 32; 
+/// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+/// # let initial_state = MathVec::<MIDDLE>::new();
+/// let mut rng = ChobitRand::new(b"ChobitDecoder Example");
+///
+/// decoder.for_each_weight_mut(
+///     |weight| {
+///         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+///     }
+/// );
+/// ```
+///
+/// (5) Ready for machine learning.
+///
+/// ```ignore
+/// # use chobitlibs::chobit_ai::{
+/// #     MathVec,
+/// #     ChobitDecoder,
+/// #     ChobitMLDecoder,
+/// #     Activation
+/// # };
+/// # use chobitlibs::chobit_rand::ChobitRand;
+/// # const JAPANESE_ID: char = '日';
+/// # const ENGLISH_ID: char = 'E';
+/// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
+/// # const ENGLISH_SENTENCE: &str = "This is english.";
+/// # const IN: usize = 32; 
+/// # const MIDDLE: usize = 64; 
+/// # const OUT: usize = 32; 
+/// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+/// # let initial_state = MathVec::<MIDDLE>::new();
+/// # let mut rng = ChobitRand::new(b"ChobitDecoder Example");
+/// # decoder.for_each_weight_mut(
+/// #     |weight| {
+/// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// #     }
+/// # );
+/// let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+/// ```
+///
+/// (6) Machine learning.
+///
+/// ```ignore
+/// # use chobitlibs::chobit_ai::{
+/// #     MathVec,
+/// #     ChobitDecoder,
+/// #     ChobitMLDecoder,
+/// #     Activation
+/// # };
+/// # use chobitlibs::chobit_rand::ChobitRand;
+/// # const JAPANESE_ID: char = '日';
+/// # const ENGLISH_ID: char = 'E';
+/// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
+/// # const ENGLISH_SENTENCE: &str = "This is english.";
+/// # const IN: usize = 32; 
+/// # const MIDDLE: usize = 64; 
+/// # const OUT: usize = 32; 
+/// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+/// # let initial_state = MathVec::<MIDDLE>::new();
+/// # let mut rng = ChobitRand::new(b"ChobitDecoder Example");
+/// # decoder.for_each_weight_mut(
+/// #     |weight| {
+/// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// #     }
+/// # );
+/// # let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+/// const EPOCH: usize = 2000;
+/// const BATCH_SIZE: usize = 20;
+/// const RATE: f32 = 0.01;
+///
+/// let mut train_in = MathVec::<IN>::new();
+/// let mut train_out = vec![MathVec::<OUT>::new(); 20];
+///
+/// for _ in 0..EPOCH {
+///     for _ in 0..BATCH_SIZE {
+///         // Study Japanese.
+///         train_in.load_u32_label(JAPANESE_ID as u32);
+///
+///         JAPANESE_SENTENCE.chars().zip(
+///             train_out.iter_mut()
+///         ).for_each(|(c, vec)| {
+///             vec.load_u32_label(c as u32);
+///         });
+///
+///         decoder.study(&train_in, &initial_state, &train_out[..JAPANESE_SENTENCE.chars().count()]);
+///
+///         // Study English.
+///         train_in.load_u32_label(ENGLISH_ID as u32);
+///
+///         ENGLISH_SENTENCE.chars().zip(
+///             train_out.iter_mut()
+///         ).for_each(|(c, vec)| {
+///             vec.load_u32_label(c as u32);
+///         });
+///
+///         decoder.study(&train_in, &initial_state, &train_out[..ENGLISH_SENTENCE.chars().count()]);
+///     }
+///
+///     decoder.update(RATE);
+/// }
+/// ```
+///
+/// (6) Congratulation! You've made sentence writer!
+///
+/// ```ignore
+/// # use chobitlibs::chobit_ai::{
+/// #     MathVec,
+/// #     ChobitDecoder,
+/// #     ChobitMLDecoder,
+/// #     Activation
+/// # };
+/// # use chobitlibs::chobit_rand::ChobitRand;
+/// # const JAPANESE_ID: char = '日';
+/// # const ENGLISH_ID: char = 'E';
+/// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
+/// # const ENGLISH_SENTENCE: &str = "This is english.";
+/// # const IN: usize = 32; 
+/// # const MIDDLE: usize = 64; 
+/// # const OUT: usize = 32; 
+/// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+/// # let initial_state = MathVec::<MIDDLE>::new();
+/// # let mut rng = ChobitRand::new(b"ChobitDecoder Example");
+/// # decoder.for_each_weight_mut(
+/// #     |weight| {
+/// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// #     }
+/// # );
+/// # let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+/// # const EPOCH: usize = 2000;
+/// # const BATCH_SIZE: usize = 20;
+/// # const RATE: f32 = 0.01;
+/// # let mut train_in = MathVec::<IN>::new();
+/// # let mut train_out = vec![MathVec::<OUT>::new(); 20];
+/// # for _ in 0..EPOCH {
+/// #     for _ in 0..BATCH_SIZE {
+/// #         // Study Japanese.
+/// #         train_in.load_u32_label(JAPANESE_ID as u32);
+/// #         JAPANESE_SENTENCE.chars().zip(
+/// #             train_out.iter_mut()
+/// #         ).for_each(|(c, vec)| {
+/// #             vec.load_u32_label(c as u32);
+/// #         });
+/// #         decoder.study(&train_in, &initial_state, &train_out[..JAPANESE_SENTENCE.chars().count()]);
+/// #         // Study English.
+/// #         train_in.load_u32_label(ENGLISH_ID as u32);
+/// #         ENGLISH_SENTENCE.chars().zip(
+/// #             train_out.iter_mut()
+/// #         ).for_each(|(c, vec)| {
+/// #             vec.load_u32_label(c as u32);
+/// #         });
+/// #         decoder.study(&train_in, &initial_state, &train_out[..ENGLISH_SENTENCE.chars().count()]);
+/// #     }
+/// #     decoder.update(RATE);
+/// # }
+/// let mut decoder = decoder.drop();
+///
+/// let mut output = MathVec::<OUT>::new();
+///
+/// // Test Japanese.
+/// decoder.state_mut().clear();
+/// decoder.input_mut().load_u32_label(JAPANESE_ID as u32);
+///
+/// JAPANESE_SENTENCE.chars().for_each(|c| {
+///     decoder.output_next(&mut output);
+///
+///     assert_eq!(c as u32, output.to_u32_label());
+/// });
+///
+/// // Test English.
+/// decoder.state_mut().clear();
+/// decoder.input_mut().load_u32_label(ENGLISH_ID as u32);
+///
+/// ENGLISH_SENTENCE.chars().for_each(|c| {
+///     decoder.output_next(&mut output);
+///
+///     assert_eq!(c as u32, output.to_u32_label());
+/// });
+/// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hide layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitDecoder<
     const OUT: usize,
@@ -3396,6 +3653,10 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > ChobitDecoder<OUT, MIDDLE, IN> {
+    /// Creates ChobitDecoder.
+    ///
+    /// - `activation` : Activation function for output layer.
+    /// - _Return_ : ChobitDecoder.
     pub fn new(activation: Activation) -> Self {
         Self {
             lstm: LSTM::<MIDDLE, IN>::new(),
@@ -3410,45 +3671,59 @@ impl<
         }
     }
 
+    /// Gets immutable LSTM.
+    ///
+    /// - _Return_ : LSTM.
     #[inline]
     pub fn lstm(&self) -> &LSTM<MIDDLE, IN> {&self.lstm}
 
+    /// Gets mutable LSTM.
+    ///
+    /// - _Return_ : LSTM.
     #[inline]
     pub fn lstm_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {&mut self.lstm}
 
+    /// Gets immutable output layer.
+    ///
+    /// - _Return_ : Output layer.
     #[inline]
     pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
 
+    /// Gets mutable output layer.
+    ///
+    /// - _Return_ : Output layer.
     #[inline]
     pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
         &mut self.output_layer
     }
 
+    /// Gets immutable input.
+    ///
+    /// - _Return_ : Input.
     #[inline]
     pub fn input(&self) -> &MathVec<IN> {&self.input}
 
+    /// Gets mutable input.
+    ///
+    /// This should be set before to call [`ChobitDecoder::output_next`].
+    ///
+    /// - _Return_ : Input.
     #[inline]
     pub fn input_mut(&mut self) -> &mut MathVec<IN> {&mut self.input}
 
+    /// Gets immutable state.
+    ///
+    /// - _Return_ : State.
     #[inline]
     pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
 
+    /// Gets mutable state.
+    ///
+    /// This should be initialized before the first input.
+    ///
+    /// - _Return_ : State.
     #[inline]
     pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.state}
-
-    pub fn output_next(&mut self, output: &mut MathVec<OUT>) {
-        self.prev_state.copy_from(&self.state);
-
-        self.lstm.calc(
-            &self.input,
-            &self.prev_state,
-            &mut self.middle_output,
-            &mut self.state,
-            &mut self.tmpbuf,
-        );
-
-        self.output_layer.calc(&self.middle_output, None, output);
-    }
 
     /// Accesses each immutable weight with closure.
     ///
@@ -3469,6 +3744,23 @@ impl<
     ) where F: FnMut(&mut f32) {
         self.lstm.for_each_weight_mut(|val| {f(val)});
         self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+    }
+
+    /// Output next data calculated by current state and input.
+    ///
+    /// - `output` : Buffer for next data.
+    pub fn output_next(&mut self, output: &mut MathVec<OUT>) {
+        self.prev_state.copy_from(&self.state);
+
+        self.lstm.calc(
+            &self.input,
+            &self.prev_state,
+            &mut self.middle_output,
+            &mut self.state,
+            &mut self.tmpbuf,
+        );
+
+        self.output_layer.calc(&self.middle_output, None, output);
     }
 }
 
@@ -3552,6 +3844,13 @@ impl<
     }
 }
 
+/// Wrapper of [`ChobitDecoder`] for machine learning.
+///
+/// See [`ChobitDecoder`] for details.
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hide layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLDecoder<
     const OUT: usize,
@@ -3584,6 +3883,11 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > ChobitMLDecoder<OUT, MIDDLE, IN> {
+    /// Creates ChobitMLDecoder.
+    ///
+    /// - `decoder` : [`ChobitDecoder`] to be learned.
+    /// - _Return_ : ChobitMLDecoder.
+    #[inline]
     pub fn new(decoder: ChobitDecoder<OUT, MIDDLE, IN>) -> Self {
         let ChobitDecoder::<OUT, MIDDLE, IN> {
             lstm,
@@ -3617,6 +3921,9 @@ impl<
         }
     }
 
+    /// Drops [`ChobitDecoder`].
+    ///
+    /// - _Return_ : [`ChobitDecoder`].
     #[inline]
     pub fn drop(self) -> ChobitDecoder<OUT, MIDDLE, IN> {
         let Self {
@@ -3641,13 +3948,18 @@ impl<
         }
     }
 
+    /// Clears internal data for study.
     #[inline]
     pub fn clear_study_data(&mut self) {
         self.lstm.clear_study_data();
         self.output_layer.clear_study_data();
     }
 
-
+    /// Studies weights.
+    ///
+    /// - `train_in` : Input of train data.
+    /// - `prev_state` : Previous state.
+    /// - `train_out` : Output of train data.
     pub fn study(
         &mut self,
         train_in: &MathVec<IN>,
@@ -3744,6 +4056,9 @@ impl<
         });
     }
 
+    /// Updates weights.
+    ///
+    /// - `rate` : Learning rate.
     #[inline]
     pub fn update(&mut self, rate: f32) {
         self.lstm.update(rate);
@@ -3822,6 +4137,29 @@ impl<
         &mut self.state
     }
 
+    /// Accesses each immutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.enc_layer.for_each_weight(|val| {f(val)});
+        self.dec_layer.for_each_weight(|val| {f(val)});
+        self.output_layer.weights().iter().for_each(|val| {f(val)});
+    }
+
+    /// Accesses each mutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.enc_layer.for_each_weight_mut(|val| {f(val)});
+        self.dec_layer.for_each_weight_mut(|val| {f(val)});
+        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+    }
+
     #[inline]
     pub fn input_next(&mut self, input: &MathVec<IN>) {
         self.prev_state.copy_from(&self.state);
@@ -3848,29 +4186,6 @@ impl<
         );
 
         self.output_layer.calc(&self.dec_output, None, output);
-    }
-
-    /// Accesses each immutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
-        self.enc_layer.for_each_weight(|val| {f(val)});
-        self.dec_layer.for_each_weight(|val| {f(val)});
-        self.output_layer.weights().iter().for_each(|val| {f(val)});
-    }
-
-    /// Accesses each mutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight_mut<F>(
-        &mut self,
-        mut f: F
-    ) where F: FnMut(&mut f32) {
-        self.enc_layer.for_each_weight_mut(|val| {f(val)});
-        self.dec_layer.for_each_weight_mut(|val| {f(val)});
-        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
 }
 
