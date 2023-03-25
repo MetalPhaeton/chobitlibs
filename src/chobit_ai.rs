@@ -12,14 +12,12 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//#![allow(dead_code)]
+#![allow(dead_code)]
 
 //! Neural network library.
 //!
-//! This library needs `alloc` crate.
-//!
-//! # Example
-//!
+//! This library needs `alloc` crate.  
+//! This AI works on single thread, but is able to work on `no_std`.
 
 use alloc::{boxed::Box, vec, vec::Vec};
 
@@ -1576,7 +1574,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 /// ```
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
@@ -1672,7 +1670,7 @@ impl<
 /// See [`ChobitAI`] for details.
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
@@ -2972,7 +2970,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 /// ```
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitEncoder<
@@ -3176,7 +3174,7 @@ impl<
 /// See [`ChobitEncoder`] for details.
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLEncoder<
@@ -3635,7 +3633,7 @@ impl<
 /// ```
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitDecoder<
@@ -3855,7 +3853,7 @@ impl<
 /// See [`ChobitDecoder`] for details.
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLDecoder<
@@ -4792,7 +4790,7 @@ impl<
 /// See [`ChobitSeqAI`] for details.
 ///
 /// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hide layer.
+/// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitMLSeqAI<
