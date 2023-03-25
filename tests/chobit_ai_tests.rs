@@ -1027,1454 +1027,1454 @@ fn layer_test_2() {
     }
 }
 
-#[test]
-fn chobit_ai_test_1() {
-    const OUT: usize = 8;
-    const MIDDLE: usize = 32;
-    const IN: usize = 16;
-
-    const COUNT: usize = 100;
-
-    let mut rng = ChobitRand::new("chobit_ai_test_1".as_bytes());
-
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    let mut input = MathVec::<IN>::new();
-    let mut output = MathVec::<OUT>::new();
-    let mut tmpbuf = MathVec::<MIDDLE>::new();
-
-    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
-    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
-
-    for _ in 0..COUNT {
-        let label_in = rng.next_u64() as u16;
-
-        input.load_u16_label(label_in);
-        ai.calc(&input, &mut output, &mut tmpbuf);
-    }
-
-    const EPOCH: usize = 10;
-    const BATCH_SIZE: usize = 10;
-    const RATE: f32 = 0.01;
-
-    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            let label = rng.next_u64() as u32;
-            input.load_u16_label(label as u16);
-            output.load_u8_label(label as u8);
-
-            ai.study(&input, &output);
-        }
-
-        ai.update(RATE);
-    }
-
-    let ai = ai.drop();
-
-    for _ in 0..COUNT {
-        let label_in = rng.next_u64() as u16;
-
-        input.load_u16_label(label_in);
-        ai.calc(&input, &mut output, &mut tmpbuf);
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[test]
-fn chobit_ai_test_2() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 128;
-    const IN: usize = 32;
-
-    const COUNT: usize = 100;
-
-    let mut rng = ChobitRand::new("chobit_ai_test_2".as_bytes());
-
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    let mut input = MathVec::<IN>::new();
-    let mut output = MathVec::<OUT>::new();
-    let mut tmpbuf = MathVec::<MIDDLE>::new();
-
-    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
-    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
-
-    // before machine learning.
-    for _ in 0..COUNT {
-        let label_in = rng.next_u64() as u32;
-
-        input.load_u32_label(label_in);
-        ai.calc(&input, &mut output, &mut tmpbuf);
-
-        let label_out = output.to_u32_label();
-
-        assert_ne!(label_out, label_in);
-    }
-
-    // machine learning.
-    const EPOCH: usize = 3000;
-    const BATCH_SIZE: usize = 100;
-    const RATE: f32 = 0.01;
-
-    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            let label = rng.next_u64() as u32;
-            input.load_u32_label(label);
-            output.load_u32_label(label);
-
-            ai.study(&input, &output);
-        }
-
-        ai.update(RATE);
-    }
-
-    let ai = ai.drop();
-
-    // after machine learning.
-    for _ in 0..COUNT {
-        let label_in = rng.next_u64() as u32;
-
-        input.load_u32_label(label_in);
-        ai.calc(&input, &mut output, &mut tmpbuf);
-
-        let label_out = output.to_u32_label();
-
-        assert_eq!(label_out, label_in);
-    }
-}
-
-#[test]
-fn chobit_ai_test_3() {
-    const OUT: usize = 11;
-    const MIDDLE: usize = 7;
-    const IN: usize = 5;
-
-    let mut rng = ChobitRand::new("chobit_ai_test_3".as_bytes());
-
-    let mut ai_1 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    let mut ai_2 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-
-    ai_1.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    ai_2.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    assert_ne!(ai_1, ai_2);
-
-    let mut vec = Vec::<f32>::new();
-
-    ai_1.for_each_weight(|val| {
-        vec.push(*val);
-    });
-
-    let mut vec_iter = vec.iter();
-
-    ai_2.for_each_weight_mut(|val| {
-        *val = *vec_iter.next().unwrap();
-    });
-
-    assert_eq!(ai_1, ai_2);
-}
-
-fn letter_data(
-    rng: &mut ChobitRand,
-    letters: &[char],
-    data: &mut Vec<MathVec<32>>
-) {
-    static DUMMY: [char; 10] = [
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-    ];
-
-    let half_size: usize = ((rng.next_u64() % 5) + 1) as usize;
-
-    data.resize(half_size * 2, MathVec::<32>::new());
-
-    data[..half_size].iter_mut().for_each(|vec| {
-        let letter = letters[(rng.next_u64() as usize) % letters.len()];
-        let label = letter as u32;
-        vec.load_u32_label(label);
-    });
-
-    data[half_size..].iter_mut().for_each(|vec| {
-        let letter = DUMMY[(rng.next_u64() as usize) % DUMMY.len()];
-        let label = letter as u32;
-        vec.load_u32_label(label);
-    });
-
-    rng.shuffle(data);
-}
-
-const JAPANESE: char = '日';
-fn japanese_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
-    let letters: [char; 10] = [
-        'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-    ];
-
-    letter_data(rng, &letters, data);
-}
-
-#[cfg(not(debug_assertions))]
-const ENGLISH: char = 'E';
-
-#[cfg(not(debug_assertions))]
-fn english_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
-    let letters: [char; 10] = [
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'
-    ];
-
-    letter_data(rng, &letters, data);
-}
-
-#[cfg(not(debug_assertions))]
-fn data_to_string(data: &[MathVec<32>]) -> String {
-    let mut ret = String::new();
-
-    data.iter().for_each(|vec| {
-        let label = vec.to_u32_label();
-        ret.push(char::from_u32(label).unwrap());
-    });
-
-    ret
-}
-
-fn gen_lstm<const OUT: usize, const IN: usize>(
-    rng: &mut ChobitRand
-) -> LSTM<OUT, IN> {
-    let mut ret = LSTM::<OUT, IN>::new();
-
-    rand_weights(rng, ret.main_layer_mut().mut_weights());
-    rand_weights(rng, ret.f_gate_mut().mut_weights());
-    rand_weights(rng, ret.i_gate_mut().mut_weights());
-    rand_weights(rng, ret.o_gate_mut().mut_weights());
-
-    ret
-}
-
-fn gen_layer<const OUT: usize, const IN: usize>(
-    rng: &mut ChobitRand
-) -> Layer<OUT, IN> {
-    let mut ret = Layer::<OUT, IN>::new(Activation::SoftSign, false);
-
-    rand_weights(rng, ret.mut_weights());
-
-    ret
-}
-
-#[test]
-fn lstm_test_1() {
-    const OUT: usize = 32;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("lstm_test_1".as_bytes());
-
-    let mut data = Vec::<MathVec<32>>::new();
-    let mut japanese = MathVec::<OUT>::new();
-    japanese.load_u32_label(JAPANESE as u32);
-
-    let mut prev_state = MathVec::<OUT>::new();
-    let mut output = MathVec::<OUT>::new();
-    let mut state = MathVec::<OUT>::new();
-    let mut tmpbuf = MathVec::<OUT>::new();
-
-    const COUNT: usize = 10;
-
-    let lstm = gen_lstm::<OUT, IN>(&mut rng);
-    let output_layer = gen_layer::<OUT, OUT>(&mut rng);
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        prev_state.clear();
-
-        for i in 0..(data.len() - 1) {
-            lstm.calc_state(
-                &data[i],
-                &prev_state,
-                &mut state,
-                &mut tmpbuf,
-            );
-
-            prev_state.copy_from(&state);
-        }
-
-        prev_state.copy_from(&state);
-
-        lstm.calc(
-            data.last().unwrap(),
-            &prev_state,
-            &mut output,
-            &mut state,
-            &mut tmpbuf
-        );
-
-        tmpbuf.copy_from(&output);
-        output_layer.calc(&tmpbuf, None, &mut output);
-    }
-
-    const EPOCH: usize = 10;
-    const BATCH_SIZE: usize = 10;
-    const RATE: f32 = 0.01;
-
-    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
-    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
-
-    let mut lstm_state_caches = vec![MLLSTMStateCache::<OUT, IN>::new(); 30];
-    let mut lstm_output_cache = MLLSTMOutputCache::<OUT, IN>::new();
-    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
-    let mut output_error = MathVec::<OUT>::new();
-    let mut state_error = MathVec::<OUT>::new();
-    let mut input_error = MathVec::<IN>::new();
-    let mut tmp_input_error = MathVec::<IN>::new();
-    let mut prev_state_error = MathVec::<OUT>::new();
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            japanese_data(&mut rng, &mut data);
-            prev_state.clear();
-
-            for i in 0..data.len() {
-                lstm.ready_state_cache(
-                    &data[i],
-                    &prev_state,
-                    &mut lstm_state_caches[i]
-                );
-                prev_state.copy_from(&lstm_state_caches[i].state());
-            }
-
-            let tail: usize = data.len() - 1;
-
-            lstm.ready_output_cache(
-                &lstm_state_caches[tail],
-                &mut lstm_output_cache
-            );
-
-            output_layer.ready(
-                lstm_output_cache.output(),
-                None,
-                &mut output_layer_cache
-            );
-
-            output_layer_cache.calc_output_error(&japanese, &mut output_error);
-
-            tmpbuf.copy_from(&output_error);
-
-            output_layer.study(
-                &tmpbuf,
-                None,
-                &output_layer_cache,
-                &mut output_error,
-                None
-            );
-
-            state_error.clear();
-            lstm.study(
-                &output_error,
-                &state_error,
-                &lstm_state_caches[tail],
-                &lstm_output_cache,
-                &mut input_error,
-                &mut prev_state_error
-            );
-            state_error.copy_from(&prev_state_error);
-
-            for i in 1..data.len() {
-                let i = tail - i;
-
-                lstm.study_state(
-                    &state_error,
-                    &lstm_state_caches[i],
-                    &mut tmp_input_error,
-                    &mut prev_state_error
-                );
-
-                input_error += &tmp_input_error;
-                state_error.copy_from(&prev_state_error);
-            }
-        }
-
-        lstm.update(RATE);
-        output_layer.update(RATE);
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[test]
-fn lstm_test_2() {
-    const OUT: usize = 32;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("lstm_test_2".as_bytes());
-
-    let mut data = Vec::<MathVec<32>>::new();
-    let mut japanese = MathVec::<OUT>::new();
-    japanese.load_u32_label(JAPANESE as u32);
-    let mut english = MathVec::<OUT>::new();
-    english.load_u32_label(ENGLISH as u32);
-
-    let mut prev_state = MathVec::<OUT>::new();
-    let mut output = MathVec::<OUT>::new();
-    let mut state = MathVec::<OUT>::new();
-    let mut tmpbuf = MathVec::<OUT>::new();
-
-    const COUNT: usize = 10;
-
-    let lstm = gen_lstm::<OUT, IN>(&mut rng);
-    let output_layer = gen_layer::<OUT, OUT>(&mut rng);
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        prev_state.clear();
-
-        for i in 0..(data.len() - 1) {
-            lstm.calc_state(
-                &data[i],
-                &prev_state,
-                &mut state,
-                &mut tmpbuf,
-            );
-
-            prev_state.copy_from(&state);
-        }
-
-        prev_state.copy_from(&state);
-        lstm.calc(
-            data.last().unwrap(),
-            &prev_state,
-            &mut output,
-            &mut state,
-            &mut tmpbuf
-        );
-
-        tmpbuf.copy_from(&output);
-        output_layer.calc(&tmpbuf, None, &mut output);
-
-        assert_ne!(
-            output.to_u32_label(),
-            japanese.to_u32_label(),
-        );
-
-        english_data(&mut rng, &mut data);
-        prev_state.clear();
-
-        for i in 0..data.len() {
-            lstm.calc_state(
-                &data[i],
-                &prev_state,
-                &mut state,
-                &mut tmpbuf,
-            );
-
-            prev_state.copy_from(&state);
-        }
-
-        prev_state.copy_from(&state);
-        lstm.calc(
-            data.last().unwrap(),
-            &prev_state,
-            &mut output,
-            &mut state,
-            &mut tmpbuf
-        );
-
-        tmpbuf.copy_from(&output);
-        output_layer.calc(&tmpbuf, None, &mut output);
-
-        assert_ne!(
-            output.to_u32_label(),
-            english.to_u32_label(),
-        );
-    }
-
-    const EPOCH: usize = 1000;
-    const BATCH_SIZE: usize = 100;
-    const RATE: f32 = 0.01;
-
-    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
-    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
-
-    let mut lstm_state_caches = vec![MLLSTMStateCache::<OUT, IN>::new(); 30];
-    let mut lstm_output_cache = MLLSTMOutputCache::<OUT, IN>::new();
-    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
-    let mut output_error = MathVec::<OUT>::new();
-    let mut state_error = MathVec::<OUT>::new();
-    let mut input_error = MathVec::<IN>::new();
-    let mut tmp_input_error = MathVec::<IN>::new();
-    let mut prev_state_error = MathVec::<OUT>::new();
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            japanese_data(&mut rng, &mut data);
-            prev_state.clear();
-
-            for i in 0..data.len() {
-                lstm.ready_state_cache(
-                    &data[i],
-                    &prev_state,
-                    &mut lstm_state_caches[i]
-                );
-                prev_state.copy_from(&lstm_state_caches[i].state());
-            }
-
-            let tail: usize = data.len() - 1;
-
-            lstm.ready_output_cache(
-                &lstm_state_caches[tail],
-                &mut lstm_output_cache
-            );
-
-            output_layer.ready(
-                lstm_output_cache.output(),
-                None,
-                &mut output_layer_cache
-            );
-
-            output_layer_cache.calc_output_error(&japanese, &mut output_error);
-
-            tmpbuf.copy_from(&output_error);
-
-            output_layer.study(
-                &tmpbuf,
-                None,
-                &output_layer_cache,
-                &mut output_error,
-                None
-            );
-
-            state_error.clear();
-            lstm.study(
-                &output_error,
-                &state_error,
-                &lstm_state_caches[tail],
-                &lstm_output_cache,
-                &mut input_error,
-                &mut prev_state_error
-            );
-            state_error.copy_from(&prev_state_error);
-
-            for i in 1..data.len() {
-                let i = tail - i;
-
-                lstm.study_state(
-                    &state_error,
-                    &lstm_state_caches[i],
-                    &mut tmp_input_error,
-                    &mut prev_state_error
-                );
-
-                input_error += &tmp_input_error;
-                state_error.copy_from(&prev_state_error);
-            }
-
-            english_data(&mut rng, &mut data);
-            prev_state.clear();
-
-            for i in 0..data.len() {
-                lstm.ready_state_cache(
-                    &data[i],
-                    &prev_state,
-                    &mut lstm_state_caches[i]
-                );
-                prev_state.copy_from(&lstm_state_caches[i].state());
-            }
-
-            let tail: usize = data.len() - 1;
-
-            lstm.ready_output_cache(
-                &lstm_state_caches[tail],
-                &mut lstm_output_cache
-            );
-
-            output_layer.ready(
-                lstm_output_cache.output(),
-                None,
-                &mut output_layer_cache
-            );
-
-            output_layer_cache.calc_output_error(&english, &mut output_error);
-
-            tmpbuf.copy_from(&output_error);
-
-            output_layer.study(
-                &tmpbuf,
-                None,
-                &output_layer_cache,
-                &mut output_error,
-                None
-            );
-
-            state_error.clear();
-            lstm.study(
-                &output_error,
-                &state_error,
-                &lstm_state_caches[tail],
-                &lstm_output_cache,
-                &mut input_error,
-                &mut prev_state_error
-            );
-            state_error.copy_from(&prev_state_error);
-
-            for i in 1..data.len() {
-                let i = tail - i;
-
-                lstm.study_state(
-                    &state_error,
-                    &lstm_state_caches[i],
-                    &mut tmp_input_error,
-                    &mut prev_state_error
-                );
-
-                input_error += &tmp_input_error;
-                state_error.copy_from(&prev_state_error);
-            }
-        }
-
-        lstm.update(RATE);
-        output_layer.update(RATE);
-    }
-
-    let lstm = lstm.drop();
-    let output_layer = output_layer.drop();
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        prev_state.clear();
-
-        for i in 0..(data.len() - 1) {
-            lstm.calc_state(
-                &data[i],
-                &prev_state,
-                &mut state,
-                &mut tmpbuf,
-            );
-
-            prev_state.copy_from(&state);
-        }
-
-        prev_state.copy_from(&state);
-        lstm.calc(
-            data.last().unwrap(),
-            &prev_state,
-            &mut output,
-            &mut state,
-            &mut tmpbuf
-        );
-
-        tmpbuf.copy_from(&output);
-        output_layer.calc(&tmpbuf, None, &mut output);
-
-        assert_eq!(
-            output.to_u32_label(),
-            japanese.to_u32_label(),
-        );
-
-        english_data(&mut rng, &mut data);
-        prev_state.clear();
-
-        for i in 0..(data.len() - 1) {
-            lstm.calc_state(
-                &data[i],
-                &prev_state,
-                &mut state,
-                &mut tmpbuf,
-            );
-
-            prev_state.copy_from(&state);
-        }
-
-        prev_state.copy_from(&state);
-        lstm.calc(
-            data.last().unwrap(),
-            &prev_state,
-            &mut output,
-            &mut state,
-            &mut tmpbuf
-        );
-
-        tmpbuf.copy_from(&output);
-        output_layer.calc(&tmpbuf, None, &mut output);
-
-        assert_eq!(
-            output.to_u32_label(),
-            english.to_u32_label(),
-        );
-    }
-}
-
-#[test]
-fn lstm_test_3() {
-    const OUT: usize = 11;
-    const IN: usize = 5;
-
-    let mut rng = ChobitRand::new("lstm_test_3".as_bytes());
-
-    let mut lstm_1 = LSTM::<OUT, IN>::new();
-    let mut lstm_2 = LSTM::<OUT, IN>::new();
-
-    lstm_1.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    lstm_2.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    assert_ne!(lstm_1, lstm_2);
-
-    let mut vec = Vec::<f32>::new();
-
-    lstm_1.for_each_weight(|val| {
-        vec.push(*val);
-    });
-
-    let mut vec_iter = vec.iter();
-
-    lstm_2.for_each_weight_mut(|val| {
-        *val = *vec_iter.next().unwrap();
-    });
-
-    assert_eq!(lstm_1, lstm_2);
-}
-
-fn gen_encoder<
-    const OUT: usize,
-    const MIDDLE: usize,
-    const IN: usize
->(rng: &mut ChobitRand) -> ChobitEncoder<OUT, MIDDLE, IN> {
-    let mut ret = ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-
-    rand_weights(rng, ret.lstm_mut().main_layer_mut().mut_weights());
-    rand_weights(rng, ret.lstm_mut().f_gate_mut().mut_weights());
-    rand_weights(rng, ret.lstm_mut().i_gate_mut().mut_weights());
-    rand_weights(rng, ret.lstm_mut().o_gate_mut().mut_weights());
-
-    rand_weights(rng, ret.output_layer_mut().mut_weights());
-
-    ret
-}
-
-#[test]
-fn chobit_encoder_test_1() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 64;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("chobit_encoder_test_1".as_bytes());
-
-    let mut data = Vec::<MathVec<32>>::new();
-    let mut japanese = MathVec::<OUT>::new();
-    japanese.load_u32_label(JAPANESE as u32);
-
-    const COUNT: usize = 10;
-
-    let mut encoder = gen_encoder::<OUT, MIDDLE, IN>(&mut rng);
-    let mut output = MathVec::<OUT>::new();
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        encoder.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            encoder.input_next(data_one);
-        });
-
-        encoder.output(&mut output);
-    }
-
-    const EPOCH: usize = 10;
-    const BATCH_SIZE: usize = 10;
-    const RATE: f32 = 0.01;
-
-    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-    let prev_state = MathVec::<MIDDLE>::new();
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            japanese_data(&mut rng, &mut data);
-
-            encoder.study(
-                &data,
-                &prev_state,
-                &japanese,
-            );
-        }
-
-        encoder.update(RATE);
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[test]
-fn chobit_encoder_test_2() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 64;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("chobit_encoder_test_2".as_bytes());
-
-    let mut data = Vec::<MathVec<32>>::new();
-    let mut japanese = MathVec::<OUT>::new();
-    japanese.load_u32_label(JAPANESE as u32);
-    let mut english = MathVec::<OUT>::new();
-    english.load_u32_label(ENGLISH as u32);
-
-    const COUNT: usize = 10;
-
-    let mut encoder = gen_encoder::<OUT, MIDDLE, IN>(&mut rng);
-    let mut output = MathVec::<OUT>::new();
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        encoder.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            encoder.input_next(data_one);
-        });
-
-        encoder.output(&mut output);
-
-        assert_ne!(
-            output.to_u32_label(),
-            japanese.to_u32_label(),
-        );
-        println!(
-            "{}, {:?}",
-            data_to_string(&data),
-            char::from_u32(output.to_u32_label())
-        )
-    }
-
-    for _ in 0..COUNT {
-        english_data(&mut rng, &mut data);
-        encoder.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            encoder.input_next(data_one);
-        });
-
-        encoder.output(&mut output);
-
-        assert_ne!(
-            output.to_u32_label(),
-            english.to_u32_label(),
-        );
-        println!(
-            "{}, {:?}",
-            data_to_string(&data),
-            char::from_u32(output.to_u32_label())
-        )
-    }
-
-    const EPOCH: usize = 1000;
-    const BATCH_SIZE: usize = 100;
-    const RATE: f32 = 0.01;
-
-    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-    let prev_state = MathVec::<MIDDLE>::new();
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            japanese_data(&mut rng, &mut data);
-
-            encoder.study(
-                &data,
-                &prev_state,
-                &japanese,
-            );
-
-            english_data(&mut rng, &mut data);
-
-            encoder.study(
-                &data,
-                &prev_state,
-                &english,
-            );
-        }
-
-        encoder.update(RATE);
-    }
-
-    let mut encoder = encoder.drop();
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        encoder.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            encoder.input_next(data_one);
-        });
-
-        encoder.output(&mut output);
-
-        assert_eq!(
-            output.to_u32_label(),
-            japanese.to_u32_label(),
-        );
-        println!(
-            "{}, {:?}",
-            data_to_string(&data),
-            char::from_u32(output.to_u32_label())
-        )
-    }
-
-    for _ in 0..COUNT {
-        english_data(&mut rng, &mut data);
-        encoder.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            encoder.input_next(data_one);
-        });
-
-        encoder.output(&mut output);
-
-        assert_eq!(
-            output.to_u32_label(),
-            english.to_u32_label(),
-        );
-        println!(
-            "{}, {:?}",
-            data_to_string(&data),
-            char::from_u32(output.to_u32_label())
-        )
-    }
-}
-
-#[test]
-fn chobit_encoder_test_3() {
-    const OUT: usize = 11;
-    const MIDDLE: usize = 7;
-    const IN: usize = 5;
-
-    let mut rng = ChobitRand::new("chobit_encoder_test_3".as_bytes());
-
-    let mut encoder_1 =
-        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    encoder_1.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    let mut encoder_2 =
-        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    encoder_2.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    assert_ne!(encoder_1, encoder_2);
-
-    let mut vec = Vec::<f32>::new();
-    encoder_1.for_each_weight(|val| {
-        vec.push(*val);
-    });
-
-    let mut vec_iter = vec.iter();
-    encoder_2.for_each_weight_mut(|val| {
-        *val = *vec_iter.next().unwrap();
-    });
-
-    assert_eq!(encoder_1, encoder_2);
-}
-
-fn gen_decoder<
-    const OUT: usize,
-    const MIDDLE: usize,
-    const IN: usize
->(rng: &mut ChobitRand) -> ChobitDecoder<OUT, MIDDLE, IN> {
-    let mut ret = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-
-    rand_weights(rng, ret.lstm_mut().main_layer_mut().mut_weights());
-    rand_weights(rng, ret.lstm_mut().f_gate_mut().mut_weights());
-    rand_weights(rng, ret.lstm_mut().i_gate_mut().mut_weights());
-    rand_weights(rng, ret.lstm_mut().o_gate_mut().mut_weights());
-
-    rand_weights(rng, ret.output_layer_mut().mut_weights());
-
-    ret
-}
-
-#[test]
-fn chobit_decoder_test_1() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 64;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("chobit_decoder_test_1".as_bytes());
-
-    let mut japanese_in = MathVec::<IN>::new();
-    japanese_in.load_u32_label(JAPANESE as u32);
-
-    let mut japanese_out = Vec::<MathVec<OUT>>::new();
-    "これは日本語です。\x00".chars().for_each(|c| {
-        let mut vec = MathVec::<OUT>::new();
-        vec.load_u32_label(c as u32);
-
-        japanese_out.push(vec);
-    });
-
-    let mut decoder = gen_decoder(&mut rng);
-
-    {
-        decoder.input_mut().copy_from(&japanese_in);
-        decoder.state_mut().clear();
-
-        let mut output = vec![MathVec::<OUT>::new(); japanese_out.len()];
-        output.iter_mut().for_each(|output_one| {
-            decoder.output_next(output_one);
-        });
-    }
-
-    const EPOCH: usize = 3;
-    const BATCH_SIZE: usize = 3;
-    const RATE: f32 = 0.01;
-
-    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-
-    let prev_state = MathVec::<MIDDLE>::new();
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            decoder.study(
-                &japanese_in,
-                &prev_state,
-                japanese_out.as_slice()
-            );
-        }
-
-        decoder.update(RATE);
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[test]
-fn chobit_decoder_test_2() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 64;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("chobit_decoder_test_1".as_bytes());
-
-    let mut japanese_in = MathVec::<IN>::new();
-    japanese_in.load_u32_label(JAPANESE as u32);
-
-    let mut japanese_out = Vec::<MathVec<OUT>>::new();
-    "これは日本語です。\x00".chars().for_each(|c| {
-        let mut vec = MathVec::<OUT>::new();
-        vec.load_u32_label(c as u32);
-
-        japanese_out.push(vec);
-    });
-
-    let mut english_in = MathVec::<IN>::new();
-    english_in.load_u32_label(ENGLISH as u32);
-
-    let mut english_out = Vec::<MathVec<OUT>>::new();
-    "this is english.\x00".chars().for_each(|c| {
-        let mut vec = MathVec::<OUT>::new();
-        vec.load_u32_label(c as u32);
-
-        english_out.push(vec);
-    });
-
-    let mut decoder = gen_decoder(&mut rng);
-
-    {
-        decoder.input_mut().copy_from(&japanese_in);
-        decoder.state_mut().clear();
-
-        let mut output = vec![MathVec::<OUT>::new(); japanese_out.len()];
-        output.iter_mut().for_each(|output_one| {
-            decoder.output_next(output_one);
-        });
-
-        assert_ne!(output, japanese_out);
-    }
-
-    {
-        decoder.input_mut().copy_from(&english_in);
-        decoder.state_mut().clear();
-
-        let mut output = vec![MathVec::<OUT>::new(); english_out.len()];
-        output.iter_mut().for_each(|output_one| {
-            decoder.output_next(output_one);
-        });
-
-        assert_ne!(output, english_out);
-    }
-
-    const EPOCH: usize = 50000;
-    const BATCH_SIZE: usize = 1;
-    const RATE: f32 = 0.01;
-
-    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-
-    let prev_state_j = MathVec::<MIDDLE>::new();
-    let prev_state_e = MathVec::<MIDDLE>::new();
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            decoder.study(
-                &japanese_in,
-                &prev_state_j,
-                japanese_out.as_slice()
-            );
-
-            decoder.study(
-                &english_in,
-                &prev_state_e,
-                english_out.as_slice()
-            );
-        }
-
-        decoder.update(RATE);
-    }
-
-    let mut decoder = decoder.drop();
-
-    {
-        decoder.input_mut().copy_from(&japanese_in);
-        decoder.state_mut().clear();
-
-        let mut output = vec![MathVec::<OUT>::new(); japanese_out.len()];
-        output.iter_mut().for_each(|output_one| {
-            decoder.output_next(output_one);
-            println!("{:?}", char::from_u32(output_one.to_u32_label()));
-        });
-
-        assert_eq!(
-            data_to_string(output.as_slice()),
-            data_to_string(japanese_out.as_slice())
-        );
-    }
-
-    println!("-----");
-
-    {
-        decoder.input_mut().copy_from(&english_in);
-        decoder.state_mut().clear();
-
-
-        let mut output = vec![MathVec::<OUT>::new(); english_out.len()];
-        output.iter_mut().for_each(|output_one| {
-            decoder.output_next(output_one);
-            println!("{:?}", char::from_u32(output_one.to_u32_label()));
-        });
-
-        assert_eq!(
-            data_to_string(output.as_slice()),
-            data_to_string(english_out.as_slice())
-        );
-    }
-}
-
-#[test]
-fn chobit_decoder_test_3() {
-    const OUT: usize = 11;
-    const MIDDLE: usize = 7;
-    const IN: usize = 5;
-
-    let mut rng = ChobitRand::new("chobit_decoder_test_3".as_bytes());
-
-    let mut decoder_1 =
-        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    decoder_1.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    let mut decoder_2 =
-        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    decoder_2.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    assert_ne!(decoder_1, decoder_2);
-
-    let mut vec = Vec::<f32>::new();
-    decoder_1.for_each_weight(|val| {
-        vec.push(*val);
-    });
-
-    let mut vec_iter = vec.iter();
-    decoder_2.for_each_weight_mut(|val| {
-        *val = *vec_iter.next().unwrap();
-    });
-
-    assert_eq!(decoder_1, decoder_2);
-}
-
-fn gen_seq_ai<
-    const OUT: usize,
-    const MIDDLE: usize,
-    const IN: usize
->(rng: &mut ChobitRand) -> ChobitSeqAI<OUT, MIDDLE, IN> {
-    let mut ret = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-
-    rand_weights(rng, ret.enc_layer_mut().main_layer_mut().mut_weights());
-    rand_weights(rng, ret.enc_layer_mut().f_gate_mut().mut_weights());
-    rand_weights(rng, ret.enc_layer_mut().i_gate_mut().mut_weights());
-    rand_weights(rng, ret.enc_layer_mut().o_gate_mut().mut_weights());
-
-    rand_weights(rng, ret.dec_layer_mut().main_layer_mut().mut_weights());
-    rand_weights(rng, ret.dec_layer_mut().f_gate_mut().mut_weights());
-    rand_weights(rng, ret.dec_layer_mut().i_gate_mut().mut_weights());
-    rand_weights(rng, ret.dec_layer_mut().o_gate_mut().mut_weights());
-
-    rand_weights(rng, ret.output_layer_mut().mut_weights());
-
-    ret
-}
-
-#[test]
-fn chobit_seq_ai_test_1() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 64;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("chobit_seq_ai_test_1".as_bytes());
-
-    let mut data = Vec::<MathVec<32>>::new();
-
-    let mut japanese_out = Vec::<MathVec<OUT>>::new();
-    "これは日本語です。\x00".chars().for_each(|c| {
-        let mut vec = MathVec::<OUT>::new();
-        vec.load_u32_label(c as u32);
-
-        japanese_out.push(vec);
-    });
-
-    let mut ai = gen_seq_ai::<OUT, MIDDLE, IN>(&mut rng);
-    let mut output = vec![MathVec::<OUT>::new(); 30];
-
-    const COUNT: usize = 10;
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        ai.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            ai.input_next(data_one);
-        });
-
-        japanese_out.iter().zip(output.as_mut_slice()).for_each(
-            |(_, output_one)| {
-                ai.output_next(output_one);
-            }
-        );
-    }
-
-    const EPOCH: usize = 3;
-    const BATCH_SIZE: usize = 3;
-    const RATE: f32 = 0.01;
-
-    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-
-    let prev_state = MathVec::<MIDDLE>::new();
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            japanese_data(&mut rng, &mut data);
-            ai.study(
-                data.as_slice(),
-                &prev_state,
-                &japanese_out
-            );
-        }
-        ai.update(RATE);
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[test]
-fn chobit_seq_ai_test_2() {
-    const OUT: usize = 32;
-    const MIDDLE: usize = 64;
-    const IN: usize = 32;
-
-    let mut rng = ChobitRand::new("chobit_seq_ai_test_2".as_bytes());
-
-    let mut data = Vec::<MathVec<32>>::new();
-
-    let mut japanese_out = Vec::<MathVec<OUT>>::new();
-    "これは日本語です。\x00".chars().for_each(|c| {
-        let mut vec = MathVec::<OUT>::new();
-        vec.load_u32_label(c as u32);
-
-        japanese_out.push(vec);
-    });
-
-    let mut english_out = Vec::<MathVec<OUT>>::new();
-    "this is english.\x00".chars().for_each(|c| {
-        let mut vec = MathVec::<OUT>::new();
-        vec.load_u32_label(c as u32);
-
-        english_out.push(vec);
-    });
-
-    let mut ai = gen_seq_ai::<OUT, MIDDLE, IN>(&mut rng);
-    let mut output = vec![MathVec::<OUT>::new(); 30];
-
-    const COUNT: usize = 10;
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        ai.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            ai.input_next(data_one);
-        });
-
-        japanese_out.iter().zip(output.as_mut_slice()).for_each(
-            |(_, output_one)| {
-                ai.output_next(output_one);
-            }
-        );
-
-        japanese_out.iter().zip(output.as_slice()).for_each(
-            |(train_out, output_one)| {
-                assert_ne!(
-                    char::from_u32(train_out.to_u32_label()),
-                    char::from_u32(output_one.to_u32_label()),
-                );
-            }
-        );
-    }
-
-    for _ in 0..COUNT {
-        english_data(&mut rng, &mut data);
-        ai.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            ai.input_next(data_one);
-        });
-
-        english_out.iter().zip(output.as_mut_slice()).for_each(
-            |(_, output_one)| {
-                ai.output_next(output_one);
-            }
-        );
-
-        english_out.iter().zip(output.as_slice()).for_each(
-            |(train_out, output_one)| {
-                assert_ne!(
-                    char::from_u32(train_out.to_u32_label()),
-                    char::from_u32(output_one.to_u32_label()),
-                );
-            }
-        );
-    }
-
-    const EPOCH: usize = 3000;
-    const BATCH_SIZE: usize = 20;
-    const RATE: f32 = 0.01;
-
-    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-
-    let prev_state = MathVec::<MIDDLE>::new();
-
-    for _ in 0..EPOCH {
-        for _ in 0..BATCH_SIZE {
-            japanese_data(&mut rng, &mut data);
-            ai.study(
-                data.as_slice(),
-                &prev_state,
-                &japanese_out
-            );
-
-            english_data(&mut rng, &mut data);
-            ai.study(
-                data.as_slice(),
-                &prev_state,
-                &english_out
-            );
-        }
-        ai.update(RATE);
-    }
-
-    let mut ai = ai.drop();
-
-    for _ in 0..COUNT {
-        japanese_data(&mut rng, &mut data);
-        ai.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            ai.input_next(data_one);
-        });
-
-        japanese_out.iter().zip(output.as_mut_slice()).for_each(
-            |(_, output_one)| {
-                ai.output_next(output_one);
-            }
-        );
-
-        japanese_out.iter().zip(output.as_slice()).for_each(
-            |(train_out, output_one)| {
-                assert_eq!(
-                    char::from_u32(train_out.to_u32_label()),
-                    char::from_u32(output_one.to_u32_label()),
-                );
-            }
-        );
-
-        println!("{}", data_to_string(&output[..japanese_out.len()]))
-    }
-
-    for _ in 0..COUNT {
-        english_data(&mut rng, &mut data);
-        ai.state_mut().clear();
-
-        data.iter().for_each(|data_one| {
-            ai.input_next(data_one);
-        });
-
-        english_out.iter().zip(output.as_mut_slice()).for_each(
-            |(_, output_one)| {
-                ai.output_next(output_one);
-            }
-        );
-
-        english_out.iter().zip(output.as_slice()).for_each(
-            |(train_out, output_one)| {
-                assert_eq!(
-                    char::from_u32(train_out.to_u32_label()),
-                    char::from_u32(output_one.to_u32_label()),
-                );
-            }
-        );
-
-        println!("{}", data_to_string(&output[..english_out.len()]))
-    }
-}
-
-#[test]
-fn chobit_seq_ai_test_3() {
-    const OUT: usize = 11;
-    const MIDDLE: usize = 7;
-    const IN: usize = 5;
-
-    let mut rng = ChobitRand::new("chobit_seq_ai_test_3".as_bytes());
-
-    let mut ai_1 =
-        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    ai_1.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    let mut ai_2 =
-        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    ai_2.for_each_weight_mut(|val| {
-        *val = rand_num(&mut rng);
-    });
-
-    assert_ne!(ai_1, ai_2);
-
-    let mut vec = Vec::<f32>::new();
-    ai_1.for_each_weight(|val| {
-        vec.push(*val);
-    });
-
-    let mut vec_iter = vec.iter();
-    ai_2.for_each_weight_mut(|val| {
-        *val = *vec_iter.next().unwrap();
-    });
-
-    assert_eq!(ai_1, ai_2);
-}
+//#[test]
+//fn chobit_ai_test_1() {
+//    const OUT: usize = 8;
+//    const MIDDLE: usize = 32;
+//    const IN: usize = 16;
+//
+//    const COUNT: usize = 100;
+//
+//    let mut rng = ChobitRand::new("chobit_ai_test_1".as_bytes());
+//
+//    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    let mut input = MathVec::<IN>::new();
+//    let mut output = MathVec::<OUT>::new();
+//    let mut tmpbuf = MathVec::<MIDDLE>::new();
+//
+//    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
+//    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
+//
+//    for _ in 0..COUNT {
+//        let label_in = rng.next_u64() as u16;
+//
+//        input.load_u16_label(label_in);
+//        ai.calc(&input, &mut output, &mut tmpbuf);
+//    }
+//
+//    const EPOCH: usize = 10;
+//    const BATCH_SIZE: usize = 10;
+//    const RATE: f32 = 0.01;
+//
+//    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            let label = rng.next_u64() as u32;
+//            input.load_u16_label(label as u16);
+//            output.load_u8_label(label as u8);
+//
+//            ai.study(&input, &output);
+//        }
+//
+//        ai.update(RATE);
+//    }
+//
+//    let ai = ai.drop();
+//
+//    for _ in 0..COUNT {
+//        let label_in = rng.next_u64() as u16;
+//
+//        input.load_u16_label(label_in);
+//        ai.calc(&input, &mut output, &mut tmpbuf);
+//    }
+//}
+//
+//#[cfg(not(debug_assertions))]
+//#[test]
+//fn chobit_ai_test_2() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 128;
+//    const IN: usize = 32;
+//
+//    const COUNT: usize = 100;
+//
+//    let mut rng = ChobitRand::new("chobit_ai_test_2".as_bytes());
+//
+//    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    let mut input = MathVec::<IN>::new();
+//    let mut output = MathVec::<OUT>::new();
+//    let mut tmpbuf = MathVec::<MIDDLE>::new();
+//
+//    rand_weights(&mut rng, ai.middle_layer_mut().mut_weights());
+//    rand_weights(&mut rng, ai.output_layer_mut().mut_weights());
+//
+//    // before machine learning.
+//    for _ in 0..COUNT {
+//        let label_in = rng.next_u64() as u32;
+//
+//        input.load_u32_label(label_in);
+//        ai.calc(&input, &mut output, &mut tmpbuf);
+//
+//        let label_out = output.to_u32_label();
+//
+//        assert_ne!(label_out, label_in);
+//    }
+//
+//    // machine learning.
+//    const EPOCH: usize = 3000;
+//    const BATCH_SIZE: usize = 100;
+//    const RATE: f32 = 0.01;
+//
+//    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            let label = rng.next_u64() as u32;
+//            input.load_u32_label(label);
+//            output.load_u32_label(label);
+//
+//            ai.study(&input, &output);
+//        }
+//
+//        ai.update(RATE);
+//    }
+//
+//    let ai = ai.drop();
+//
+//    // after machine learning.
+//    for _ in 0..COUNT {
+//        let label_in = rng.next_u64() as u32;
+//
+//        input.load_u32_label(label_in);
+//        ai.calc(&input, &mut output, &mut tmpbuf);
+//
+//        let label_out = output.to_u32_label();
+//
+//        assert_eq!(label_out, label_in);
+//    }
+//}
+//
+//#[test]
+//fn chobit_ai_test_3() {
+//    const OUT: usize = 11;
+//    const MIDDLE: usize = 7;
+//    const IN: usize = 5;
+//
+//    let mut rng = ChobitRand::new("chobit_ai_test_3".as_bytes());
+//
+//    let mut ai_1 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    let mut ai_2 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//
+//    ai_1.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    ai_2.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    assert_ne!(ai_1, ai_2);
+//
+//    let mut vec = Vec::<f32>::new();
+//
+//    ai_1.for_each_weight(|val| {
+//        vec.push(*val);
+//    });
+//
+//    let mut vec_iter = vec.iter();
+//
+//    ai_2.for_each_weight_mut(|val| {
+//        *val = *vec_iter.next().unwrap();
+//    });
+//
+//    assert_eq!(ai_1, ai_2);
+//}
+//
+//fn letter_data(
+//    rng: &mut ChobitRand,
+//    letters: &[char],
+//    data: &mut Vec<MathVec<32>>
+//) {
+//    static DUMMY: [char; 10] = [
+//        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+//    ];
+//
+//    let half_size: usize = ((rng.next_u64() % 5) + 1) as usize;
+//
+//    data.resize(half_size * 2, MathVec::<32>::new());
+//
+//    data[..half_size].iter_mut().for_each(|vec| {
+//        let letter = letters[(rng.next_u64() as usize) % letters.len()];
+//        let label = letter as u32;
+//        vec.load_u32_label(label);
+//    });
+//
+//    data[half_size..].iter_mut().for_each(|vec| {
+//        let letter = DUMMY[(rng.next_u64() as usize) % DUMMY.len()];
+//        let label = letter as u32;
+//        vec.load_u32_label(label);
+//    });
+//
+//    rng.shuffle(data);
+//}
+//
+//const JAPANESE: char = '日';
+//fn japanese_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
+//    let letters: [char; 10] = [
+//        'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
+//    ];
+//
+//    letter_data(rng, &letters, data);
+//}
+//
+//#[cfg(not(debug_assertions))]
+//const ENGLISH: char = 'E';
+//
+//#[cfg(not(debug_assertions))]
+//fn english_data(rng: &mut ChobitRand, data: &mut Vec<MathVec<32>>) {
+//    let letters: [char; 10] = [
+//        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'
+//    ];
+//
+//    letter_data(rng, &letters, data);
+//}
+//
+//#[cfg(not(debug_assertions))]
+//fn data_to_string(data: &[MathVec<32>]) -> String {
+//    let mut ret = String::new();
+//
+//    data.iter().for_each(|vec| {
+//        let label = vec.to_u32_label();
+//        ret.push(char::from_u32(label).unwrap());
+//    });
+//
+//    ret
+//}
+//
+//fn gen_lstm<const OUT: usize, const IN: usize>(
+//    rng: &mut ChobitRand
+//) -> LSTM<OUT, IN> {
+//    let mut ret = LSTM::<OUT, IN>::new();
+//
+//    rand_weights(rng, ret.main_layer_mut().mut_weights());
+//    rand_weights(rng, ret.f_gate_mut().mut_weights());
+//    rand_weights(rng, ret.i_gate_mut().mut_weights());
+//    rand_weights(rng, ret.o_gate_mut().mut_weights());
+//
+//    ret
+//}
+//
+//fn gen_layer<const OUT: usize, const IN: usize>(
+//    rng: &mut ChobitRand
+//) -> Layer<OUT, IN> {
+//    let mut ret = Layer::<OUT, IN>::new(Activation::SoftSign, false);
+//
+//    rand_weights(rng, ret.mut_weights());
+//
+//    ret
+//}
+//
+//#[test]
+//fn lstm_test_1() {
+//    const OUT: usize = 32;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("lstm_test_1".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//    let mut japanese = MathVec::<OUT>::new();
+//    japanese.load_u32_label(JAPANESE as u32);
+//
+//    let mut prev_state = MathVec::<OUT>::new();
+//    let mut output = MathVec::<OUT>::new();
+//    let mut state = MathVec::<OUT>::new();
+//    let mut tmpbuf = MathVec::<OUT>::new();
+//
+//    const COUNT: usize = 10;
+//
+//    let lstm = gen_lstm::<OUT, IN>(&mut rng);
+//    let output_layer = gen_layer::<OUT, OUT>(&mut rng);
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        prev_state.clear();
+//
+//        for i in 0..(data.len() - 1) {
+//            lstm.calc_state(
+//                &data[i],
+//                &prev_state,
+//                &mut state,
+//                &mut tmpbuf,
+//            );
+//
+//            prev_state.copy_from(&state);
+//        }
+//
+//        prev_state.copy_from(&state);
+//
+//        lstm.calc(
+//            data.last().unwrap(),
+//            &prev_state,
+//            &mut output,
+//            &mut state,
+//            &mut tmpbuf
+//        );
+//
+//        tmpbuf.copy_from(&output);
+//        output_layer.calc(&tmpbuf, None, &mut output);
+//    }
+//
+//    const EPOCH: usize = 10;
+//    const BATCH_SIZE: usize = 10;
+//    const RATE: f32 = 0.01;
+//
+//    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
+//    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
+//
+//    let mut lstm_state_caches = vec![MLLSTMStateCache::<OUT, IN>::new(); 30];
+//    let mut lstm_output_cache = MLLSTMOutputCache::<OUT, IN>::new();
+//    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
+//    let mut output_error = MathVec::<OUT>::new();
+//    let mut state_error = MathVec::<OUT>::new();
+//    let mut input_error = MathVec::<IN>::new();
+//    let mut tmp_input_error = MathVec::<IN>::new();
+//    let mut prev_state_error = MathVec::<OUT>::new();
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//            prev_state.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready_state_cache(
+//                    &data[i],
+//                    &prev_state,
+//                    &mut lstm_state_caches[i]
+//                );
+//                prev_state.copy_from(&lstm_state_caches[i].state());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            lstm.ready_output_cache(
+//                &lstm_state_caches[tail],
+//                &mut lstm_output_cache
+//            );
+//
+//            output_layer.ready(
+//                lstm_output_cache.output(),
+//                None,
+//                &mut output_layer_cache
+//            );
+//
+//            output_layer_cache.calc_output_error(&japanese, &mut output_error);
+//
+//            tmpbuf.copy_from(&output_error);
+//
+//            output_layer.study(
+//                &tmpbuf,
+//                None,
+//                &output_layer_cache,
+//                &mut output_error,
+//                None
+//            );
+//
+//            state_error.clear();
+//            lstm.study(
+//                &output_error,
+//                &state_error,
+//                &lstm_state_caches[tail],
+//                &lstm_output_cache,
+//                &mut input_error,
+//                &mut prev_state_error
+//            );
+//            state_error.copy_from(&prev_state_error);
+//
+//            for i in 1..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study_state(
+//                    &state_error,
+//                    &lstm_state_caches[i],
+//                    &mut tmp_input_error,
+//                    &mut prev_state_error
+//                );
+//
+//                input_error += &tmp_input_error;
+//                state_error.copy_from(&prev_state_error);
+//            }
+//        }
+//
+//        lstm.update(RATE);
+//        output_layer.update(RATE);
+//    }
+//}
+//
+//#[cfg(not(debug_assertions))]
+//#[test]
+//fn lstm_test_2() {
+//    const OUT: usize = 32;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("lstm_test_2".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//    let mut japanese = MathVec::<OUT>::new();
+//    japanese.load_u32_label(JAPANESE as u32);
+//    let mut english = MathVec::<OUT>::new();
+//    english.load_u32_label(ENGLISH as u32);
+//
+//    let mut prev_state = MathVec::<OUT>::new();
+//    let mut output = MathVec::<OUT>::new();
+//    let mut state = MathVec::<OUT>::new();
+//    let mut tmpbuf = MathVec::<OUT>::new();
+//
+//    const COUNT: usize = 10;
+//
+//    let lstm = gen_lstm::<OUT, IN>(&mut rng);
+//    let output_layer = gen_layer::<OUT, OUT>(&mut rng);
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        prev_state.clear();
+//
+//        for i in 0..(data.len() - 1) {
+//            lstm.calc_state(
+//                &data[i],
+//                &prev_state,
+//                &mut state,
+//                &mut tmpbuf,
+//            );
+//
+//            prev_state.copy_from(&state);
+//        }
+//
+//        prev_state.copy_from(&state);
+//        lstm.calc(
+//            data.last().unwrap(),
+//            &prev_state,
+//            &mut output,
+//            &mut state,
+//            &mut tmpbuf
+//        );
+//
+//        tmpbuf.copy_from(&output);
+//        output_layer.calc(&tmpbuf, None, &mut output);
+//
+//        assert_ne!(
+//            output.to_u32_label(),
+//            japanese.to_u32_label(),
+//        );
+//
+//        english_data(&mut rng, &mut data);
+//        prev_state.clear();
+//
+//        for i in 0..data.len() {
+//            lstm.calc_state(
+//                &data[i],
+//                &prev_state,
+//                &mut state,
+//                &mut tmpbuf,
+//            );
+//
+//            prev_state.copy_from(&state);
+//        }
+//
+//        prev_state.copy_from(&state);
+//        lstm.calc(
+//            data.last().unwrap(),
+//            &prev_state,
+//            &mut output,
+//            &mut state,
+//            &mut tmpbuf
+//        );
+//
+//        tmpbuf.copy_from(&output);
+//        output_layer.calc(&tmpbuf, None, &mut output);
+//
+//        assert_ne!(
+//            output.to_u32_label(),
+//            english.to_u32_label(),
+//        );
+//    }
+//
+//    const EPOCH: usize = 1000;
+//    const BATCH_SIZE: usize = 100;
+//    const RATE: f32 = 0.01;
+//
+//    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
+//    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
+//
+//    let mut lstm_state_caches = vec![MLLSTMStateCache::<OUT, IN>::new(); 30];
+//    let mut lstm_output_cache = MLLSTMOutputCache::<OUT, IN>::new();
+//    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
+//    let mut output_error = MathVec::<OUT>::new();
+//    let mut state_error = MathVec::<OUT>::new();
+//    let mut input_error = MathVec::<IN>::new();
+//    let mut tmp_input_error = MathVec::<IN>::new();
+//    let mut prev_state_error = MathVec::<OUT>::new();
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//            prev_state.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready_state_cache(
+//                    &data[i],
+//                    &prev_state,
+//                    &mut lstm_state_caches[i]
+//                );
+//                prev_state.copy_from(&lstm_state_caches[i].state());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            lstm.ready_output_cache(
+//                &lstm_state_caches[tail],
+//                &mut lstm_output_cache
+//            );
+//
+//            output_layer.ready(
+//                lstm_output_cache.output(),
+//                None,
+//                &mut output_layer_cache
+//            );
+//
+//            output_layer_cache.calc_output_error(&japanese, &mut output_error);
+//
+//            tmpbuf.copy_from(&output_error);
+//
+//            output_layer.study(
+//                &tmpbuf,
+//                None,
+//                &output_layer_cache,
+//                &mut output_error,
+//                None
+//            );
+//
+//            state_error.clear();
+//            lstm.study(
+//                &output_error,
+//                &state_error,
+//                &lstm_state_caches[tail],
+//                &lstm_output_cache,
+//                &mut input_error,
+//                &mut prev_state_error
+//            );
+//            state_error.copy_from(&prev_state_error);
+//
+//            for i in 1..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study_state(
+//                    &state_error,
+//                    &lstm_state_caches[i],
+//                    &mut tmp_input_error,
+//                    &mut prev_state_error
+//                );
+//
+//                input_error += &tmp_input_error;
+//                state_error.copy_from(&prev_state_error);
+//            }
+//
+//            english_data(&mut rng, &mut data);
+//            prev_state.clear();
+//
+//            for i in 0..data.len() {
+//                lstm.ready_state_cache(
+//                    &data[i],
+//                    &prev_state,
+//                    &mut lstm_state_caches[i]
+//                );
+//                prev_state.copy_from(&lstm_state_caches[i].state());
+//            }
+//
+//            let tail: usize = data.len() - 1;
+//
+//            lstm.ready_output_cache(
+//                &lstm_state_caches[tail],
+//                &mut lstm_output_cache
+//            );
+//
+//            output_layer.ready(
+//                lstm_output_cache.output(),
+//                None,
+//                &mut output_layer_cache
+//            );
+//
+//            output_layer_cache.calc_output_error(&english, &mut output_error);
+//
+//            tmpbuf.copy_from(&output_error);
+//
+//            output_layer.study(
+//                &tmpbuf,
+//                None,
+//                &output_layer_cache,
+//                &mut output_error,
+//                None
+//            );
+//
+//            state_error.clear();
+//            lstm.study(
+//                &output_error,
+//                &state_error,
+//                &lstm_state_caches[tail],
+//                &lstm_output_cache,
+//                &mut input_error,
+//                &mut prev_state_error
+//            );
+//            state_error.copy_from(&prev_state_error);
+//
+//            for i in 1..data.len() {
+//                let i = tail - i;
+//
+//                lstm.study_state(
+//                    &state_error,
+//                    &lstm_state_caches[i],
+//                    &mut tmp_input_error,
+//                    &mut prev_state_error
+//                );
+//
+//                input_error += &tmp_input_error;
+//                state_error.copy_from(&prev_state_error);
+//            }
+//        }
+//
+//        lstm.update(RATE);
+//        output_layer.update(RATE);
+//    }
+//
+//    let lstm = lstm.drop();
+//    let output_layer = output_layer.drop();
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        prev_state.clear();
+//
+//        for i in 0..(data.len() - 1) {
+//            lstm.calc_state(
+//                &data[i],
+//                &prev_state,
+//                &mut state,
+//                &mut tmpbuf,
+//            );
+//
+//            prev_state.copy_from(&state);
+//        }
+//
+//        prev_state.copy_from(&state);
+//        lstm.calc(
+//            data.last().unwrap(),
+//            &prev_state,
+//            &mut output,
+//            &mut state,
+//            &mut tmpbuf
+//        );
+//
+//        tmpbuf.copy_from(&output);
+//        output_layer.calc(&tmpbuf, None, &mut output);
+//
+//        assert_eq!(
+//            output.to_u32_label(),
+//            japanese.to_u32_label(),
+//        );
+//
+//        english_data(&mut rng, &mut data);
+//        prev_state.clear();
+//
+//        for i in 0..(data.len() - 1) {
+//            lstm.calc_state(
+//                &data[i],
+//                &prev_state,
+//                &mut state,
+//                &mut tmpbuf,
+//            );
+//
+//            prev_state.copy_from(&state);
+//        }
+//
+//        prev_state.copy_from(&state);
+//        lstm.calc(
+//            data.last().unwrap(),
+//            &prev_state,
+//            &mut output,
+//            &mut state,
+//            &mut tmpbuf
+//        );
+//
+//        tmpbuf.copy_from(&output);
+//        output_layer.calc(&tmpbuf, None, &mut output);
+//
+//        assert_eq!(
+//            output.to_u32_label(),
+//            english.to_u32_label(),
+//        );
+//    }
+//}
+//
+//#[test]
+//fn lstm_test_3() {
+//    const OUT: usize = 11;
+//    const IN: usize = 5;
+//
+//    let mut rng = ChobitRand::new("lstm_test_3".as_bytes());
+//
+//    let mut lstm_1 = LSTM::<OUT, IN>::new();
+//    let mut lstm_2 = LSTM::<OUT, IN>::new();
+//
+//    lstm_1.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    lstm_2.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    assert_ne!(lstm_1, lstm_2);
+//
+//    let mut vec = Vec::<f32>::new();
+//
+//    lstm_1.for_each_weight(|val| {
+//        vec.push(*val);
+//    });
+//
+//    let mut vec_iter = vec.iter();
+//
+//    lstm_2.for_each_weight_mut(|val| {
+//        *val = *vec_iter.next().unwrap();
+//    });
+//
+//    assert_eq!(lstm_1, lstm_2);
+//}
+//
+//fn gen_encoder<
+//    const OUT: usize,
+//    const MIDDLE: usize,
+//    const IN: usize
+//>(rng: &mut ChobitRand) -> ChobitEncoder<OUT, MIDDLE, IN> {
+//    let mut ret = ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//
+//    rand_weights(rng, ret.lstm_mut().main_layer_mut().mut_weights());
+//    rand_weights(rng, ret.lstm_mut().f_gate_mut().mut_weights());
+//    rand_weights(rng, ret.lstm_mut().i_gate_mut().mut_weights());
+//    rand_weights(rng, ret.lstm_mut().o_gate_mut().mut_weights());
+//
+//    rand_weights(rng, ret.output_layer_mut().mut_weights());
+//
+//    ret
+//}
+//
+//#[test]
+//fn chobit_encoder_test_1() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 64;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("chobit_encoder_test_1".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//    let mut japanese = MathVec::<OUT>::new();
+//    japanese.load_u32_label(JAPANESE as u32);
+//
+//    const COUNT: usize = 10;
+//
+//    let mut encoder = gen_encoder::<OUT, MIDDLE, IN>(&mut rng);
+//    let mut output = MathVec::<OUT>::new();
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        encoder.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            encoder.input_next(data_one);
+//        });
+//
+//        encoder.output(&mut output);
+//    }
+//
+//    const EPOCH: usize = 10;
+//    const BATCH_SIZE: usize = 10;
+//    const RATE: f32 = 0.01;
+//
+//    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+//    let prev_state = MathVec::<MIDDLE>::new();
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//
+//            encoder.study(
+//                &data,
+//                &prev_state,
+//                &japanese,
+//            );
+//        }
+//
+//        encoder.update(RATE);
+//    }
+//}
+//
+//#[cfg(not(debug_assertions))]
+//#[test]
+//fn chobit_encoder_test_2() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 64;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("chobit_encoder_test_2".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//    let mut japanese = MathVec::<OUT>::new();
+//    japanese.load_u32_label(JAPANESE as u32);
+//    let mut english = MathVec::<OUT>::new();
+//    english.load_u32_label(ENGLISH as u32);
+//
+//    const COUNT: usize = 10;
+//
+//    let mut encoder = gen_encoder::<OUT, MIDDLE, IN>(&mut rng);
+//    let mut output = MathVec::<OUT>::new();
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        encoder.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            encoder.input_next(data_one);
+//        });
+//
+//        encoder.output(&mut output);
+//
+//        assert_ne!(
+//            output.to_u32_label(),
+//            japanese.to_u32_label(),
+//        );
+//        println!(
+//            "{}, {:?}",
+//            data_to_string(&data),
+//            char::from_u32(output.to_u32_label())
+//        )
+//    }
+//
+//    for _ in 0..COUNT {
+//        english_data(&mut rng, &mut data);
+//        encoder.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            encoder.input_next(data_one);
+//        });
+//
+//        encoder.output(&mut output);
+//
+//        assert_ne!(
+//            output.to_u32_label(),
+//            english.to_u32_label(),
+//        );
+//        println!(
+//            "{}, {:?}",
+//            data_to_string(&data),
+//            char::from_u32(output.to_u32_label())
+//        )
+//    }
+//
+//    const EPOCH: usize = 1000;
+//    const BATCH_SIZE: usize = 100;
+//    const RATE: f32 = 0.01;
+//
+//    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+//    let prev_state = MathVec::<MIDDLE>::new();
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//
+//            encoder.study(
+//                &data,
+//                &prev_state,
+//                &japanese,
+//            );
+//
+//            english_data(&mut rng, &mut data);
+//
+//            encoder.study(
+//                &data,
+//                &prev_state,
+//                &english,
+//            );
+//        }
+//
+//        encoder.update(RATE);
+//    }
+//
+//    let mut encoder = encoder.drop();
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        encoder.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            encoder.input_next(data_one);
+//        });
+//
+//        encoder.output(&mut output);
+//
+//        assert_eq!(
+//            output.to_u32_label(),
+//            japanese.to_u32_label(),
+//        );
+//        println!(
+//            "{}, {:?}",
+//            data_to_string(&data),
+//            char::from_u32(output.to_u32_label())
+//        )
+//    }
+//
+//    for _ in 0..COUNT {
+//        english_data(&mut rng, &mut data);
+//        encoder.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            encoder.input_next(data_one);
+//        });
+//
+//        encoder.output(&mut output);
+//
+//        assert_eq!(
+//            output.to_u32_label(),
+//            english.to_u32_label(),
+//        );
+//        println!(
+//            "{}, {:?}",
+//            data_to_string(&data),
+//            char::from_u32(output.to_u32_label())
+//        )
+//    }
+//}
+//
+//#[test]
+//fn chobit_encoder_test_3() {
+//    const OUT: usize = 11;
+//    const MIDDLE: usize = 7;
+//    const IN: usize = 5;
+//
+//    let mut rng = ChobitRand::new("chobit_encoder_test_3".as_bytes());
+//
+//    let mut encoder_1 =
+//        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    encoder_1.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    let mut encoder_2 =
+//        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    encoder_2.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    assert_ne!(encoder_1, encoder_2);
+//
+//    let mut vec = Vec::<f32>::new();
+//    encoder_1.for_each_weight(|val| {
+//        vec.push(*val);
+//    });
+//
+//    let mut vec_iter = vec.iter();
+//    encoder_2.for_each_weight_mut(|val| {
+//        *val = *vec_iter.next().unwrap();
+//    });
+//
+//    assert_eq!(encoder_1, encoder_2);
+//}
+//
+//fn gen_decoder<
+//    const OUT: usize,
+//    const MIDDLE: usize,
+//    const IN: usize
+//>(rng: &mut ChobitRand) -> ChobitDecoder<OUT, MIDDLE, IN> {
+//    let mut ret = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//
+//    rand_weights(rng, ret.lstm_mut().main_layer_mut().mut_weights());
+//    rand_weights(rng, ret.lstm_mut().f_gate_mut().mut_weights());
+//    rand_weights(rng, ret.lstm_mut().i_gate_mut().mut_weights());
+//    rand_weights(rng, ret.lstm_mut().o_gate_mut().mut_weights());
+//
+//    rand_weights(rng, ret.output_layer_mut().mut_weights());
+//
+//    ret
+//}
+//
+//#[test]
+//fn chobit_decoder_test_1() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 64;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("chobit_decoder_test_1".as_bytes());
+//
+//    let mut japanese_in = MathVec::<IN>::new();
+//    japanese_in.load_u32_label(JAPANESE as u32);
+//
+//    let mut japanese_out = Vec::<MathVec<OUT>>::new();
+//    "これは日本語です。\x00".chars().for_each(|c| {
+//        let mut vec = MathVec::<OUT>::new();
+//        vec.load_u32_label(c as u32);
+//
+//        japanese_out.push(vec);
+//    });
+//
+//    let mut decoder = gen_decoder(&mut rng);
+//
+//    {
+//        decoder.input_mut().copy_from(&japanese_in);
+//        decoder.state_mut().clear();
+//
+//        let mut output = vec![MathVec::<OUT>::new(); japanese_out.len()];
+//        output.iter_mut().for_each(|output_one| {
+//            decoder.output_next(output_one);
+//        });
+//    }
+//
+//    const EPOCH: usize = 3;
+//    const BATCH_SIZE: usize = 3;
+//    const RATE: f32 = 0.01;
+//
+//    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+//
+//    let prev_state = MathVec::<MIDDLE>::new();
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            decoder.study(
+//                &japanese_in,
+//                &prev_state,
+//                japanese_out.as_slice()
+//            );
+//        }
+//
+//        decoder.update(RATE);
+//    }
+//}
+//
+//#[cfg(not(debug_assertions))]
+//#[test]
+//fn chobit_decoder_test_2() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 64;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("chobit_decoder_test_1".as_bytes());
+//
+//    let mut japanese_in = MathVec::<IN>::new();
+//    japanese_in.load_u32_label(JAPANESE as u32);
+//
+//    let mut japanese_out = Vec::<MathVec<OUT>>::new();
+//    "これは日本語です。\x00".chars().for_each(|c| {
+//        let mut vec = MathVec::<OUT>::new();
+//        vec.load_u32_label(c as u32);
+//
+//        japanese_out.push(vec);
+//    });
+//
+//    let mut english_in = MathVec::<IN>::new();
+//    english_in.load_u32_label(ENGLISH as u32);
+//
+//    let mut english_out = Vec::<MathVec<OUT>>::new();
+//    "this is english.\x00".chars().for_each(|c| {
+//        let mut vec = MathVec::<OUT>::new();
+//        vec.load_u32_label(c as u32);
+//
+//        english_out.push(vec);
+//    });
+//
+//    let mut decoder = gen_decoder(&mut rng);
+//
+//    {
+//        decoder.input_mut().copy_from(&japanese_in);
+//        decoder.state_mut().clear();
+//
+//        let mut output = vec![MathVec::<OUT>::new(); japanese_out.len()];
+//        output.iter_mut().for_each(|output_one| {
+//            decoder.output_next(output_one);
+//        });
+//
+//        assert_ne!(output, japanese_out);
+//    }
+//
+//    {
+//        decoder.input_mut().copy_from(&english_in);
+//        decoder.state_mut().clear();
+//
+//        let mut output = vec![MathVec::<OUT>::new(); english_out.len()];
+//        output.iter_mut().for_each(|output_one| {
+//            decoder.output_next(output_one);
+//        });
+//
+//        assert_ne!(output, english_out);
+//    }
+//
+//    const EPOCH: usize = 50000;
+//    const BATCH_SIZE: usize = 1;
+//    const RATE: f32 = 0.01;
+//
+//    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+//
+//    let prev_state_j = MathVec::<MIDDLE>::new();
+//    let prev_state_e = MathVec::<MIDDLE>::new();
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            decoder.study(
+//                &japanese_in,
+//                &prev_state_j,
+//                japanese_out.as_slice()
+//            );
+//
+//            decoder.study(
+//                &english_in,
+//                &prev_state_e,
+//                english_out.as_slice()
+//            );
+//        }
+//
+//        decoder.update(RATE);
+//    }
+//
+//    let mut decoder = decoder.drop();
+//
+//    {
+//        decoder.input_mut().copy_from(&japanese_in);
+//        decoder.state_mut().clear();
+//
+//        let mut output = vec![MathVec::<OUT>::new(); japanese_out.len()];
+//        output.iter_mut().for_each(|output_one| {
+//            decoder.output_next(output_one);
+//            println!("{:?}", char::from_u32(output_one.to_u32_label()));
+//        });
+//
+//        assert_eq!(
+//            data_to_string(output.as_slice()),
+//            data_to_string(japanese_out.as_slice())
+//        );
+//    }
+//
+//    println!("-----");
+//
+//    {
+//        decoder.input_mut().copy_from(&english_in);
+//        decoder.state_mut().clear();
+//
+//
+//        let mut output = vec![MathVec::<OUT>::new(); english_out.len()];
+//        output.iter_mut().for_each(|output_one| {
+//            decoder.output_next(output_one);
+//            println!("{:?}", char::from_u32(output_one.to_u32_label()));
+//        });
+//
+//        assert_eq!(
+//            data_to_string(output.as_slice()),
+//            data_to_string(english_out.as_slice())
+//        );
+//    }
+//}
+//
+//#[test]
+//fn chobit_decoder_test_3() {
+//    const OUT: usize = 11;
+//    const MIDDLE: usize = 7;
+//    const IN: usize = 5;
+//
+//    let mut rng = ChobitRand::new("chobit_decoder_test_3".as_bytes());
+//
+//    let mut decoder_1 =
+//        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    decoder_1.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    let mut decoder_2 =
+//        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    decoder_2.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    assert_ne!(decoder_1, decoder_2);
+//
+//    let mut vec = Vec::<f32>::new();
+//    decoder_1.for_each_weight(|val| {
+//        vec.push(*val);
+//    });
+//
+//    let mut vec_iter = vec.iter();
+//    decoder_2.for_each_weight_mut(|val| {
+//        *val = *vec_iter.next().unwrap();
+//    });
+//
+//    assert_eq!(decoder_1, decoder_2);
+//}
+//
+//fn gen_seq_ai<
+//    const OUT: usize,
+//    const MIDDLE: usize,
+//    const IN: usize
+//>(rng: &mut ChobitRand) -> ChobitSeqAI<OUT, MIDDLE, IN> {
+//    let mut ret = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//
+//    rand_weights(rng, ret.enc_layer_mut().main_layer_mut().mut_weights());
+//    rand_weights(rng, ret.enc_layer_mut().f_gate_mut().mut_weights());
+//    rand_weights(rng, ret.enc_layer_mut().i_gate_mut().mut_weights());
+//    rand_weights(rng, ret.enc_layer_mut().o_gate_mut().mut_weights());
+//
+//    rand_weights(rng, ret.dec_layer_mut().main_layer_mut().mut_weights());
+//    rand_weights(rng, ret.dec_layer_mut().f_gate_mut().mut_weights());
+//    rand_weights(rng, ret.dec_layer_mut().i_gate_mut().mut_weights());
+//    rand_weights(rng, ret.dec_layer_mut().o_gate_mut().mut_weights());
+//
+//    rand_weights(rng, ret.output_layer_mut().mut_weights());
+//
+//    ret
+//}
+//
+//#[test]
+//fn chobit_seq_ai_test_1() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 64;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("chobit_seq_ai_test_1".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//
+//    let mut japanese_out = Vec::<MathVec<OUT>>::new();
+//    "これは日本語です。\x00".chars().for_each(|c| {
+//        let mut vec = MathVec::<OUT>::new();
+//        vec.load_u32_label(c as u32);
+//
+//        japanese_out.push(vec);
+//    });
+//
+//    let mut ai = gen_seq_ai::<OUT, MIDDLE, IN>(&mut rng);
+//    let mut output = vec![MathVec::<OUT>::new(); 30];
+//
+//    const COUNT: usize = 10;
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        ai.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            ai.input_next(data_one);
+//        });
+//
+//        japanese_out.iter().zip(output.as_mut_slice()).for_each(
+//            |(_, output_one)| {
+//                ai.output_next(output_one);
+//            }
+//        );
+//    }
+//
+//    const EPOCH: usize = 3;
+//    const BATCH_SIZE: usize = 3;
+//    const RATE: f32 = 0.01;
+//
+//    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
+//
+//    let prev_state = MathVec::<MIDDLE>::new();
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//            ai.study(
+//                data.as_slice(),
+//                &prev_state,
+//                &japanese_out
+//            );
+//        }
+//        ai.update(RATE);
+//    }
+//}
+//
+//#[cfg(not(debug_assertions))]
+//#[test]
+//fn chobit_seq_ai_test_2() {
+//    const OUT: usize = 32;
+//    const MIDDLE: usize = 64;
+//    const IN: usize = 32;
+//
+//    let mut rng = ChobitRand::new("chobit_seq_ai_test_2".as_bytes());
+//
+//    let mut data = Vec::<MathVec<32>>::new();
+//
+//    let mut japanese_out = Vec::<MathVec<OUT>>::new();
+//    "これは日本語です。\x00".chars().for_each(|c| {
+//        let mut vec = MathVec::<OUT>::new();
+//        vec.load_u32_label(c as u32);
+//
+//        japanese_out.push(vec);
+//    });
+//
+//    let mut english_out = Vec::<MathVec<OUT>>::new();
+//    "this is english.\x00".chars().for_each(|c| {
+//        let mut vec = MathVec::<OUT>::new();
+//        vec.load_u32_label(c as u32);
+//
+//        english_out.push(vec);
+//    });
+//
+//    let mut ai = gen_seq_ai::<OUT, MIDDLE, IN>(&mut rng);
+//    let mut output = vec![MathVec::<OUT>::new(); 30];
+//
+//    const COUNT: usize = 10;
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        ai.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            ai.input_next(data_one);
+//        });
+//
+//        japanese_out.iter().zip(output.as_mut_slice()).for_each(
+//            |(_, output_one)| {
+//                ai.output_next(output_one);
+//            }
+//        );
+//
+//        japanese_out.iter().zip(output.as_slice()).for_each(
+//            |(train_out, output_one)| {
+//                assert_ne!(
+//                    char::from_u32(train_out.to_u32_label()),
+//                    char::from_u32(output_one.to_u32_label()),
+//                );
+//            }
+//        );
+//    }
+//
+//    for _ in 0..COUNT {
+//        english_data(&mut rng, &mut data);
+//        ai.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            ai.input_next(data_one);
+//        });
+//
+//        english_out.iter().zip(output.as_mut_slice()).for_each(
+//            |(_, output_one)| {
+//                ai.output_next(output_one);
+//            }
+//        );
+//
+//        english_out.iter().zip(output.as_slice()).for_each(
+//            |(train_out, output_one)| {
+//                assert_ne!(
+//                    char::from_u32(train_out.to_u32_label()),
+//                    char::from_u32(output_one.to_u32_label()),
+//                );
+//            }
+//        );
+//    }
+//
+//    const EPOCH: usize = 3000;
+//    const BATCH_SIZE: usize = 20;
+//    const RATE: f32 = 0.01;
+//
+//    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
+//
+//    let prev_state = MathVec::<MIDDLE>::new();
+//
+//    for _ in 0..EPOCH {
+//        for _ in 0..BATCH_SIZE {
+//            japanese_data(&mut rng, &mut data);
+//            ai.study(
+//                data.as_slice(),
+//                &prev_state,
+//                &japanese_out
+//            );
+//
+//            english_data(&mut rng, &mut data);
+//            ai.study(
+//                data.as_slice(),
+//                &prev_state,
+//                &english_out
+//            );
+//        }
+//        ai.update(RATE);
+//    }
+//
+//    let mut ai = ai.drop();
+//
+//    for _ in 0..COUNT {
+//        japanese_data(&mut rng, &mut data);
+//        ai.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            ai.input_next(data_one);
+//        });
+//
+//        japanese_out.iter().zip(output.as_mut_slice()).for_each(
+//            |(_, output_one)| {
+//                ai.output_next(output_one);
+//            }
+//        );
+//
+//        japanese_out.iter().zip(output.as_slice()).for_each(
+//            |(train_out, output_one)| {
+//                assert_eq!(
+//                    char::from_u32(train_out.to_u32_label()),
+//                    char::from_u32(output_one.to_u32_label()),
+//                );
+//            }
+//        );
+//
+//        println!("{}", data_to_string(&output[..japanese_out.len()]))
+//    }
+//
+//    for _ in 0..COUNT {
+//        english_data(&mut rng, &mut data);
+//        ai.state_mut().clear();
+//
+//        data.iter().for_each(|data_one| {
+//            ai.input_next(data_one);
+//        });
+//
+//        english_out.iter().zip(output.as_mut_slice()).for_each(
+//            |(_, output_one)| {
+//                ai.output_next(output_one);
+//            }
+//        );
+//
+//        english_out.iter().zip(output.as_slice()).for_each(
+//            |(train_out, output_one)| {
+//                assert_eq!(
+//                    char::from_u32(train_out.to_u32_label()),
+//                    char::from_u32(output_one.to_u32_label()),
+//                );
+//            }
+//        );
+//
+//        println!("{}", data_to_string(&output[..english_out.len()]))
+//    }
+//}
+//
+//#[test]
+//fn chobit_seq_ai_test_3() {
+//    const OUT: usize = 11;
+//    const MIDDLE: usize = 7;
+//    const IN: usize = 5;
+//
+//    let mut rng = ChobitRand::new("chobit_seq_ai_test_3".as_bytes());
+//
+//    let mut ai_1 =
+//        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    ai_1.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    let mut ai_2 =
+//        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//    ai_2.for_each_weight_mut(|val| {
+//        *val = rand_num(&mut rng);
+//    });
+//
+//    assert_ne!(ai_1, ai_2);
+//
+//    let mut vec = Vec::<f32>::new();
+//    ai_1.for_each_weight(|val| {
+//        vec.push(*val);
+//    });
+//
+//    let mut vec_iter = vec.iter();
+//    ai_2.for_each_weight_mut(|val| {
+//        *val = *vec_iter.next().unwrap();
+//    });
+//
+//    assert_eq!(ai_1, ai_2);
+//}
