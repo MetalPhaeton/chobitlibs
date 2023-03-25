@@ -1589,95 +1589,121 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 ///// - `OUT` : Dimension of output.
 ///// - `MIDDLE` : Dimension of hidden layer.
 ///// - `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-//    middle_layer: Layer<MIDDLE, IN>,
-//    output_layer: Layer<OUT, MIDDLE>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitAI<OUT, MIDDLE, IN> {
-//    /// Creates ChobitAI.
-//    ///
-//    /// - `activation` : Activation function for output layer.
-//    /// - _Return_ : ChobitAI.
-//    #[inline]
-//    pub fn new(activation: Activation) -> Self {
-//        Self {
-//            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU, false),
-//            output_layer: Layer::<OUT, MIDDLE>::new(activation, false)
-//        }
-//    }
-//
-//    /// Gets immutable middle layer.
-//    ///
-//    /// - _Return_ : Middle layer.
-//    #[inline]
-//    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
-//
-//    /// Gets mutable middle layer.
-//    ///
-//    /// - _Return_ : Middle layer.
-//    #[inline]
-//    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
-//        &mut self.middle_layer
-//    }
-//
-//    /// Gets immutable output layer.
-//    ///
-//    /// - _Return_ : Output layer.
-//    #[inline]
-//    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
-//
-//    /// Gets mutable output layer.
-//    ///
-//    /// - _Return_ : Output layer.
-//    #[inline]
-//    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
-//        &mut self.output_layer
-//    }
-//
-//    /// Accesses each immutable weight with closure.
-//    ///
-//    /// - `f` : Closure.
-//    #[inline]
-//    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
-//        self.middle_layer.weights().iter().for_each(|val| {f(val)});
-//        self.output_layer.weights().iter().for_each(|val| {f(val)});
-//    }
-//
-//    /// Accesses each mutable weight with closure.
-//    ///
-//    /// - `f` : Closure.
-//    #[inline]
-//    pub fn for_each_weight_mut<F>(
-//        &mut self,
-//        mut f: F
-//    ) where F: FnMut(&mut f32) {
-//        self.middle_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
-//        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
-//    }
-//
-//    /// Calculates
-//    ///
-//    /// - `input` : Input.
-//    /// - `output` : Buffer for output.
-//    /// - `tmpbuf` : Temporary buffer for this function to work.
-//    #[inline]
-//    pub fn calc(
-//        &self,
-//        input: &MathVec<IN>,
-//        output: &mut MathVec<OUT>,
-//        tmpbuf: &mut MathVec<MIDDLE>
-//    ) {
-//        self.middle_layer.calc(input, None, tmpbuf);
-//        self.output_layer.calc(tmpbuf, None, output);
-//    }
-//}
-//
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: Layer<MIDDLE, IN>,
+    output_layer: Layer<OUT, MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitAI<OUT, MIDDLE, IN> {
+    /// Creates ChobitAI.
+    ///
+    /// - `activation` : Activation function for output layer.
+    /// - _Return_ : ChobitAI.
+    #[inline]
+    pub fn new(activation: Activation) -> Self {
+        Self {
+            middle_layer: Layer::<MIDDLE, IN>::new(Activation::ReLU, false),
+            output_layer: Layer::<OUT, MIDDLE>::new(activation, false)
+        }
+    }
+
+    /// Gets immutable middle layer.
+    ///
+    /// - _Return_ : Middle layer.
+    #[inline]
+    pub fn middle_layer(&self) -> &Layer<MIDDLE, IN> {&self.middle_layer}
+
+    /// Gets mutable middle layer.
+    ///
+    /// - _Return_ : Middle layer.
+    #[inline]
+    pub fn middle_layer_mut(&mut self) -> &mut Layer<MIDDLE, IN> {
+        &mut self.middle_layer
+    }
+
+    /// Gets immutable output layer.
+    ///
+    /// - _Return_ : Output layer.
+    #[inline]
+    pub fn output_layer(&self) -> &Layer<OUT, MIDDLE> {&self.output_layer}
+
+    /// Gets mutable output layer.
+    ///
+    /// - _Return_ : Output layer.
+    #[inline]
+    pub fn output_layer_mut(&mut self) -> &mut Layer<OUT, MIDDLE> {
+        &mut self.output_layer
+    }
+
+    /// Accesses each immutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.middle_layer.weights().iter().for_each(|val| {f(val)});
+        self.output_layer.weights().iter().for_each(|val| {f(val)});
+    }
+
+    /// Accesses each mutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.middle_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+    }
+
+    /// Calculates
+    ///
+    /// - `input` : Input.
+    /// - `output` : Buffer for output.
+    /// - `tmpbuf` : Temporary buffer for this function to work.
+    #[inline]
+    pub fn calc(
+        &self,
+        input: &MathVec<IN>,
+        output: &mut MathVec<OUT>,
+        tmpbuf: &mut MathVec<MIDDLE>
+    ) {
+        self.middle_layer.calc(input, None, tmpbuf);
+        self.output_layer.calc(tmpbuf, None, output);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MLAICache<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_cache: MLCache<MIDDLE, IN>,
+    output_cache: MLCache<OUT, MIDDLE>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> MLAICache<OUT, MIDDLE, IN> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            middle_cache: MLCache::<MIDDLE, IN>::new(),
+            output_cache: MLCache::<OUT, MIDDLE>::new()
+        }
+    }
+
+    #[inline]
+    pub fn middle_ache(&self) -> &MLCache<MIDDLE, IN> {&self.middle_cache}
+
+    #[inline]
+    pub fn output_ache(&self) -> &MLCache<OUT, MIDDLE> {&self.output_cache}
+}
+
 ///// Wrapper of [`ChobitAI`] for machine learning.
 /////
 ///// See [`ChobitAI`] for details.
