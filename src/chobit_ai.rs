@@ -1698,123 +1698,134 @@ impl<
     }
 
     #[inline]
+    pub fn calc_output_error(
+        &self,
+        train_out: &MathVec<OUT>,
+        error: &mut MathVec<OUT>
+    ) {
+        error.copy_from(&self.output_cache.output);
+        *error -= train_out;
+    }
+
+    #[inline]
     pub fn middle_ache(&self) -> &MLCache<MIDDLE, IN> {&self.middle_cache}
 
     #[inline]
     pub fn output_ache(&self) -> &MLCache<OUT, MIDDLE> {&self.output_cache}
 }
 
-///// Wrapper of [`ChobitAI`] for machine learning.
-/////
-///// See [`ChobitAI`] for details.
-/////
-///// - `OUT` : Dimension of output.
-///// - `MIDDLE` : Dimension of hidden layer.
-///// - `IN` : Dimension of input.
-//#[derive(Debug, Clone, PartialEq)]
-//pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-//    middle_layer: MLLayer<MIDDLE, IN>,
-//    output_layer: MLLayer<OUT, MIDDLE>,
-//
-//    middle_cache: MLCache<MIDDLE, IN>,
-//    output_cache: MLCache<OUT, MIDDLE>,
-//
-//    input_error: MathVec<IN>,
-//    middle_error: MathVec<MIDDLE>,
-//    output_error: MathVec<OUT>
-//}
-//
-//impl<
-//    const OUT: usize,
-//    const MIDDLE: usize,
-//    const IN: usize
-//> ChobitMLAI<OUT, MIDDLE, IN> {
-//    /// Creates ChobitMLAI.
-//    ///
-//    /// - `ai` : [`ChobitAI`] to be learned.
-//    /// - _Return_ : ChobitMLAI.
-//    #[inline]
-//    pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
-//        let ChobitAI::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
-//
-//        Self {
-//            middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
-//            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
-//
-//            middle_cache: MLCache::<MIDDLE, IN>::new(),
-//            output_cache: MLCache::<OUT, MIDDLE>::new(),
-//
-//            input_error: MathVec::<IN>::new(),
-//            middle_error: MathVec::<MIDDLE>::new(),
-//            output_error: MathVec::<OUT>::new(),
-//        }
-//    }
-//
-//    /// Drops [`ChobitAI`].
-//    ///
-//    /// - _Return_ : [`ChobitAI`].
-//    #[inline]
-//    pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
-//        let Self {middle_layer, output_layer, ..} = self;
-//
-//        ChobitAI::<OUT, MIDDLE, IN> {
-//            middle_layer: middle_layer.drop(),
-//            output_layer: output_layer.drop()
-//        }
-//    }
-//
-//    /// Clears internal data for study.
-//    #[inline]
-//    pub fn clear_study_data(&mut self) {
-//        self.middle_layer.clear_study_data();
-//        self.output_layer.clear_study_data();
-//    }
-//
-//    /// Studies weights.
-//    ///
-//    /// - `train_in` : Input of train data.
-//    /// - `train_out` : Output of train data.
-//    pub fn study(&mut self, train_in: &MathVec<IN>, train_out: &MathVec<OUT>) {
-//        self.middle_layer.ready(train_in, None, &mut self.middle_cache);
-//
-//        self.output_layer.ready(
-//            &self.middle_cache.output,
-//            None,
-//            &mut self.output_cache
-//        );
-//
-//        self.output_cache.calc_output_error(
-//            train_out,
-//            &mut self.output_error
-//        );
-//
-//        self.output_layer.study(
-//            &self.output_error,
-//            None,
-//            &self.output_cache,
-//            &mut self.middle_error,
-//            None
-//        );
-//
-//        self.middle_layer.study(
-//            &self.middle_error,
-//            None,
-//            &self.middle_cache,
-//            &mut self.input_error,
-//            None
-//        );
-//    }
-//
-//    /// Updates weights.
-//    ///
-//    /// - `rate` : Learning rate.
-//    #[inline]
-//    pub fn update(&mut self, rate: f32) {
-//        self.middle_layer.update(rate);
-//        self.output_layer.update(rate);
-//    }
-//}
-//
+/// Wrapper of [`ChobitAI`] for machine learning.
+///
+/// See [`ChobitAI`] for details.
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: MLLayer<MIDDLE, IN>,
+    output_layer: MLLayer<OUT, MIDDLE>,
+
+    input_error: MathVec<IN>,
+    middle_error: MathVec<MIDDLE>,
+    output_error: MathVec<OUT>
+}
+
+impl<
+    const OUT: usize,
+    const MIDDLE: usize,
+    const IN: usize
+> ChobitMLAI<OUT, MIDDLE, IN> {
+    /// Creates ChobitMLAI.
+    ///
+    /// - `ai` : [`ChobitAI`] to be learned.
+    /// - _Return_ : ChobitMLAI.
+    #[inline]
+    pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
+        let ChobitAI::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
+
+        Self {
+            middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
+            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+
+            input_error: MathVec::<IN>::new(),
+            middle_error: MathVec::<MIDDLE>::new(),
+            output_error: MathVec::<OUT>::new(),
+        }
+    }
+
+    /// Drops [`ChobitAI`].
+    ///
+    /// - _Return_ : [`ChobitAI`].
+    #[inline]
+    pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
+        let Self {middle_layer, output_layer, ..} = self;
+
+        ChobitAI::<OUT, MIDDLE, IN> {
+            middle_layer: middle_layer.drop(),
+            output_layer: output_layer.drop()
+        }
+    }
+
+    /// Clears internal data for study.
+    #[inline]
+    pub fn clear_study_data(&mut self) {
+        self.middle_layer.clear_study_data();
+        self.output_layer.clear_study_data();
+    }
+
+    #[inline]
+    pub fn ready(
+        &self,
+        input: &MathVec<IN>,
+        cache: &mut MLAICache<OUT, MIDDLE, IN>
+    ) {
+        self.middle_layer.ready(input, None, &mut cache.middle_cache);
+
+        self.output_layer.ready(
+            &cache.middle_cache.output,
+            None,
+            &mut cache.output_cache
+        );
+    }
+
+    /// Studies weights.
+    ///
+    /// - `train_in` : Input of train data.
+    /// - `train_out` : Output of train data.
+    #[inline]
+    pub fn study(
+        &mut self,
+        output_error: &MathVec<OUT>,
+        cache: &MLAICache<OUT, MIDDLE, IN>
+    ) {
+        self.output_layer.study(
+            output_error,
+            None,
+            &cache.output_cache,
+            &mut self.middle_error,
+            None
+        );
+
+        self.middle_layer.study(
+            &self.middle_error,
+            None,
+            &cache.middle_cache,
+            &mut self.input_error,
+            None
+        );
+    }
+
+    /// Updates weights.
+    ///
+    /// - `rate` : Learning rate.
+    #[inline]
+    pub fn update(&mut self, rate: f32) {
+        self.middle_layer.update(rate);
+        self.output_layer.update(rate);
+    }
+}
+
 ///// [Peephole LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_LSTM)
 /////
 ///// | Formula |
