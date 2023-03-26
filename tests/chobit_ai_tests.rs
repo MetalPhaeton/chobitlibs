@@ -2486,7 +2486,7 @@ fn chobit_seq_ai_test_1() {
     const RATE: f32 = 0.01;
 
     let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(0);
+    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(0, 0);
     let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut output_error = vec![MathVec::<OUT>::new(); 30];
     let mut prev_state_error = MathVec::<MIDDLE>::new();
@@ -2605,7 +2605,7 @@ fn chobit_seq_ai_test_2() {
     const RATE: f32 = 0.01;
 
     let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(0);
+    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(0, 0);
     let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut output_error = vec![MathVec::<OUT>::new(); 30];
     let mut prev_state_error = MathVec::<MIDDLE>::new();

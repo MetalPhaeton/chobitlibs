@@ -1460,143 +1460,154 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     }
 }
 
-///// AI for fixed length data.
-/////
-///// # Example of echo AI.
-/////
-///// Inputs `u32` value and outputs same one.
-/////
-///// (1) Generates [`ChobitAI`].
-/////
-///// ```ignore
-///// use chobitlibs::chobit_ai::{MathVec, ChobitAI, ChobitMLAI, Activation};
-/////
-///// const IN: usize = 32;
-///// const MIDDLE: usize = 64;
-///// const OUT: usize = 32;
-/////
-///// let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// ```
-/////
-///// (2) Randomises weights.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{MathVec, ChobitAI, ChobitMLAI, Activation};
-///// # const IN: usize = 32;
-///// # const MIDDLE: usize = 64;
-///// # const OUT: usize = 32;
-///// # let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// let mut rng = chobitlibs::chobit_rand::ChobitRand::new(b"ChobitAI Example");
-/////
-///// ai.for_each_weight_mut(
-/////     |weight| {
-/////         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-/////     }
-///// );
-///// ```
-/////
-///// (3) Gets ready for machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{MathVec, ChobitAI, ChobitMLAI, Activation};
-///// # const IN: usize = 32;
-///// # const MIDDLE: usize = 64;
-///// # const OUT: usize = 32;
-///// # let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let mut rng = chobitlibs::chobit_rand::ChobitRand::new(b"ChobitAI Example");
-///// # ai.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-///// ```
-/////
-///// (4) Machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{MathVec, ChobitAI, ChobitMLAI, Activation};
-///// # const IN: usize = 32;
-///// # const MIDDLE: usize = 64;
-///// # const OUT: usize = 32;
-///// # let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let mut rng = chobitlibs::chobit_rand::ChobitRand::new(b"ChobitAI Example");
-///// # ai.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-///// const EPOCH: usize = 3000;
-///// const BATCH_SIZE: usize = 20;
-///// const RATE: f32 = 0.01;
-/////
-///// let mut train_in = MathVec::<IN>::new();
-///// let mut train_out = MathVec::<OUT>::new();
-/////
-///// for _ in 0..EPOCH {
-/////     for _ in 0..BATCH_SIZE {
-/////         let label = rng.next_u64() as u32;
-/////
-/////         train_in.load_u32_label(label);
-/////         train_out.load_u32_label(label);
-/////
-/////         ai.study(&train_in, &train_out);
-/////     }
-/////
-/////     ai.update(RATE);
-///// }
-///// ```
-/////
-///// (5) Congratulation! You've made echo AI!
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{MathVec, ChobitAI, ChobitMLAI, Activation};
-///// # const IN: usize = 32;
-///// # const MIDDLE: usize = 64;
-///// # const OUT: usize = 32;
-///// # let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let mut rng = chobitlibs::chobit_rand::ChobitRand::new(b"ChobitAI Example");
-///// # ai.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-///// # const EPOCH: usize = 3000;
-///// # const BATCH_SIZE: usize = 20;
-///// # const RATE: f32 = 0.01;
-///// # let mut train_in = MathVec::<IN>::new();
-///// # let mut train_out = MathVec::<OUT>::new();
-///// # for _ in 0..EPOCH {
-///// #     for _ in 0..BATCH_SIZE {
-///// #         let label = rng.next_u64() as u32;
-///// #         train_in.load_u32_label(label);
-///// #         train_out.load_u32_label(label);
-///// #         ai.study(&train_in, &train_out);
-///// #     }
-///// #     ai.update(RATE);
-///// # }
-///// let ai = ai.drop();
-/////
-///// let mut input = MathVec::<IN>::new();
-///// let mut output = MathVec::<OUT>::new();
-///// let mut tmpbuf = MathVec::<MIDDLE>::new();
-/////
-///// for _ in 0..10 {
-/////     let label = rng.next_u64() as u32;
-/////
-/////     input.load_u32_label(label);
-/////
-/////     ai.calc(&input, &mut output, &mut tmpbuf);
-/////
-/////     assert_eq!(output.to_u32_label(), label);
-///// }
-///// ```
-/////
-///// - `OUT` : Dimension of output.
-///// - `MIDDLE` : Dimension of hidden layer.
-///// - `IN` : Dimension of input.
+/// AI for fixed length data.
+///
+/// # Example
+///
+/// Letter classifier.
+/// - If inputs Japanese letter, outputs '日'.
+/// - If inputs English letter, outputs 'E'.
+///
+/// (1) Defines letter generator and ID.
+///
+/// ```ignore
+/// extern crate chobitlibs;
+/// 
+/// use chobitlibs::chobit_ai::{
+///     MathVec,
+///     Activation,
+///     ChobitAI,
+///     ChobitMLAI,
+///     MLAICache
+/// };
+/// 
+/// use chobitlibs::chobit_rand::ChobitRand;
+/// 
+/// fn japanese_letter(rng: &mut ChobitRand) -> char {
+///     let letters = [
+///         'あ', 'い', 'う', 'え', 'お',
+///         'か', 'き', 'く', 'け', 'こ',
+///         'さ', 'し', 'す', 'せ', 'そ'
+///     ];
+/// 
+///     letters[(rng.next_u64() as usize) % letters.len()]
+/// }
+/// 
+/// fn english_letter(rng: &mut ChobitRand) -> char {
+///     let letters = [
+///         'a', 'b', 'c', 'd', 'e',
+///         'f', 'g', 'h', 'i', 'j',
+///         'k', 'l', 'm', 'n', 'o'
+///     ];
+/// 
+///     letters[(rng.next_u64() as usize) % letters.len()]
+/// }
+/// 
+/// const JAPANESE_ID: char = '日';
+/// const ENGLISH_ID: char = 'E';
+/// ```
+///
+/// (2) Creates [`ChobitAI`] and randomises weights.
+///
+/// ```ignore
+/// const OUT: usize = 32;
+/// const MIDDLE: usize = 64;
+/// const IN: usize = 32;
+///
+/// let mut rng = ChobitRand::new(b"ChobitAI Example");
+///
+/// let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+///
+/// // Randomises weights.
+/// ai.for_each_weight_mut(|weight| {
+///     *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// });
+///
+/// let mut input = MathVec::<IN>::new();
+/// let mut output = MathVec::<OUT>::new();
+/// ```
+///
+/// (3) Wraps AI with [`ChobitMLAI`] for machine learning.
+///
+/// ```ignore
+/// let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+/// let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+///
+/// let mut input_error = MathVec::<IN>::new();
+/// let mut output_error = MathVec::<OUT>::new();
+/// ```
+///
+/// (4) Machine learning.
+///
+/// ```ignore
+/// const EPOCH: usize = 1000;
+/// const BATCH_SIZE: usize = 100;
+/// const RATE: f32 = 0.01;
+///
+/// for _ in 0..EPOCH {
+///     for _ in 0..BATCH_SIZE {
+///         //--- Learns Japanese ---//
+///         input.load_u32_label(japanese_letter(&mut rng) as u32);
+///         output.load_u32_label(JAPANESE_ID as u32);
+///
+///         // Writes cache.
+///         ai.ready(&input, &mut cache);
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         ai.study(&output_error, &cache, &mut input_error);
+///
+///         //--- Learns English ---//
+///         input.load_u32_label(english_letter(&mut rng) as u32);
+///         output.load_u32_label(ENGLISH_ID as u32);
+///
+///         // Writes cache.
+///         ai.ready(&input, &mut cache);
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         ai.study(&output_error, &cache, &mut input_error);
+///     }
+///
+///     // Updates weights.
+///     ai.update(RATE);
+/// }
+/// ```
+///
+/// (5) Tests AI.
+///
+/// ```ignore
+/// // Unwrap AI.
+/// let ai = ai.drop();
+///
+/// let mut tmpbuf = MathVec::<MIDDLE>::new();
+///
+/// // Tests Japanese.
+/// for _ in 0..10 {
+///     input.load_u32_label(japanese_letter(&mut rng) as u32);
+///
+///     ai.calc(&input, &mut output, &mut tmpbuf);
+///
+///     assert_eq!(output.to_u32_label(), JAPANESE_ID as u32);
+/// }
+///
+/// // Tests English.
+/// for _ in 0..10 {
+///     input.load_u32_label(english_letter(&mut rng) as u32);
+///
+///     ai.calc(&input, &mut output, &mut tmpbuf);
+///
+///     assert_eq!(output.to_u32_label(), ENGLISH_ID as u32);
+/// }
+/// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: Layer<MIDDLE, IN>,
@@ -1716,10 +1727,10 @@ impl<
     }
 
     #[inline]
-    pub fn middle_ache(&self) -> &MLCache<MIDDLE, IN> {&self.middle_cache}
+    pub fn middle_cache(&self) -> &MLCache<MIDDLE, IN> {&self.middle_cache}
 
     #[inline]
-    pub fn output_ache(&self) -> &MLCache<OUT, MIDDLE> {&self.output_cache}
+    pub fn output_cache(&self) -> &MLCache<OUT, MIDDLE> {&self.output_cache}
 }
 
 /// Wrapper of [`ChobitAI`] for machine learning.
@@ -2649,420 +2660,225 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     }
 }
 
-///// Encoder from sequence data to fixed length data.
-/////
-///// # Example of word recognizer.
-/////
-///// Inputs variable length value and outputs fixed length value.
-/////
-///// (1) Defines Japanese word generator and English word generator.
-/////
-///// ```ignore
-///// use chobitlibs::chobit_ai::{
-/////     MathVec,
-/////     ChobitEncoder,
-/////     ChobitMLEncoder,
-/////     Activation
-///// };
-/////
-///// use chobitlibs::chobit_rand::ChobitRand;
-/////
-///// const MAX_WORD_SIZE: usize = 10;
-/////
-///// fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-/////     word.clear();
-/////
-/////     let mut letters: [char; MAX_WORD_SIZE] = [
-/////         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-/////     ];
-/////
-/////     rng.shuffle(&mut letters);
-/////
-/////     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-/////
-/////     word.extend_from_slice(&letters[..len]);
-///// }
-/////
-///// fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-/////     word.clear();
-/////
-/////     let mut letters: [char; MAX_WORD_SIZE] = [
-/////         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-/////     ];
-/////
-/////     rng.shuffle(&mut letters);
-/////
-/////     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-/////
-/////     word.extend_from_slice(&letters[..len]);
-///// }
-///// ```
-/////
-///// (2) Defines Japanese ID and English ID.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitEncoder,
-///// #     ChobitMLEncoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// const JAPANESE_ID: char = '日';
-///// const ENGLISH_ID: char = 'E';
-///// ```
-/////
-///// (3) Generates [`ChobitEncoder`].
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitEncoder,
-///// #     ChobitMLEncoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// const IN: usize = 32; 
-///// const MIDDLE: usize = 64; 
-///// const OUT: usize = 32; 
-/////
-///// let mut encoder =
-/////     ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-/////
-///// let initial_state = MathVec::<MIDDLE>::new();
-///// ```
-/////
-///// (4) Randomise weights.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitEncoder,
-///// #     ChobitMLEncoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut encoder =
-///// #     ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// let mut rng = ChobitRand::new(b"ChobitEncoder Example");
-/////
-///// encoder.for_each_weight_mut(
-/////     |weight| {
-/////         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-/////     }
-///// );
-///// ```
-/////
-///// (5) Ready for machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitEncoder,
-///// #     ChobitMLEncoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut encoder =
-///// #     ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitEncoder Example");
-///// # encoder.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-///// ```
-/////
-///// (6) Machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitEncoder,
-///// #     ChobitMLEncoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut encoder =
-///// #     ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitEncoder Example");
-///// # encoder.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-///// const EPOCH: usize = 1000;
-///// const BATCH_SIZE: usize = 20;
-///// const RATE: f32 = 0.01;
-/////
-///// let mut word = Vec::<char>::with_capacity(MAX_WORD_SIZE);
-///// let mut train_in = vec![MathVec::<IN>::new(); MAX_WORD_SIZE];
-///// let mut train_out = MathVec::<OUT>::new();
-/////
-///// for _ in 0..EPOCH {
-/////     for _ in 0..BATCH_SIZE {
-/////         // Study Japanese.
-/////         gen_japanese_word(&mut rng, &mut word);
-/////
-/////         word.iter().zip(
-/////             train_in.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(*c as u32);
-/////         });
-/////
-/////         train_out.load_u32_label(JAPANESE_ID as u32);
-/////
-/////         encoder.study(&train_in[..word.len()], &initial_state, &train_out);
-/////
-/////         // Study English.
-/////         gen_english_word(&mut rng, &mut word);
-/////
-/////         word.iter().zip(
-/////             train_in.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(*c as u32);
-/////         });
-/////
-/////         train_out.load_u32_label(ENGLISH_ID as u32);
-/////
-/////         encoder.study(&train_in[..word.len()], &initial_state, &train_out);
-/////     }
-/////
-/////     encoder.update(RATE);
-///// }
-///// ```
-/////
-///// (7) Congratulation! You've made word recognizer!
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitEncoder,
-///// #     ChobitMLEncoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut encoder =
-///// #     ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitEncoder Example");
-///// # encoder.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-///// # const EPOCH: usize = 1000;
-///// # const BATCH_SIZE: usize = 20;
-///// # const RATE: f32 = 0.01;
-///// # let mut word = Vec::<char>::with_capacity(MAX_WORD_SIZE);
-///// # let mut train_in = vec![MathVec::<IN>::new(); MAX_WORD_SIZE];
-///// # let mut train_out = MathVec::<OUT>::new();
-///// # for _ in 0..EPOCH {
-///// #     for _ in 0..BATCH_SIZE {
-///// #         // Study Japanese.
-///// #         gen_japanese_word(&mut rng, &mut word);
-///// #         word.iter().zip(
-///// #             train_in.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(*c as u32);
-///// #         });
-///// #         train_out.load_u32_label(JAPANESE_ID as u32);
-///// #         encoder.study(&train_in[..word.len()], &initial_state, &train_out);
-///// #         // Study English.
-///// #         gen_english_word(&mut rng, &mut word);
-///// #         word.iter().zip(
-///// #             train_in.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(*c as u32);
-///// #         });
-///// #         train_out.load_u32_label(ENGLISH_ID as u32);
-///// #         encoder.study(&train_in[..word.len()], &initial_state, &train_out);
-///// #     }
-///// #     encoder.update(RATE);
-///// # }
-///// let mut encoder = encoder.drop();
-/////
-///// let mut input = MathVec::<IN>::new();
-///// let mut output = MathVec::<OUT>::new();
-/////
-///// // Test Japanese word.
-///// for _ in 0..10 {
-/////     gen_japanese_word(&mut rng, &mut word);
-/////
-/////     encoder.state_mut().copy_from(&initial_state);
-/////
-/////     word.iter().for_each(|c| {
-/////         input.load_u32_label(*c as u32);
-/////         encoder.input_next(&input)
-/////     });
-/////
-/////     encoder.output(&mut output);
-/////
-/////     assert_eq!(output.to_u32_label(), JAPANESE_ID as u32);
-///// }
-/////
-///// // Test English word.
-///// for _ in 0..10 {
-/////     gen_english_word(&mut rng, &mut word);
-/////
-/////     encoder.state_mut().copy_from(&initial_state);
-/////
-/////     word.iter().for_each(|c| {
-/////         input.load_u32_label(*c as u32);
-/////         encoder.input_next(&input)
-/////     });
-/////
-/////     encoder.output(&mut output);
-/////
-/////     assert_eq!(output.to_u32_label(), ENGLISH_ID as u32);
-///// }
-///// ```
-/////
-///// - `OUT` : Dimension of output.
-///// - `MIDDLE` : Dimension of hidden layer.
-///// - `IN` : Dimension of input.
+/// Encoder from sequence data to fixed length data.
+///
+/// # Example
+///
+/// Variable length word classifier.
+/// - If inputs Japanese word, outputs '日'.
+/// - If inputs English word, outputs 'E'.
+///
+/// (1) Defines word generator and ID.
+///
+/// ```ignore
+/// extern crate chobitlibs;
+/// 
+/// use chobitlibs::chobit_ai::{
+///     MathVec,
+///     Activation,
+///     ChobitEncoder,
+///     ChobitMLEncoder,
+///     MLEncoderCache
+/// };
+/// 
+/// use chobitlibs::chobit_rand::ChobitRand;
+/// 
+/// fn japanese_letter(rng: &mut ChobitRand) -> char {
+///     let letters = [
+///         'あ', 'い', 'う', 'え', 'お',
+///         'か', 'き', 'く', 'け', 'こ',
+///         'さ', 'し', 'す', 'せ', 'そ'
+///     ];
+/// 
+///     letters[(rng.next_u64() as usize) % letters.len()]
+/// }
+/// 
+/// fn english_letter(rng: &mut ChobitRand) -> char {
+///     let letters = [
+///         'a', 'b', 'c', 'd', 'e',
+///         'f', 'g', 'h', 'i', 'j',
+///         'k', 'l', 'm', 'n', 'o'
+///     ];
+/// 
+///     letters[(rng.next_u64() as usize) % letters.len()]
+/// }
+/// 
+/// const JAPANESE_ID: char = '日';
+/// const ENGLISH_ID: char = 'E';
+/// 
+/// fn gen_word(
+///     f: fn(&mut ChobitRand) -> char,
+///     rng: &mut ChobitRand,
+///     max_len: usize
+/// ) -> String {
+///     let word_len = ((rng.next_u64() as usize) % max_len) + 1;
+/// 
+///     let mut ret = String::with_capacity(word_len);
+/// 
+///     for _ in 0..word_len {
+///         ret.push(f(rng));
+///     }
+/// 
+///     ret
+/// }
+/// 
+/// fn write_string_to_slice(string: &str, slice: &mut [MathVec<32>]) {
+///     string.chars().zip(slice.iter_mut()).for_each(|(c, s)| {
+///         s.load_u32_label(c as u32);
+///     });
+/// }
+/// ```
+///
+/// (2) Creates [`ChobitEncoder`] and randomises weights.
+///
+/// ```ignore
+/// const OUT: usize = 32;
+/// const MIDDLE: usize = 64;
+/// const IN: usize = 32;
+///
+/// const MAX_WORD_LEN: usize = 10;
+///
+/// let mut rng = ChobitRand::new(b"ChobitEncoder Example");
+///
+/// let mut encoder =
+///     ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+///
+/// // Randomises weights.
+/// encoder.for_each_weight_mut(|weight| {
+///     *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// });
+///
+/// let mut input = vec![MathVec::<IN>::new(); MAX_WORD_LEN];
+/// let mut output = MathVec::<OUT>::new();
+/// let initial_state = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (3) Wraps AI with [`ChobitMLEncoder`] for machine learning.
+///
+/// ```ignore
+/// let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+/// let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(MAX_WORD_LEN);
+///
+/// let mut input_error = vec![MathVec::<IN>::new(); MAX_WORD_LEN];
+/// let mut output_error = MathVec::<OUT>::new();
+/// let mut prev_state_error = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (4) Machine learning.
+///
+/// ```ignore
+/// const EPOCH: usize = 1000;
+/// const BATCH_SIZE: usize = 100;
+/// const RATE: f32 = 0.01;
+///
+/// for _ in 0..EPOCH {
+///     for _ in 0..BATCH_SIZE {
+///         //--- Learns Japanese ---//
+///         let string = gen_word(japanese_letter, &mut rng, MAX_WORD_LEN);
+///
+///         write_string_to_slice(&string, &mut input);
+///
+///         output.load_u32_label(JAPANESE_ID as u32);
+///
+///         // Writes cache.
+///         encoder.ready(
+///             &input[..string.chars().count()],
+///             &initial_state,
+///             &mut cache
+///         );
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         encoder.study(
+///             &output_error,
+///             &cache,
+///             &mut input_error,
+///             &mut prev_state_error
+///         );
+///
+///         //--- Learns English ---//
+///         let string = gen_word(english_letter, &mut rng, MAX_WORD_LEN);
+///
+///         write_string_to_slice(&string, &mut input);
+///
+///         output.load_u32_label(ENGLISH_ID as u32);
+///
+///         // Writes cache.
+///         encoder.ready(
+///             &input[..string.chars().count()],
+///             &initial_state,
+///             &mut cache
+///         );
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         encoder.study(
+///             &output_error,
+///             &cache,
+///             &mut input_error,
+///             &mut prev_state_error
+///         );
+///     }
+///
+///     // Updates weights.
+///     encoder.update(RATE);
+/// }
+/// ```
+///
+/// (5) Tests encoder.
+///
+/// ```ignore
+/// // Unwrap Encoder.
+/// let mut encoder = encoder.drop();
+///
+/// // Tests Japanese.
+/// for _ in 0..10 {
+///     let string = gen_word(japanese_letter, &mut rng, MAX_WORD_LEN);
+///
+///     write_string_to_slice(&string, &mut input);
+///
+///     // Initializes state.
+///     encoder.state_mut().copy_from(&initial_state);
+///
+///     // Inputs for each one.
+///     input[..string.chars().count()].iter().for_each(|input_one| {
+///         encoder.input_next(input_one)
+///     });
+///
+///     // Outputs.
+///     encoder.output(&mut output);
+///
+///     assert_eq!(output.to_u32_label(), JAPANESE_ID as u32);
+/// }
+///
+/// // Tests English.
+/// for _ in 0..10 {
+///     let string = gen_word(english_letter, &mut rng, MAX_WORD_LEN);
+///
+///     write_string_to_slice(&string, &mut input);
+///
+///     // Initializes state.
+///     encoder.state_mut().copy_from(&initial_state);
+///
+///     // Inputs for each one.
+///     input[..string.chars().count()].iter().for_each(|input_one| {
+///         encoder.input_next(input_one)
+///     });
+///
+///     // Outputs.
+///     encoder.output(&mut output);
+///
+///     assert_eq!(output.to_u32_label(), ENGLISH_ID as u32);
+/// }
+/// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitEncoder<
     const OUT: usize,
@@ -3506,251 +3322,185 @@ impl<
     }
 }
 
-///// Decoder from fixed length data to sequence data.
-/////
-///// # Example of sentence writer.
-/////
-///// Inputs fixed length value and outputs variable length value.
-/////
-///// (1) Defines Japanese sentence and English sentence.
-/////
-///// ```ignore
-///// use chobitlibs::chobit_ai::{
-/////     MathVec,
-/////     ChobitDecoder,
-/////     ChobitMLDecoder,
-/////     Activation
-///// };
-///// use chobitlibs::chobit_rand::ChobitRand;
-/////
-///// const JAPANESE_ID: char = '日';
-///// const ENGLISH_ID: char = 'E';
-/////
-///// const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// const ENGLISH_SENTENCE: &str = "This is english.";
-///// ```
-/////
-///// (2) Creates ChobitDecoder.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitDecoder,
-///// #     ChobitMLDecoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// const IN: usize = 32; 
-///// const MIDDLE: usize = 64; 
-///// const OUT: usize = 32; 
-/////
-///// let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-/////
-///// let initial_state = MathVec::<MIDDLE>::new();
-///// ```
-/////
-///// (3) Randomise weights.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitDecoder,
-///// #     ChobitMLDecoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// let mut rng = ChobitRand::new(b"ChobitDecoder Example");
-/////
-///// decoder.for_each_weight_mut(
-/////     |weight| {
-/////         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-/////     }
-///// );
-///// ```
-/////
-///// (5) Ready for machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitDecoder,
-///// #     ChobitMLDecoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitDecoder Example");
-///// # decoder.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-///// ```
-/////
-///// (6) Machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitDecoder,
-///// #     ChobitMLDecoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitDecoder Example");
-///// # decoder.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-///// const EPOCH: usize = 2000;
-///// const BATCH_SIZE: usize = 20;
-///// const RATE: f32 = 0.01;
-/////
-///// let mut train_in = MathVec::<IN>::new();
-///// let mut train_out = vec![MathVec::<OUT>::new(); 20];
-/////
-///// for _ in 0..EPOCH {
-/////     for _ in 0..BATCH_SIZE {
-/////         // Study Japanese.
-/////         train_in.load_u32_label(JAPANESE_ID as u32);
-/////
-/////         JAPANESE_SENTENCE.chars().zip(
-/////             train_out.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(c as u32);
-/////         });
-/////
-/////         decoder.study(&train_in, &initial_state, &train_out[..JAPANESE_SENTENCE.chars().count()]);
-/////
-/////         // Study English.
-/////         train_in.load_u32_label(ENGLISH_ID as u32);
-/////
-/////         ENGLISH_SENTENCE.chars().zip(
-/////             train_out.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(c as u32);
-/////         });
-/////
-/////         decoder.study(&train_in, &initial_state, &train_out[..ENGLISH_SENTENCE.chars().count()]);
-/////     }
-/////
-/////     decoder.update(RATE);
-///// }
-///// ```
-/////
-///// (6) Congratulation! You've made sentence writer!
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitDecoder,
-///// #     ChobitMLDecoder,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const JAPANESE_ID: char = '日';
-///// # const ENGLISH_ID: char = 'E';
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut decoder = ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitDecoder Example");
-///// # decoder.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-///// # const EPOCH: usize = 2000;
-///// # const BATCH_SIZE: usize = 20;
-///// # const RATE: f32 = 0.01;
-///// # let mut train_in = MathVec::<IN>::new();
-///// # let mut train_out = vec![MathVec::<OUT>::new(); 20];
-///// # for _ in 0..EPOCH {
-///// #     for _ in 0..BATCH_SIZE {
-///// #         // Study Japanese.
-///// #         train_in.load_u32_label(JAPANESE_ID as u32);
-///// #         JAPANESE_SENTENCE.chars().zip(
-///// #             train_out.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(c as u32);
-///// #         });
-///// #         decoder.study(&train_in, &initial_state, &train_out[..JAPANESE_SENTENCE.chars().count()]);
-///// #         // Study English.
-///// #         train_in.load_u32_label(ENGLISH_ID as u32);
-///// #         ENGLISH_SENTENCE.chars().zip(
-///// #             train_out.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(c as u32);
-///// #         });
-///// #         decoder.study(&train_in, &initial_state, &train_out[..ENGLISH_SENTENCE.chars().count()]);
-///// #     }
-///// #     decoder.update(RATE);
-///// # }
-///// let mut decoder = decoder.drop();
-/////
-///// let mut output = MathVec::<OUT>::new();
-/////
-///// // Test Japanese.
-///// decoder.state_mut().clear();
-///// decoder.input_mut().load_u32_label(JAPANESE_ID as u32);
-/////
-///// JAPANESE_SENTENCE.chars().for_each(|c| {
-/////     decoder.output_next(&mut output);
-/////
-/////     assert_eq!(c as u32, output.to_u32_label());
-///// });
-/////
-///// // Test English.
-///// decoder.state_mut().clear();
-///// decoder.input_mut().load_u32_label(ENGLISH_ID as u32);
-/////
-///// ENGLISH_SENTENCE.chars().for_each(|c| {
-/////     decoder.output_next(&mut output);
-/////
-/////     assert_eq!(c as u32, output.to_u32_label());
-///// });
-///// ```
-/////
-///// - `OUT` : Dimension of output.
-///// - `MIDDLE` : Dimension of hidden layer.
-///// - `IN` : Dimension of input.
+/// Decoder from fixed length data to sequence data.
+///
+/// # Example
+///
+/// Letter commentator.
+/// - If inputs '日', outputs "これは日本語です。"
+/// - If inputs 'E', outputs "This is English."
+///
+/// (1) Defines ID and messages.
+///
+/// ```ignore
+/// extern crate chobitlibs;
+/// 
+/// use chobitlibs::chobit_ai::{
+///     MathVec,
+///     Activation,
+///     ChobitDecoder,
+///     ChobitMLDecoder,
+///     MLDecoderCache
+/// };
+/// 
+/// use chobitlibs::chobit_rand::ChobitRand;
+/// 
+/// const JAPANESE_ID: char = '日';
+/// const ENGLISH_ID: char = 'E';
+/// 
+/// const JAPANESE_MESSAGE: &str = "これは日本語です。";
+/// const ENGLISH_MESSAGE: &str = "This is English.";
+/// 
+/// fn write_string_to_slice(string: &str, slice: &mut [MathVec<32>]) {
+///     string.chars().zip(slice.iter_mut()).for_each(|(c, s)| {
+///         s.load_u32_label(c as u32);
+///     });
+/// }
+/// ```
+///
+/// (2) Creates [`ChobitDecoder`] and randomises weights.
+///
+/// ```ignore
+/// const OUT: usize = 32;
+/// const MIDDLE: usize = 64;
+/// const IN: usize = 32;
+///
+/// let max_message_len = JAPANESE_MESSAGE.len().max(ENGLISH_MESSAGE.len());
+///
+/// let mut rng = ChobitRand::new(b"ChobitDecoder Example");
+///
+/// let mut decoder =
+///     ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+///
+/// // Randomises weights.
+/// decoder.for_each_weight_mut(|weight| {
+///     *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// });
+///
+/// let mut input = MathVec::<IN>::new();
+/// let mut output = vec![MathVec::<OUT>::new(); max_message_len];
+/// let initial_state = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (3) Wraps AI with [`ChobitMLDecoder`] for machine learning.
+///
+/// ```ignore
+/// let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
+/// let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(max_message_len);
+///
+/// let mut input_error = MathVec::<IN>::new();
+/// let mut output_error = vec![MathVec::<OUT>::new(); max_message_len];
+/// let mut prev_state_error = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (4) Machine learning.
+///
+/// ```ignore
+/// const EPOCH: usize = 10000;
+/// const BATCH_SIZE: usize = 1;
+/// const RATE: f32 = 0.01;
+///
+/// let japanese_message_len = JAPANESE_MESSAGE.chars().count();
+/// let english_message_len = ENGLISH_MESSAGE.chars().count();
+///
+/// for _ in 0..EPOCH {
+///     for _ in 0..BATCH_SIZE {
+///         //--- Learns Japanese ---//
+///         input.load_u32_label(JAPANESE_ID as u32);
+///
+///         write_string_to_slice(&JAPANESE_MESSAGE, &mut output);
+///
+///         // Writes cache.
+///         decoder.ready(
+///             &input,
+///             &initial_state,
+///             japanese_message_len,
+///             &mut cache
+///         );
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         decoder.study(
+///             &output_error[..japanese_message_len],
+///             &cache,
+///             &mut input_error,
+///             &mut prev_state_error
+///         );
+///
+///         //--- Learns English ---//
+///         input.load_u32_label(ENGLISH_ID as u32);
+///
+///         write_string_to_slice(&ENGLISH_MESSAGE, &mut output);
+///
+///         // Writes cache.
+///         decoder.ready(
+///             &input,
+///             &initial_state,
+///             english_message_len,
+///             &mut cache
+///         );
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         decoder.study(
+///             &output_error[..english_message_len],
+///             &cache,
+///             &mut input_error,
+///             &mut prev_state_error
+///         );
+///     }
+///
+///     // Updates weights.
+///     decoder.update(RATE);
+/// }
+/// ```
+///
+/// (5) Tests AI.
+///
+/// ```ignore
+/// // Unwrap Decoder.
+/// let mut decoder = decoder.drop();
+///
+/// let mut output = MathVec::<OUT>::new();
+///
+/// // Tests Japanese.
+/// // Sets input.
+/// input.load_u32_label(JAPANESE_ID as u32);
+/// decoder.input_mut().copy_from(&input);
+///
+/// // Initializes state.
+/// decoder.state_mut().copy_from(&initial_state);
+///
+/// // Outputs for each one.
+/// JAPANESE_MESSAGE.chars().for_each(|c| {
+///     decoder.output_next(&mut output);
+///
+///     assert_eq!(output.to_u32_label(), c as u32);
+/// });
+///
+/// // Tests English.
+/// // Sets input.
+/// input.load_u32_label(ENGLISH_ID as u32);
+/// decoder.input_mut().copy_from(&input);
+///
+/// // Initializes state.
+/// decoder.state_mut().copy_from(&initial_state);
+///
+/// // Outputs for each one.
+/// ENGLISH_MESSAGE.chars().for_each(|c| {
+///     decoder.output_next(&mut output);
+///
+///     assert_eq!(output.to_u32_label(), c as u32);
+/// });
+/// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitDecoder<
     const OUT: usize,
@@ -4183,454 +3933,237 @@ impl<
     }
 }
 
-///// Seq2Seq AI.
-/////
-///// # Example of ChatCHOBIT.
-/////
-///// Inputs variable length value and outputs variable length value.
-/////
-///// (1) Defines Japanese word generator and English word generator.
-/////
-///// ```ignore
-///// use chobitlibs::chobit_ai::{
-/////     MathVec,
-/////     ChobitSeqAI,
-/////     ChobitMLSeqAI,
-/////     Activation
-///// };
-/////
-///// use chobitlibs::chobit_rand::ChobitRand;
-/////
-///// const MAX_WORD_SIZE: usize = 10;
-/////
-///// fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-/////     word.clear();
-/////
-/////     let mut letters: [char; MAX_WORD_SIZE] = [
-/////         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-/////     ];
-/////
-/////     rng.shuffle(&mut letters);
-/////
-/////     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-/////
-/////     word.extend_from_slice(&letters[..len]);
-///// }
-/////
-///// fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-/////     word.clear();
-/////
-/////     let mut letters: [char; MAX_WORD_SIZE] = [
-/////         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-/////     ];
-/////
-/////     rng.shuffle(&mut letters);
-/////
-/////     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-/////
-/////     word.extend_from_slice(&letters[..len]);
-///// }
-///// ```
-/////
-///// (2) Defines Japanese sentence and English sentence.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitSeqAI,
-///// #     ChobitMLSeqAI,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// const ENGLISH_SENTENCE: &str = "This is english.";
-///// ```
-/////
-///// (3) Generates [`ChobitEncoder`].
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitSeqAI,
-///// #     ChobitMLSeqAI,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// const IN: usize = 32; 
-///// const MIDDLE: usize = 64; 
-///// const OUT: usize = 32; 
-/////
-///// let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-/////
-///// let initial_state = MathVec::<MIDDLE>::new();
-///// ```
-/////
-///// (4) Randomise weights.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitSeqAI,
-///// #     ChobitMLSeqAI,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
-/////
-///// ai.for_each_weight_mut(
-/////     |weight| {
-/////         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-/////     }
-///// );
-///// ```
-/////
-///// (5) Ready for machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitSeqAI,
-///// #     ChobitMLSeqAI,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
-///// # ai.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-///// ```
-/////
-///// (6) Machine learning.
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitSeqAI,
-///// #     ChobitMLSeqAI,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
-///// # ai.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-///// const MAX_SENTENCE_SIZE: usize = 20;
-/////
-///// const EPOCH: usize = 2000;
-///// const BATCH_SIZE: usize = 20;
-///// const RATE: f32 = 0.01;
-/////
-///// let mut word = Vec::<char>::with_capacity(MAX_WORD_SIZE);
-///// let mut train_in = vec![MathVec::<IN>::new(); MAX_WORD_SIZE];
-///// let mut train_out = vec![MathVec::<OUT>::new(); MAX_SENTENCE_SIZE];
-/////
-///// for _ in 0..EPOCH {
-/////     for _ in 0..BATCH_SIZE {
-/////         // Study Japanese.
-/////         gen_japanese_word(&mut rng, &mut word);
-/////
-/////         word.iter().zip(
-/////             train_in.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(*c as u32);
-/////         });
-/////
-/////         JAPANESE_SENTENCE.chars().zip(
-/////             train_out.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(c as u32);
-/////         });
-/////
-/////         ai.study(
-/////             &train_in[..word.len()],
-/////             &initial_state,
-/////             &train_out[..JAPANESE_SENTENCE.chars().count()]
-/////         );
-/////
-/////         // Study English.
-/////         gen_english_word(&mut rng, &mut word);
-/////
-/////         word.iter().zip(
-/////             train_in.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(*c as u32);
-/////         });
-/////
-/////         ENGLISH_SENTENCE.chars().zip(
-/////             train_out.iter_mut()
-/////         ).for_each(|(c, vec)| {
-/////             vec.load_u32_label(c as u32);
-/////         });
-/////
-/////         ai.study(
-/////             &train_in[..word.len()],
-/////             &initial_state,
-/////             &train_out[..ENGLISH_SENTENCE.chars().count()]
-/////         );
-/////     }
-/////
-/////     ai.update(RATE);
-///// }
-///// ```
-/////
-///// (7) Congratulation! You've made word ChatCHOBIT!
-/////
-///// ```ignore
-///// # use chobitlibs::chobit_ai::{
-///// #     MathVec,
-///// #     ChobitSeqAI,
-///// #     ChobitMLSeqAI,
-///// #     Activation
-///// # };
-///// # use chobitlibs::chobit_rand::ChobitRand;
-///// # const MAX_WORD_SIZE: usize = 10;
-///// # fn gen_japanese_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # fn gen_english_word(rng: &mut ChobitRand, word: &mut Vec<char>) {
-///// #     word.clear();
-///// #     let mut letters: [char; MAX_WORD_SIZE] = [
-///// #         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'
-///// #     ];
-///// #     rng.shuffle(&mut letters);
-///// #     let len = ((rng.next_u64() as usize) % MAX_WORD_SIZE) + 1;
-///// #     word.extend_from_slice(&letters[..len]);
-///// # }
-///// # const JAPANESE_SENTENCE: &str = "これは日本語です。";
-///// # const ENGLISH_SENTENCE: &str = "This is english.";
-///// # const IN: usize = 32; 
-///// # const MIDDLE: usize = 64; 
-///// # const OUT: usize = 32; 
-///// # let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-///// # let initial_state = MathVec::<MIDDLE>::new();
-///// # let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
-///// # ai.for_each_weight_mut(
-///// #     |weight| {
-///// #         *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
-///// #     }
-///// # );
-///// # let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-///// # const MAX_SENTENCE_SIZE: usize = 20;
-///// # const EPOCH: usize = 2000;
-///// # const BATCH_SIZE: usize = 20;
-///// # const RATE: f32 = 0.01;
-///// # let mut word = Vec::<char>::with_capacity(MAX_WORD_SIZE);
-///// # let mut train_in = vec![MathVec::<IN>::new(); MAX_WORD_SIZE];
-///// # let mut train_out = vec![MathVec::<OUT>::new(); MAX_SENTENCE_SIZE];
-///// # for _ in 0..EPOCH {
-///// #     for _ in 0..BATCH_SIZE {
-///// #         // Study Japanese.
-///// #         gen_japanese_word(&mut rng, &mut word);
-///// #         word.iter().zip(
-///// #             train_in.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(*c as u32);
-///// #         });
-///// #         JAPANESE_SENTENCE.chars().zip(
-///// #             train_out.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(c as u32);
-///// #         });
-///// #         ai.study(
-///// #             &train_in[..word.len()],
-///// #             &initial_state,
-///// #             &train_out[..JAPANESE_SENTENCE.chars().count()]
-///// #         );
-///// #         // Study English.
-///// #         gen_english_word(&mut rng, &mut word);
-///// #         word.iter().zip(
-///// #             train_in.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(*c as u32);
-///// #         });
-///// #         ENGLISH_SENTENCE.chars().zip(
-///// #             train_out.iter_mut()
-///// #         ).for_each(|(c, vec)| {
-///// #             vec.load_u32_label(c as u32);
-///// #         });
-///// #         ai.study(
-///// #             &train_in[..word.len()],
-///// #             &initial_state,
-///// #             &train_out[..ENGLISH_SENTENCE.chars().count()]
-///// #         );
-///// #     }
-///// #     ai.update(RATE);
-///// # }
-///// let mut ai = ai.drop();
-/////
-///// let mut input = MathVec::<IN>::new();
-///// let mut output = MathVec::<OUT>::new();
-/////
-///// // Test Japanese word.
-///// for _ in 0..10 {
-/////     gen_japanese_word(&mut rng, &mut word);
-/////
-/////     ai.state_mut().copy_from(&initial_state);
-/////
-/////     // Inputs each letter.
-/////     word.iter().for_each(|c| {
-/////         input.load_u32_label(*c as u32);
-/////         ai.input_next(&input)
-/////     });
-/////
-/////     // Output each letter.
-/////     JAPANESE_SENTENCE.chars().for_each(|c| {
-/////         ai.output_next(&mut output);
-/////
-/////         assert_eq!(c as u32, output.to_u32_label());
-/////     });
-///// }
-/////
-///// // Test English word.
-///// for _ in 0..10 {
-/////     gen_english_word(&mut rng, &mut word);
-/////
-/////     ai.state_mut().copy_from(&initial_state);
-/////
-/////     // Inputs each letter.
-/////     word.iter().for_each(|c| {
-/////         input.load_u32_label(*c as u32);
-/////         ai.input_next(&input)
-/////     });
-/////
-/////     // Output each letter.
-/////     ENGLISH_SENTENCE.chars().for_each(|c| {
-/////         ai.output_next(&mut output);
-/////
-/////         assert_eq!(c as u32, output.to_u32_label());
-/////     });
-///// }
-///// ```
+/// Seq2Seq AI.
+///
+/// # Example
+///
+/// ChatCHOBIT
+/// - If inputs Japanese word, outputs "これは日本語です。"
+/// - If inputs English word, outputs "This is English."
+///
+/// (1) Defines word generator and messages.
+///
+/// ```ignore
+/// extern crate chobitlibs;
+/// 
+/// use chobitlibs::chobit_ai::{
+///     MathVec,
+///     Activation,
+///     ChobitSeqAI,
+///     ChobitMLSeqAI,
+///     MLSeqAICache
+/// };
+/// 
+/// use chobitlibs::chobit_rand::ChobitRand;
+/// 
+/// fn japanese_letter(rng: &mut ChobitRand) -> char {
+///     let letters = [
+///         'あ', 'い', 'う', 'え', 'お',
+///         'か', 'き', 'く', 'け', 'こ',
+///         'さ', 'し', 'す', 'せ', 'そ'
+///     ];
+/// 
+///     letters[(rng.next_u64() as usize) % letters.len()]
+/// }
+/// 
+/// fn english_letter(rng: &mut ChobitRand) -> char {
+///     let letters = [
+///         'a', 'b', 'c', 'd', 'e',
+///         'f', 'g', 'h', 'i', 'j',
+///         'k', 'l', 'm', 'n', 'o'
+///     ];
+/// 
+///     letters[(rng.next_u64() as usize) % letters.len()]
+/// }
+/// 
+/// fn gen_word(
+///     f: fn(&mut ChobitRand) -> char,
+///     rng: &mut ChobitRand,
+///     max_len: usize
+/// ) -> String {
+///     let word_len = ((rng.next_u64() as usize) % max_len) + 1;
+/// 
+///     let mut ret = String::with_capacity(word_len);
+/// 
+///     for _ in 0..word_len {
+///         ret.push(f(rng));
+///     }
+/// 
+///     ret
+/// }
+/// 
+/// fn write_string_to_slice(string: &str, slice: &mut [MathVec<32>]) {
+///     string.chars().zip(slice.iter_mut()).for_each(|(c, s)| {
+///         s.load_u32_label(c as u32);
+///     });
+/// }
+/// 
+/// const JAPANESE_MESSAGE: &str = "これは日本語です。";
+/// const ENGLISH_MESSAGE: &str = "This is English.";
+/// ```
+///
+/// (2) Creates [`ChobitSeqAI`] and randomises weights.
+///
+/// ```ignore
+/// const OUT: usize = 32;
+/// const MIDDLE: usize = 64;
+/// const IN: usize = 32;
+///
+/// const MAX_WORD_LEN: usize = 10;
+/// let max_message_len = JAPANESE_MESSAGE.len().max(ENGLISH_MESSAGE.len());
+///
+/// let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
+///
+/// let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+///
+/// // Randomises weights.
+/// ai.for_each_weight_mut(|weight| {
+///     *weight = ((rng.next_f64() as f32) * 2.0) - 1.0;
+/// });
+///
+/// let mut input = vec![MathVec::<IN>::new(); MAX_WORD_LEN];
+/// let mut output = vec![MathVec::<OUT>::new(); max_message_len];
+/// let initial_state = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (3) Wraps AI with [`ChobitMLSeqAI`] for machine learning.
+///
+/// ```ignore
+/// let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
+/// let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(
+///     MAX_WORD_LEN,
+///     max_message_len
+/// );
+///
+/// let mut input_error = vec![MathVec::<IN>::new(); MAX_WORD_LEN];
+/// let mut output_error = vec![MathVec::<OUT>::new(); max_message_len];
+/// let mut prev_state_error = MathVec::<MIDDLE>::new();
+/// ```
+///
+/// (4) Machine learning.
+///
+/// ```ignore
+/// const EPOCH: usize = 10000;
+/// const BATCH_SIZE: usize = 10;
+/// const RATE: f32 = 0.01;
+///
+/// let japanese_message_len = JAPANESE_MESSAGE.chars().count();
+/// let english_message_len = ENGLISH_MESSAGE.chars().count();
+///
+/// for _ in 0..EPOCH {
+///     for _ in 0..BATCH_SIZE {
+///         //--- Learns Japanese ---//
+///         let string = gen_word(japanese_letter, &mut rng, MAX_WORD_LEN);
+///
+///         write_string_to_slice(&string, &mut input);
+///         write_string_to_slice(&JAPANESE_MESSAGE, &mut output);
+///
+///         // Writes cache.
+///         ai.ready(
+///             &input[..string.chars().count()],
+///             &initial_state,
+///             japanese_message_len,
+///             &mut cache
+///         );
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         ai.study(
+///             &output_error[..japanese_message_len],
+///             &cache,
+///             &mut input_error,
+///             &mut prev_state_error
+///         );
+///
+///         //--- Learns English ---//
+///         let string = gen_word(english_letter, &mut rng, MAX_WORD_LEN);
+///
+///         write_string_to_slice(&string, &mut input);
+///         write_string_to_slice(&ENGLISH_MESSAGE, &mut output);
+///
+///         // Writes cache.
+///         ai.ready(
+///             &input[..string.chars().count()],
+///             &initial_state,
+///             english_message_len,
+///             &mut cache
+///         );
+///
+///         // Calculates error.
+///         cache.calc_output_error(&output, &mut output_error);
+///
+///         // Studies.
+///         ai.study(
+///             &output_error[..english_message_len],
+///             &cache,
+///             &mut input_error,
+///             &mut prev_state_error
+///         );
+///     }
+///
+///     // Updates weights.
+///     ai.update(RATE);
+/// }
+/// ```
+///
+/// (5) Tests AI.
+///
+/// ```ignore
+/// // Unwrap AI.
+/// let mut ai = ai.drop();
+///
+/// let mut output = MathVec::<OUT>::new();
+///
+/// // Tests Japanese.
+/// for _ in 0..10 {
+///     let string = gen_word(japanese_letter, &mut rng, MAX_WORD_LEN);
+///
+///     write_string_to_slice(&string, &mut input);
+///
+///     // Initializes state.
+///     ai.state_mut().copy_from(&initial_state);
+///     
+///     // Inputs for each one.
+///     input.iter().for_each(|input_one| {
+///         ai.input_next(input_one);
+///     });
+///
+///     // Outputs for each one.
+///     JAPANESE_MESSAGE.chars().for_each(|c| {
+///         ai.output_next(&mut output);
+///
+///         assert_eq!(output.to_u32_label(), c as u32);
+///     });
+/// }
+///
+/// // Tests English.
+/// for _ in 0..10 {
+///     let string = gen_word(english_letter, &mut rng, MAX_WORD_LEN);
+///
+///     write_string_to_slice(&string, &mut input);
+///
+///     // Initializes state.
+///     ai.state_mut().copy_from(&initial_state);
+///     
+///     // Inputs for each one.
+///     input.iter().for_each(|input_one| {
+///         ai.input_next(input_one);
+///     });
+///
+///     // Outputs for each one.
+///     ENGLISH_MESSAGE.chars().for_each(|c| {
+///         ai.output_next(&mut output);
+///
+///         assert_eq!(output.to_u32_label(), c as u32);
+///     });
+/// }
+/// ```
+///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitSeqAI<
     const OUT: usize,
@@ -4814,10 +4347,10 @@ impl<
     const IN: usize
 > MLSeqAICache<OUT, MIDDLE, IN> {
     #[inline]
-    pub fn new(capacity: usize) -> Self {
+    pub fn new(input_capacity: usize, output_capacity: usize) -> Self {
         Self {
             enc_state_caches: vec![
-                MLLSTMStateCache::<MIDDLE, IN>::new(); capacity
+                MLLSTMStateCache::<MIDDLE, IN>::new(); input_capacity
             ],
             enc_state_caches_len: 0,
 
@@ -4828,7 +4361,7 @@ impl<
                     MLLSTMStateCache::<MIDDLE, MIDDLE>::new(),
                     MLLSTMOutputCache::<MIDDLE, MIDDLE>::new(),
                     MLCache::<OUT, MIDDLE>::new(),
-                ); capacity
+                ); output_capacity
             ],
             dec_caches_len: 0,
         }
