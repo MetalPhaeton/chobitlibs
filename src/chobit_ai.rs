@@ -1241,6 +1241,14 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         self.momentum_2.clear();
     }
 
+    #[inline]
+    pub fn total_grad(&self) -> &Weights<OUT, IN> {&self.total_grad}
+
+    #[inline]
+    pub fn total_grad_mut(&mut self) -> &mut Weights<OUT, IN> {
+        &mut self.total_grad
+    }
+
     /// Generates MLCache for [MLLayer::study].
     ///
     /// - `input` : Input.
@@ -1819,6 +1827,21 @@ impl<
     pub fn update(&mut self, rate: f32) {
         self.middle_layer.update(rate);
         self.output_layer.update(rate);
+    }
+
+    #[inline]
+    pub fn for_each_total_grad<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.middle_layer.total_grad.iter().for_each(|val| {f(val)});
+        self.output_layer.total_grad.iter().for_each(|val| {f(val)});
+    }
+
+    #[inline]
+    pub fn for_each_total_grad_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.middle_layer.total_grad.iter_mut().for_each(|val| {f(val)});
+        self.output_layer.total_grad.iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -2601,6 +2624,28 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.f_gate.update(rate);
         self.i_gate.update(rate);
         self.o_gate.update(rate);
+    }
+
+    #[inline]
+    pub fn for_each_total_grad<F>(
+        &self,
+        mut f: F
+    ) where F: FnMut(&f32) {
+        self.main_layer.total_grad.iter().for_each(|val| {f(val)});
+        self.f_gate.total_grad.iter().for_each(|val| {f(val)});
+        self.i_gate.total_grad.iter().for_each(|val| {f(val)});
+        self.o_gate.total_grad.iter().for_each(|val| {f(val)});
+    }
+
+    #[inline]
+    pub fn for_each_total_grad_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.main_layer.total_grad.iter_mut().for_each(|val| {f(val)});
+        self.f_gate.total_grad.iter_mut().for_each(|val| {f(val)});
+        self.i_gate.total_grad.iter_mut().for_each(|val| {f(val)});
+        self.o_gate.total_grad.iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -3441,6 +3486,24 @@ impl<
         self.lstm.update(rate);
         self.output_layer.update(rate);
     }
+
+    #[inline]
+    pub fn for_each_total_grad<F>(
+        &self,
+        mut f: F
+    ) where F: FnMut(&f32) {
+        self.lstm.for_each_total_grad(|val| {f(val)});
+        self.output_layer.total_grad.iter().for_each(|val| {f(val)});
+    }
+
+    #[inline]
+    pub fn for_each_total_grad_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.lstm.for_each_total_grad_mut(|val| {f(val)});
+        self.output_layer.total_grad.iter_mut().for_each(|val| {f(val)});
+    }
 }
 
 ///// Decoder from fixed length data to sequence data.
@@ -4099,6 +4162,24 @@ impl<
     pub fn update(&mut self, rate: f32) {
         self.lstm.update(rate);
         self.output_layer.update(rate);
+    }
+
+    #[inline]
+    pub fn for_each_total_grad<F>(
+        &self,
+        mut f: F
+    ) where F: FnMut(&f32) {
+        self.lstm.for_each_total_grad(|val| {f(val)});
+        self.output_layer.total_grad.iter().for_each(|val| {f(val)});
+    }
+
+    #[inline]
+    pub fn for_each_total_grad_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.lstm.for_each_total_grad_mut(|val| {f(val)});
+        self.output_layer.total_grad.iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -5126,5 +5207,25 @@ impl<
         self.enc_layer.update(rate);
         self.dec_layer.update(rate);
         self.output_layer.update(rate);
+    }
+
+    #[inline]
+    pub fn for_each_total_grad<F>(
+        &self,
+        mut f: F
+    ) where F: FnMut(&f32) {
+        self.enc_layer.for_each_total_grad(|val| {f(val)});
+        self.dec_layer.for_each_total_grad(|val| {f(val)});
+        self.output_layer.total_grad.iter().for_each(|val| {f(val)});
+    }
+
+    #[inline]
+    pub fn for_each_total_grad_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.enc_layer.for_each_total_grad_mut(|val| {f(val)});
+        self.dec_layer.for_each_total_grad_mut(|val| {f(val)});
+        self.output_layer.total_grad.iter_mut().for_each(|val| {f(val)});
     }
 }

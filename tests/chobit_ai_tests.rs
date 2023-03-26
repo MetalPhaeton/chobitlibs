@@ -1191,6 +1191,41 @@ fn chobit_ai_test_3() {
     assert_eq!(ai_1, ai_2);
 }
 
+#[test]
+fn chobit_ai_test_4() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_ai_test_4".as_bytes());
+
+    let mut ai_1 = ChobitMLAI::<OUT, MIDDLE, IN>::new(
+        ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    ai_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    let mut ai_2 = ChobitMLAI::<OUT, MIDDLE, IN>::new(
+        ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    ai_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    assert_ne!(ai_1, ai_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    ai_1.for_each_total_grad(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    ai_2.for_each_total_grad_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(ai_1, ai_2);
+}
+
 fn letter_data(
     rng: &mut ChobitRand,
     letters: &[char],
@@ -1747,6 +1782,40 @@ fn lstm_test_3() {
     assert_eq!(lstm_1, lstm_2);
 }
 
+#[test]
+fn lstm_test_4() {
+    const OUT: usize = 11;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("lstm_test_4".as_bytes());
+
+    let mut lstm_1 = MLLSTM::<OUT, IN>::new(
+        LSTM::<OUT, IN>::new()
+    );
+    lstm_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    let mut lstm_2 = MLLSTM::<OUT, IN>::new(
+        LSTM::<OUT, IN>::new()
+    );
+    lstm_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    assert_ne!(lstm_1, lstm_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    lstm_1.for_each_total_grad(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    lstm_2.for_each_total_grad_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(lstm_1, lstm_2);
+}
+
 fn gen_encoder<
     const OUT: usize,
     const MIDDLE: usize,
@@ -2002,6 +2071,41 @@ fn chobit_encoder_test_3() {
 
     let mut vec_iter = vec.iter();
     encoder_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(encoder_1, encoder_2);
+}
+
+#[test]
+fn chobit_encoder_test_4() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_encoder_test_4".as_bytes());
+
+    let mut encoder_1 = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(
+        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    encoder_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    let mut encoder_2 = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(
+        ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    encoder_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    assert_ne!(encoder_1, encoder_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    encoder_1.for_each_total_grad(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    encoder_2.for_each_total_grad_mut(|val| {
         *val = *vec_iter.next().unwrap();
     });
 
@@ -2276,6 +2380,41 @@ fn chobit_decoder_test_3() {
 
     let mut vec_iter = vec.iter();
     decoder_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(decoder_1, decoder_2);
+}
+
+#[test]
+fn chobit_decoder_test_4() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_decoder_test_4".as_bytes());
+
+    let mut decoder_1 = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(
+        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    decoder_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    let mut decoder_2 = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(
+        ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    decoder_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    assert_ne!(decoder_1, decoder_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    decoder_1.for_each_total_grad(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    decoder_2.for_each_total_grad_mut(|val| {
         *val = *vec_iter.next().unwrap();
     });
 
@@ -2573,37 +2712,72 @@ fn chobit_seq_ai_test_2() {
     }
 }
 
-//#[test]
-//fn chobit_seq_ai_test_3() {
-//    const OUT: usize = 11;
-//    const MIDDLE: usize = 7;
-//    const IN: usize = 5;
-//
-//    let mut rng = ChobitRand::new("chobit_seq_ai_test_3".as_bytes());
-//
-//    let mut ai_1 =
-//        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-//    ai_1.for_each_weight_mut(|val| {
-//        *val = rand_num(&mut rng);
-//    });
-//
-//    let mut ai_2 =
-//        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-//    ai_2.for_each_weight_mut(|val| {
-//        *val = rand_num(&mut rng);
-//    });
-//
-//    assert_ne!(ai_1, ai_2);
-//
-//    let mut vec = Vec::<f32>::new();
-//    ai_1.for_each_weight(|val| {
-//        vec.push(*val);
-//    });
-//
-//    let mut vec_iter = vec.iter();
-//    ai_2.for_each_weight_mut(|val| {
-//        *val = *vec_iter.next().unwrap();
-//    });
-//
-//    assert_eq!(ai_1, ai_2);
-//}
+#[test]
+fn chobit_seq_ai_test_3() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_seq_ai_test_3".as_bytes());
+
+    let mut ai_1 =
+        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    ai_1.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    let mut ai_2 =
+        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    ai_2.for_each_weight_mut(|val| {
+        *val = rand_num(&mut rng);
+    });
+
+    assert_ne!(ai_1, ai_2);
+
+    let mut vec = Vec::<f32>::new();
+    ai_1.for_each_weight(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+    ai_2.for_each_weight_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(ai_1, ai_2);
+}
+
+#[test]
+fn chobit_seq_ai_test_4() {
+    const OUT: usize = 11;
+    const MIDDLE: usize = 7;
+    const IN: usize = 5;
+
+    let mut rng = ChobitRand::new("chobit_seq_ai_test_4".as_bytes());
+
+    let mut ai_1 = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(
+        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    ai_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    let mut ai_2 = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(
+        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    );
+    ai_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
+
+    assert_ne!(ai_1, ai_2);
+
+    let mut vec = Vec::<f32>::new();
+
+    ai_1.for_each_total_grad(|val| {
+        vec.push(*val);
+    });
+
+    let mut vec_iter = vec.iter();
+
+    ai_2.for_each_total_grad_mut(|val| {
+        *val = *vec_iter.next().unwrap();
+    });
+
+    assert_eq!(ai_1, ai_2);
+}
