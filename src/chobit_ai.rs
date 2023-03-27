@@ -1548,7 +1548,7 @@ pub struct Layer<const OUT: usize, const IN: usize> {
 }
 
 impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
-    /// Creates Neuron.
+    /// Creates Layer.
     ///
     /// - `activation` : Activation function.
     /// - `accept_state` : If `true`, this accepts state.
@@ -1605,10 +1605,10 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     }
 }
 
-/// Cache for MLLayer.
+/// Cache for [`MLLayer`].
 ///
-/// - `OUT` : Output of [`MLLayer`].
-/// - `IN` : Input of [`MLLayer`].
+/// - `OUT` : `OUT` of [`MLLayer`].
+/// - `IN` : `IN` of [`MLLayer`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLCache<const OUT: usize, const IN: usize> {
     input: MathVec<IN>,
@@ -1720,7 +1720,7 @@ const BETA_INV_2: f32 = 1.0 - BETA_2;
 impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     /// Creates MLLayer.
     ///
-    /// - `layer` : Base layer.
+    /// - `layer` : Base [`Layer`].
     /// - _Return_ : MLLayer.
     #[inline]
     pub fn new(layer: Layer<OUT, IN>) -> Self {
@@ -1738,9 +1738,9 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         }
     }
 
-    /// Drops Base layer.
+    /// Drops Base [`Layer`].
     ///
-    /// - _Return_ : Base Layer.
+    /// - _Return_ : [`Layer`].
     #[inline]
     pub fn drop(self) -> Layer<OUT, IN> {self.layer}
 
@@ -1752,19 +1752,29 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         self.momentum_2.clear();
     }
 
+    /// Gets immutable total gradient.
+    ///
+    /// Total gradient is increased every time to call [`Self::study()`].
+    ///
+    /// - _Return_ : Total gradient.
     #[inline]
     pub fn total_grad(&self) -> &Weights<OUT, IN> {&self.total_grad}
 
+    /// Gets mutable total gradient.
+    ///
+    /// Total gradient is increased every time to call [`Self::study()`].
+    ///
+    /// - _Return_ : Total gradient.
     #[inline]
     pub fn total_grad_mut(&mut self) -> &mut Weights<OUT, IN> {
         &mut self.total_grad
     }
 
-    /// Generates MLCache for [MLLayer::study].
+    /// Writes infomation on [`MLCache`] for [Self::study()].
     ///
     /// - `input` : Input.
     /// - `state` : State if it exists.
-    /// - `cache` : Cache that use on [MLLayer::study].
+    /// - `cache` : Cache.
     pub fn ready(
         &self,
         input: &MathVec<IN>,
@@ -1799,7 +1809,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         });
     }
 
-    /// Studies weights from [`MLCache`].
+    /// Accumulates gradient.
     ///
     /// - `output_error` : Backpropagated output error.
     /// - `next_state_error` : Backpropagated state error if it exists.
@@ -2208,6 +2218,11 @@ impl<
     }
 }
 
+/// Cache for [`ChobitMLAI`].
+///
+/// - `OUT` : `OUT` of [`ChobitMLAI`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMLAI`].
+/// - `IN` : `IN` of [`ChobitMLAI`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLAICache<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_cache: MLCache<MIDDLE, IN>,
@@ -2219,6 +2234,9 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > MLAICache<OUT, MIDDLE, IN> {
+    /// Creates MLAICache.
+    ///
+    /// - _Return_ : MLAICache.
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -2227,6 +2245,15 @@ impl<
         }
     }
 
+    /// Calculates output error.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `train_out` : Correct output.
+    /// - `output_error` : Buffer for output error.
     #[inline]
     pub fn calc_output_error(
         &self,
@@ -2237,11 +2264,23 @@ impl<
         *error -= train_out;
     }
 
+    /// Gets cache for middle layer.
+    ///
+    /// - _Return_ : Cache for middle layer.
     #[inline]
     pub fn middle_cache(&self) -> &MLCache<MIDDLE, IN> {&self.middle_cache}
 
+    /// Gets cache for output layer.
+    ///
+    /// - _Return_ : Cache for output layer.
     #[inline]
     pub fn output_cache(&self) -> &MLCache<OUT, MIDDLE> {&self.output_cache}
+
+    /// Gets output.
+    ///
+    /// - _Return_ : Output.
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {&self.output_cache.output}
 }
 
 /// Wrapper of [`ChobitAI`] for machine learning.
@@ -2267,7 +2306,7 @@ impl<
 > ChobitMLAI<OUT, MIDDLE, IN> {
     /// Creates ChobitMLAI.
     ///
-    /// - `ai` : [`ChobitAI`] to be learned.
+    /// - `ai` : Base [`ChobitAI`].
     /// - _Return_ : ChobitMLAI.
     #[inline]
     pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
@@ -2282,7 +2321,7 @@ impl<
         }
     }
 
-    /// Drops [`ChobitAI`].
+    /// Drops base [`ChobitAI`].
     ///
     /// - _Return_ : [`ChobitAI`].
     #[inline]
@@ -2302,6 +2341,10 @@ impl<
         self.output_layer.clear_study_data();
     }
 
+    /// Writes information on [`MLAICache`] for [`Self::study()`].
+    ///
+    /// - `input` : Input.
+    /// - `cache` : Cache.
     #[inline]
     pub fn ready(
         &self,
@@ -2317,7 +2360,11 @@ impl<
         );
     }
 
-    /// Studies weights.
+    /// Accumulates gradient.
+    ///
+    /// - `output_error` : Backpropagated ouput error.
+    /// - `cache` : Cache.
+    /// - `input_error` : Error to backpropagate for previous output error.
     #[inline]
     pub fn study(
         &mut self,
@@ -2351,12 +2398,18 @@ impl<
         self.output_layer.update(rate);
     }
 
+    /// Accesses each immutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad<F>(&self, mut f: F) where F: FnMut(&f32) {
         self.middle_layer.total_grad.iter().for_each(|val| {f(val)});
         self.output_layer.total_grad.iter().for_each(|val| {f(val)});
     }
 
+    /// Accesses each mutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad_mut<F>(
         &mut self,
@@ -2536,7 +2589,7 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
     }
 }
 
-/// Cache for state error of MLLSTM.
+/// Cache for state error of [`MLLSTM`].
 ///
 /// - `OUT` : Output of [`MLLSTM`].
 /// - `IN` : Input of [`MLLSTM`].
@@ -2610,7 +2663,7 @@ impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
     pub fn state(&self) -> &MathVec<OUT> {&self.state}
 }
 
-/// Cache for output error of MLLSTM.
+/// Cache for output error of [`MLLSTM`].
 ///
 /// - `OUT` : Output of [`MLLSTM`].
 /// - `IN` : Input of [`MLLSTM`].
@@ -2722,7 +2775,7 @@ pub struct MLLSTM<const OUT: usize, const IN: usize> {
 impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     /// Creates MLLSTM.
     ///
-    /// - `lstm` : Base LSTM.
+    /// - `lstm` : Base [`LSTM`].
     /// - _Return_ : MLLSTM.
     #[inline]
     pub fn new(lstm: LSTM<OUT, IN>) -> Self {
@@ -2757,9 +2810,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         }
     }
 
-    /// Drops Base LSTM.
+    /// Drops base [`LSTM`].
     ///
-    /// - _Return_ : Base LSTM.
+    /// - _Return_ : [`LSTM`].
     #[inline]
     pub fn drop(self) -> LSTM<OUT, IN> {
         let Self {main_layer, f_gate, i_gate, o_gate, tanh, ..} = self;
@@ -2784,11 +2837,11 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.clear_study_data();
     }
 
-    /// Generates MLLSTMStateCache for [MLLSTM::study_state] or [MLLSTM::study].
+    /// Writes information on [`MLLSTMStateCache`] for [`Self::study_state()`] or [`MLLSTM::study()`].
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.
-    /// - `cache` : Cache that use on [MLLSTM::study_state] or [MLLSTM::study].
+    /// - `cache` : Cache.
     pub fn ready_state_cache(
         &self,
         input: &MathVec<IN>,
@@ -2819,10 +2872,10 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         });
     }
 
-    /// Generates MLLSTMOutputCache for [MLLSTM::study].
+    /// Writes information on [`MLLSTMOutputCache`] for [`Self::study()`].
     ///
-    /// - `last_state_cache` : [`MLLSTMStateCache`] generated before.
-    /// - `cache` : Cache that use on [MLLSTM::study].
+    /// - `last_state_cache` : Cache written at [`Self::ready_state_cache()`] just before.
+    /// - `cache` : Cache.
     pub fn ready_output_cache(
         &self,
         last_state_cache: &MLLSTMStateCache<OUT, IN>,
@@ -2851,12 +2904,12 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         );
     }
 
-    /// Studies weights without output error.
+    /// Accumulates gradient.
     ///
     /// - `state_error` : Backpropagated state error.
-    /// - `cache` : Cache generated by [MLLSTM::ready_state_cache].
-    /// - `input_error` : Error for previous output.
-    /// - `prev_state_error` : Error for previous state.
+    /// - `cache` : Cache written at [`Self::ready_state_cache()`].
+    /// - `input_error` : Error to backpropagate for previous output error.
+    /// - `prev_state_error` : Error to backpropagate previous state error.
     pub fn study_state(
         &mut self,
         state_error: &MathVec<OUT>,
@@ -2955,10 +3008,10 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     ///
     /// - `output_error` : Backpropagated output error.
     /// - `state_error` : Backpropagated state error.
-    /// - `state_cache` : Cache generated by [MLLSTM::ready_state_cache].
-    /// - `output_cache` : Cache generated by [MLLSTM::ready_output_cache].
-    /// - `input_error` : Error for previous output.
-    /// - `prev_state_error` : Error for previous state.
+    /// - `state_cache` : Cache written at [`Self::ready_state_cache()`].
+    /// - `output_cache` : Cache written at [`Self::ready_output_cache()`].
+    /// - `input_error` : Error to backpropagate for previous output error.
+    /// - `prev_state_error` : Error to backpropagate for previous state error.
     pub fn study(
         &mut self,
         output_error: &MathVec<OUT>,
@@ -3148,6 +3201,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.update(rate);
     }
 
+    /// Accesses each immutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad<F>(
         &self,
@@ -3159,6 +3215,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.total_grad.iter().for_each(|val| {f(val)});
     }
 
+    /// Accesses each mutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad_mut<F>(
         &mut self,
@@ -3459,6 +3518,8 @@ impl<
 
     /// Gets immutable state.
     ///
+    /// This should be initialized before the first input.
+    ///
     /// - _Return_ : State.
     #[inline]
     pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
@@ -3533,6 +3594,11 @@ impl<
     }
 }
 
+/// Cache for [`ChobitMLEncoder`].
+///
+/// - `OUT` : `OUT` of [`ChobitMLEncoder`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMLEncoder`].
+/// - `IN` : `IN` of [`ChobitMLEncoder`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLEncoderCache<
     const OUT: usize,
@@ -3552,6 +3618,9 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > MLEncoderCache<OUT, MIDDLE, IN> {
+    /// Creates MLEncoderCache.
+    ///
+    /// - _Return_ : MLEncoderCache.
     #[inline]
     pub fn new(capacity: usize) -> Self {
         Self {
@@ -3566,21 +3635,15 @@ impl<
         }
     }
 
-    #[inline]
-    pub fn lstm_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
-        &self.lstm_state_caches[..self.lstm_state_caches_len]
-    }
-
-    #[inline]
-    pub fn lstm_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
-        &self.lstm_output_cache
-    }
-
-    #[inline]
-    pub fn output_layer_cache(&self) -> &MLCache<OUT, MIDDLE> {
-        &self.output_layer_cache
-    }
-
+    /// Calculates output error.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `train_out` : Correct output.
+    /// - `output_error` : Buffer for output error.
     #[inline]
     pub fn calc_output_error(
         &self,
@@ -3591,9 +3654,36 @@ impl<
         *output_error -= train_out;
     }
 
+    /// Gets slice of ['MLLSTMStateCache'] of lstm layer.
+    ///
+    /// - _Return_ : Slice of ['MLLSTMStateCache'].
     #[inline]
-    pub fn clear(&mut self) {
-        self.lstm_state_caches_len = 0;
+    pub fn lstm_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
+        &self.lstm_state_caches[..self.lstm_state_caches_len]
+    }
+
+    /// Gets ['MLLSTMOutputCache'] of lstm layer.
+    ///
+    /// - _Return_ : ['MLLSTMOutputCache'].
+    #[inline]
+    pub fn lstm_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
+        &self.lstm_output_cache
+    }
+
+    /// Gets ['MLCache'] of output layer.
+    ///
+    /// - _Return_ : [`MLCache`].
+    #[inline]
+    pub fn output_layer_cache(&self) -> &MLCache<OUT, MIDDLE> {
+        &self.output_layer_cache
+    }
+
+    /// Gets output.
+    ///
+    /// - _Return_ : output.
+    #[inline]
+    pub fn output(&self) -> &MathVec<OUT> {
+        &self.output_layer_cache.output
     }
 }
 
@@ -3633,7 +3723,7 @@ impl<
 > ChobitMLEncoder<OUT, MIDDLE, IN> {
     /// Creates ChobitMLEncoder.
     ///
-    /// - `encoder` : [`ChobitEncoder`] to be learned.
+    /// - `encoder` : Base [`ChobitEncoder`].
     /// - _Return_ : ChobitMLEncoder.
     #[inline]
     pub fn new(encoder: ChobitEncoder<OUT, MIDDLE, IN>) -> Self {
@@ -3664,7 +3754,7 @@ impl<
         }
     }
 
-    /// Drops [`ChobitEncoder`].
+    /// Drops base [`ChobitEncoder`].
     ///
     /// - _Return_ : [`ChobitEncoder`].
     #[inline]
@@ -3698,6 +3788,11 @@ impl<
         self.output_layer.clear_study_data();
     }
 
+    /// Writes information on [`MLEncoderCache`] for [`Self::study()`].
+    ///
+    /// - `train_in` : Input data sequence.
+    /// - `prev_state` : Previous state.
+    /// - `cache` : Cache.
     #[inline]
     pub fn ready(
         &mut self,
@@ -3758,7 +3853,12 @@ impl<
         }
     }
 
-    /// Studies weights.
+    /// Accumulates gradient.
+    ///
+    /// - `output_error` : Backpropagated ouput error.
+    /// - `cache` : Cache.
+    /// - `input_error` : Error to backpropagate for previous output error.
+    /// - `prev_state_error` : Error to backpropagate for previous state error.
     pub fn study(
         &mut self,
         output_error: &MathVec<OUT>,
@@ -3814,6 +3914,9 @@ impl<
         self.output_layer.update(rate);
     }
 
+    /// Accesses each immutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad<F>(
         &self,
@@ -3823,6 +3926,9 @@ impl<
         self.output_layer.total_grad.iter().for_each(|val| {f(val)});
     }
 
+    /// Accesses each mutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad_mut<F>(
         &mut self,
@@ -4145,6 +4251,11 @@ impl<
     }
 }
 
+/// Cache for [`ChobitMLDecoder`].
+///
+/// - `OUT` : `OUT` of [`ChobitMLDecoder`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMLDecoder`].
+/// - `IN` : `IN` of [`ChobitMLDecoder`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLDecoderCache<
     const OUT: usize,
@@ -4165,6 +4276,9 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > MLDecoderCache<OUT, MIDDLE, IN> {
+    /// Creates MLDecoderCache.
+    ///
+    /// - _Return_ : MLDecoderCache.
     #[inline]
     pub fn new(capacity: usize) -> Self {
         Self {
@@ -4179,24 +4293,15 @@ impl<
         }
     }
 
-    #[inline]
-    pub fn caches(&self) -> &[(
-        MLLSTMStateCache<MIDDLE, IN>,
-        MLLSTMOutputCache<MIDDLE, IN>,
-        MLCache<OUT, MIDDLE>
-    )] {
-        &self.caches[..self.caches_len]
-    }
-
-    #[inline]
-    pub(self) fn caches_mut(&mut self) -> &mut [(
-        MLLSTMStateCache<MIDDLE, IN>,
-        MLLSTMOutputCache<MIDDLE, IN>,
-        MLCache<OUT, MIDDLE>
-    )] {
-        &mut self.caches[..self.caches_len]
-    }
-
+    /// Calculates output error.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `train_out` : Correct output.
+    /// - `output_error` : Buffer for output error.
     #[inline]
     pub fn calc_output_error(
         &self,
@@ -4219,9 +4324,38 @@ impl<
         });
     }
 
+    /// Gets immutable slice of caches.
+    ///
+    /// - _Return_ : Slice of caches.
     #[inline]
-    pub fn clear(&mut self) {
-        self.caches_len = 0;
+    pub fn caches(&self) -> &[(
+        MLLSTMStateCache<MIDDLE, IN>,
+        MLLSTMOutputCache<MIDDLE, IN>,
+        MLCache<OUT, MIDDLE>
+    )] {
+        &self.caches[..self.caches_len]
+    }
+
+    /// Gets mutable slice of caches.
+    ///
+    /// - _Return_ : Slice of caches.
+    #[inline]
+    pub(self) fn caches_mut(&mut self) -> &mut [(
+        MLLSTMStateCache<MIDDLE, IN>,
+        MLLSTMOutputCache<MIDDLE, IN>,
+        MLCache<OUT, MIDDLE>
+    )] {
+        &mut self.caches[..self.caches_len]
+    }
+
+    /// Accesses each output with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_output<F>(&self, mut f: F) where F: FnMut(&MathVec<OUT>) {
+        self.caches[..self.caches_len].iter().for_each(
+            |(_, _, cache)| {f(&cache.output);}
+        );
     }
 }
 
@@ -4262,7 +4396,7 @@ impl<
 > ChobitMLDecoder<OUT, MIDDLE, IN> {
     /// Creates ChobitMLDecoder.
     ///
-    /// - `decoder` : [`ChobitDecoder`] to be learned.
+    /// - `decoder` : Base [`ChobitDecoder`].
     /// - _Return_ : ChobitMLDecoder.
     #[inline]
     pub fn new(decoder: ChobitDecoder<OUT, MIDDLE, IN>) -> Self {
@@ -4294,7 +4428,7 @@ impl<
         }
     }
 
-    /// Drops [`ChobitDecoder`].
+    /// Drops base [`ChobitDecoder`].
     ///
     /// - _Return_ : [`ChobitDecoder`].
     #[inline]
@@ -4328,6 +4462,12 @@ impl<
         self.output_layer.clear_study_data();
     }
 
+    /// Writes information on [`MLDecoderCache`] for [`Self::study()`].
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `output_len` : Length of output sequence.
+    /// - `cache` : Cache.
     pub fn ready(
         &mut self,
         input: &MathVec<IN>,
@@ -4374,10 +4514,15 @@ impl<
         });
     }
 
-    /// Studies weights.
+    /// Accumulates gradient.
+    ///
+    /// - `output_error` : Backpropagated ouput error.
+    /// - `cache` : Cache.
+    /// - `input_error` : Error to backpropagate for previous output error.
+    /// - `prev_state_error` : Error to backpropagate for previous state error.
     pub fn study(
         &mut self,
-        error: &[MathVec<OUT>],
+        output_error: &[MathVec<OUT>],
         cache: &MLDecoderCache<OUT, MIDDLE, IN>,
         input_error: &mut MathVec<IN>,
         prev_state_error: &mut MathVec<MIDDLE>
@@ -4386,7 +4531,7 @@ impl<
         input_error.clear();
 
         cache.caches().iter().zip(
-            error.iter()
+            output_error.iter()
         ).rev().for_each(|(
             (
                 lstm_state_cache,
@@ -4425,6 +4570,9 @@ impl<
         self.output_layer.update(rate);
     }
 
+    /// Accesses each immutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad<F>(
         &self,
@@ -4434,6 +4582,9 @@ impl<
         self.output_layer.total_grad.iter().for_each(|val| {f(val)});
     }
 
+    /// Accesses each mutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad_mut<F>(
         &mut self,
@@ -4834,6 +4985,11 @@ impl<
     }
 }
 
+/// Cache for [`ChobitMLSeqAI`].
+///
+/// - `OUT` : `OUT` of [`ChobitMLSeqAI`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMLSeqAI`].
+/// - `IN` : `IN` of [`ChobitMLSeqAI`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct MLSeqAICache<
     const OUT: usize,
@@ -4857,6 +5013,11 @@ impl<
     const MIDDLE: usize,
     const IN: usize
 > MLSeqAICache<OUT, MIDDLE, IN> {
+    /// Creates MLSeqAICache.
+    ///
+    /// - `input_capacity` : Capacity of input caches.
+    /// - `output_capacity` : Capacity of output caches.
+    /// - _Return_ : MLSeqAICache.
     #[inline]
     pub fn new(input_capacity: usize, output_capacity: usize) -> Self {
         Self {
@@ -4878,11 +5039,45 @@ impl<
         }
     }
 
+    /// Calculates output error.
+    ///
+    /// | Formula |
+    /// |:-:|
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    ///
+    /// - `train_out` : Correct output.
+    /// - `output_error` : Buffer for output error.
+    #[inline]
+    pub fn calc_output_error(
+        &self,
+        train_out: &[MathVec<OUT>],
+        output_error: &mut [MathVec<OUT>]
+    ) {
+        train_out.iter().zip(
+            &self.dec_caches
+        ).zip(
+            output_error
+        ).for_each(
+            |((train_out_one, (_, _, cache)), output_error_one)| {
+                output_error_one.copy_from(&cache.output);
+                *output_error_one -= train_out_one;
+            }
+        );
+    }
+
+    /// Gets slice of ['MLLSTMStateCache'] for encoding layer.
+    ///
+    /// - _Return_ : slice of [`MLLSTMStateCache`].
     #[inline]
     pub fn enc_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
         &self.enc_state_caches[..self.enc_state_caches_len]
     }
 
+
+    /// Gets ['MLLSTMOutputCache'] for encoding layer.
+    ///
+    /// - _Return_ : [`MLLSTMOutputCache`].
     #[inline]
     pub fn enc_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
         self.enc_output_cache.as_ref().unwrap()
@@ -4903,6 +5098,9 @@ impl<
         self.enc_output_cache = Some(output_cache);
     }
 
+    /// Gets slice of caches for decoding layer.
+    ///
+    /// - _Return_ : slice of caches.
     #[inline]
     pub fn dec_caches(&self) -> &[(
         MLLSTMStateCache<MIDDLE, MIDDLE>,
@@ -4928,21 +5126,12 @@ impl<
         self.enc_state_caches.get(self.enc_state_caches_len.wrapping_sub(1))
     }
 
-    #[inline]
-    pub fn calc_output_error(
-        &self,
-        train_out: &[MathVec<OUT>],
-        output_error: &mut [MathVec<OUT>]
-    ) {
-        train_out.iter().zip(
-            &self.dec_caches
-        ).zip(
-            output_error
-        ).for_each(
-            |((train_out_one, (_, _, cache)), output_error_one)| {
-                output_error_one.copy_from(&cache.output);
-                *output_error_one -= train_out_one;
-            }
+    /// Accesses each output with closure.
+    ///
+    /// - `f` : Closure.
+    pub fn for_each_output<F>(&self, mut f: F) where F: FnMut(&MathVec<OUT>) {
+        self.dec_caches[..self.dec_caches_len].iter().for_each(
+            |(_, _, cache)| {f(&cache.output);}
         );
     }
 }
@@ -4987,7 +5176,7 @@ impl<
 > ChobitMLSeqAI<OUT, MIDDLE, IN> {
     /// Creates ChobitMLSeqAI.
     ///
-    /// - `ai` : [`ChobitSeqAI`] to be learned.
+    /// - `ai` : Base [`ChobitSeqAI`].
     /// - _Return_ : ChobitMLSeqAI.
     #[inline]
     pub fn new(ai: ChobitSeqAI<OUT, MIDDLE, IN>) -> Self {
@@ -5023,7 +5212,7 @@ impl<
         }
     }
 
-    /// Drops [`ChobitSeqAI`].
+    /// Drops base [`ChobitSeqAI`].
     ///
     /// - _Return_ : [`ChobitSeqAI`].
     #[inline]
@@ -5062,6 +5251,12 @@ impl<
         self.output_layer.clear_study_data();
     }
 
+    /// Writes information on [`MLSeqAICache`] for [`Self::study()`].
+    ///
+    /// - `input` : Input.
+    /// - `prev_state` : Previous state.
+    /// - `output_len` : Length of output sequence.
+    /// - `cache` : Cache.
     #[inline]
     pub fn ready(
         &mut self,
@@ -5167,7 +5362,12 @@ impl<
         }
     }
 
-    /// Studies weights.
+    /// Accumulates gradient.
+    ///
+    /// - `output_error` : Backpropagated ouput error.
+    /// - `cache` : Cache.
+    /// - `input_error` : Error to backpropagate for previous output error.
+    /// - `prev_state_error` : Error to backpropagate for previous state error.
     pub fn study(
         &mut self,
         output_error: &[MathVec<OUT>],
@@ -5253,6 +5453,9 @@ impl<
         self.output_layer.update(rate);
     }
 
+    /// Accesses each immutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad<F>(
         &self,
@@ -5263,6 +5466,9 @@ impl<
         self.output_layer.total_grad.iter().for_each(|val| {f(val)});
     }
 
+    /// Accesses each mutable total gradient with closure.
+    ///
+    /// - `f` : Closure.
     #[inline]
     pub fn for_each_total_grad_mut<F>(
         &mut self,
