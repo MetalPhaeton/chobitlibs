@@ -74,7 +74,7 @@ impl<T> ChobitModule<T> {
     ///
     /// ID is given from runtime when the module is initialized.
     ///
-    /// * _Return_ : Module ID.
+    /// - _Return_ : Module ID.
     #[inline]
     pub fn id(&self) -> u64 {self.id}
 
@@ -82,7 +82,7 @@ impl<T> ChobitModule<T> {
     ///
     /// Input buffer is a buffer that is put input data from runtime.
     ///
-    /// * _Return_ : A size of input buffer.
+    /// - _Return_ : A size of input buffer.
     #[inline]
     pub fn input_buffer_size(&self) -> usize {(*self.input_buffer).len()}
 
@@ -90,13 +90,13 @@ impl<T> ChobitModule<T> {
     ///
     /// Output buffer is a buffer that the module puts output data.
     ///
-    /// * _Return_ : A size of output buffer.
+    /// - _Return_ : A size of output buffer.
     #[inline]
     pub fn output_buffer_size(&self) -> usize {(*self.output_buffer).len()}
 
     /// Gets recieved data from other module.
     ///
-    /// * _Return_ : (other_module_id, data)
+    /// - _Return_ : (other_module_id, data)
     #[inline]
     pub fn recv_data(&self) -> (u64, &[u8]) {
         (self.recv_from, &(*self.input_buffer)[..self.recv_length])
@@ -112,8 +112,8 @@ impl<T> ChobitModule<T> {
 
     /// Sends data to other module.
     ///
-    /// * `to` : Other module ID.
-    /// * `data` : Data that you want to send.
+    /// - `to` : Other module ID.
+    /// - `data` : Data that you want to send.
     #[inline]
     pub fn send(&mut self, to: u64, data: &[u8]) {
         unsafe {
@@ -123,7 +123,7 @@ impl<T> ChobitModule<T> {
 
     /// Resizes input buffer.
     ///
-    /// * `size` : New size of input buffer.
+    /// - `size` : New size of input buffer.
     pub fn resize_input_buffer(&mut self, size: usize) {
         let buffer = vec![0u8; size].into_boxed_slice();
         let offset = (*buffer).as_ptr() as usize;
@@ -138,7 +138,7 @@ impl<T> ChobitModule<T> {
 
     /// Resizes output buffer.
     ///
-    /// * `size` : New size of output buffer.
+    /// - `size` : New size of output buffer.
     pub fn resize_output_buffer(&mut self, size: usize) {
         let buffer = vec![0u8; size].into_boxed_slice();
         let offset = (*buffer).as_ptr() as usize;
@@ -153,13 +153,13 @@ impl<T> ChobitModule<T> {
 
     /// Gets immutable user object.
     ///
-    /// * _Return_ : Immutable user object.
+    /// - _Return_ : Immutable user object.
     #[inline]
     pub fn user_object(&self) -> &T {&self.user_object}
 
     /// Gets mutable user object.
     ///
-    /// * _Return_ : Mutable user object.
+    /// - _Return_ : Mutable user object.
     #[inline]
     pub fn user_object_mut(&mut self) -> &mut T {&mut self.user_object}
 

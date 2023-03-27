@@ -27,8 +27,8 @@ pub struct ChobitRand {
 impl ChobitRand {
     /// Creates `ChobitRand`.
     ///
-    /// * `seed` : A seed value. Its length must be more than 1.
-    /// * _Return_ : Instance.
+    /// - `seed` : A seed value. Its length must be more than 1.
+    /// - _Return_ : Instance.
     #[inline]
     pub fn new(seed: &[u8]) -> Self {
         let mut ret = Self {body: Self::to_64_array(seed)};
@@ -40,8 +40,8 @@ impl ChobitRand {
 
     /// Creates `ChobitRand` with body
     ///
-    /// * `body` : Body of ChobitRand.
-    /// * _Return_ : Instance.
+    /// - `body` : Body of ChobitRand.
+    /// - _Return_ : Instance.
     #[inline]
     pub fn with_body(body: [u64; 4]) -> Self {
         Self {body: body}
@@ -49,7 +49,7 @@ impl ChobitRand {
 
     /// Gets this body.
     ///
-    /// * _Return_ : Body.
+    /// - _Return_ : Body.
     #[inline]
     pub fn body(&self) -> &[u64] {&self.body}
 
@@ -84,7 +84,7 @@ impl ChobitRand {
 
     /// Generates a random `u64`.
     ///
-    /// * _Return_ : A random number.
+    /// - _Return_ : A random number.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_rand::ChobitRand;
@@ -114,7 +114,7 @@ impl ChobitRand {
 
     /// Generates a random `f64`. That range is `[0.0, 1.0]`.
     ///
-    /// * _Return_ : A random number.
+    /// - _Return_ : A random number.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_rand::ChobitRand;
@@ -130,7 +130,7 @@ impl ChobitRand {
 
     /// Shuffles a slice.
     ///
-    /// * slice : A slice that you want to shuffle.
+    /// - slice : A slice that you want to shuffle.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_rand::ChobitRand;

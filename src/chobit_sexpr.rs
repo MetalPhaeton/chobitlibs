@@ -119,8 +119,8 @@ pub struct SexprHeader {
 impl SexprHeader {
     /// Creates from slice.
     ///
-    /// * `slice` : Header as byte string.
-    /// * _Return_ : If slice length is 4 bytes or more, returns instance. Otherwise `None`.
+    /// - `slice` : Header as byte string.
+    /// - _Return_ : If slice length is 4 bytes or more, returns instance. Otherwise `None`.
     #[inline]
     pub fn from_slice(slice: &[u8]) -> Option<Self> {
         (slice.len() >= HEADER_SIZE).then(|| {
@@ -134,7 +134,7 @@ impl SexprHeader {
     ///
     /// Nil is 0 size atom.
     ///
-    /// * _Return_ : Instance.
+    /// - _Return_ : Instance.
     #[inline]
     pub const fn new_nil() -> Self {
         Self {body: 0}
@@ -147,8 +147,8 @@ impl SexprHeader {
 
     /// Creates atom header.
     ///
-    /// * `size` : Size of payload.
-    /// * _Return_ : Instance.
+    /// - `size` : Size of payload.
+    /// - _Return_ : Instance.
     #[inline]
     pub const fn new_atom(size: usize) -> Self {
         Self {body: Self::new_core(ATOM_FLAG, size)}
@@ -156,8 +156,8 @@ impl SexprHeader {
 
     /// Creates atom header.
     ///
-    /// * `car_size` : Size of sexpr on car.
-    /// * _Return_ : Instance.
+    /// - `car_size` : Size of sexpr on car.
+    /// - _Return_ : Instance.
     #[inline]
     pub const fn new_cons(car_size: usize) -> Self {
         Self {body: Self::new_core(CONS_FLAG, car_size)}
@@ -165,7 +165,7 @@ impl SexprHeader {
 
     /// Convert into u32.
     ///
-    /// * _Return_ : Header as u32.
+    /// - _Return_ : Header as u32.
     #[inline]
     pub const fn to_u32(&self) -> u32 {
         self.body
@@ -173,7 +173,7 @@ impl SexprHeader {
 
     /// Judge if atom or not.
     ///
-    /// * _Return_ : If atom, true.
+    /// - _Return_ : If atom, true.
     #[inline]
     pub fn is_atom(&self) -> bool {
         (self.body & FLAG_MASK) == ATOM_FLAG
@@ -181,7 +181,7 @@ impl SexprHeader {
 
     /// Judge if cons or not.
     ///
-    /// * _Return_ : If cons, true.
+    /// - _Return_ : If cons, true.
     #[inline]
     pub fn is_cons(&self) -> bool {
         (self.body & FLAG_MASK) == CONS_FLAG
@@ -189,7 +189,7 @@ impl SexprHeader {
 
     /// Gets size.
     ///
-    /// * _Return_ : If atom, returns size of payload. If cons, returns size of car.
+    /// - _Return_ : If atom, returns size of payload. If cons, returns size of car.
     #[inline]
     pub fn size(&self) -> usize {
         (self.body & SIZE_MASK) as usize
@@ -566,8 +566,8 @@ macro_rules! def_read_write {
 impl ChobitSexpr {
     /// Creates immutable ChobitSexpr.
     ///
-    /// * `value` : Body of the instance.
-    /// * _Return_ : Instance.
+    /// - `value` : Body of the instance.
+    /// - _Return_ : Instance.
     #[inline]
     pub fn new<S: AsRef<[u8]> + ?Sized>(value: &S) -> &ChobitSexpr {
         unsafe {&*(value.as_ref() as *const [u8] as *const ChobitSexpr)}
@@ -575,8 +575,8 @@ impl ChobitSexpr {
 
     /// Creates mutable ChobitSexpr.
     ///
-    /// * `value` : Body of the instance.
-    /// * _Return_ : Instance.
+    /// - `value` : Body of the instance.
+    /// - _Return_ : Instance.
     #[inline]
     pub fn new_mut<S: AsMut<[u8]> + ?Sized>(
         value: &mut S
@@ -586,13 +586,13 @@ impl ChobitSexpr {
 
     /// Gets body as slice.
     ///
-    /// * _Return_ : Body.
+    /// - _Return_ : Body.
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {&self.body}
 
     /// Gets header.
     ///
-    /// * _Return_ : If it has header, returns it. otherwise returns `None`.
+    /// - _Return_ : If it has header, returns it. otherwise returns `None`.
     #[inline]
     pub fn header(&self) -> Option<SexprHeader> {
         SexprHeader::from_slice(&self.body)
@@ -613,7 +613,7 @@ impl ChobitSexpr {
 
     /// Gets immutable payload of atom.
     ///
-    /// * _Return_ : If it is correct atom, returns its payload. otherwise returns `None`.
+    /// - _Return_ : If it is correct atom, returns its payload. otherwise returns `None`.
     #[inline]
     pub fn atom(&self) -> Option<&[u8]> {
         let size = self.get_atom_size()?;
@@ -625,7 +625,7 @@ impl ChobitSexpr {
 
     /// Gets mutable payload of atom.
     ///
-    /// * _Return_ : If it is correct atom, returns its payload. otherwise returns `None`.
+    /// - _Return_ : If it is correct atom, returns its payload. otherwise returns `None`.
     #[inline]
     pub fn atom_mut(&mut self) -> Option<&mut [u8]> {
         let size = self.get_atom_size()?;
@@ -650,7 +650,7 @@ impl ChobitSexpr {
 
     /// Gets immutable car of cons.
     ///
-    /// * _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
     #[inline]
     pub fn car(&self) -> Option<&ChobitSexpr> {
         let size = self.cons_size()?;
@@ -665,7 +665,7 @@ impl ChobitSexpr {
 
     /// Gets mutable car of cons.
     ///
-    /// * _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
     #[inline]
     pub fn car_mut(&mut self) -> Option<&mut ChobitSexpr> {
         let size = self.cons_size()?;
@@ -680,7 +680,7 @@ impl ChobitSexpr {
 
     /// Gets immutable cdr of cons.
     ///
-    /// * _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
     #[inline]
     pub fn cdr(&self) -> Option<&ChobitSexpr> {
         let cdr_pos = self.cons_size()? + HEADER_SIZE;
@@ -695,7 +695,7 @@ impl ChobitSexpr {
 
     /// Gets mutable cdr of cons.
     ///
-    /// * _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
     #[inline]
     pub fn cdr_mut(&mut self) -> Option<&mut ChobitSexpr> {
         let cdr_pos = self.cons_size()? + HEADER_SIZE;
@@ -710,7 +710,7 @@ impl ChobitSexpr {
 
     /// Gets immutable car and cdr of cons.
     ///
-    /// * _Return_ : If it is correct cons, returns its car and cdr. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its car and cdr. otherwise returns `None`.
     #[inline]
     pub fn car_cdr(&self) -> Option<(&ChobitSexpr, &ChobitSexpr)> {
         let car_size = self.cons_size()? + HEADER_SIZE;
@@ -810,7 +810,7 @@ impl ChobitSexpr {
     ///
     /// If the sexpr is a list, iterates each car.
     ///
-    /// * _Return_ : Iterator.
+    /// - _Return_ : Iterator.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_sexpr::{ChobitSexpr, ChobitSexprBuf};
@@ -1092,7 +1092,7 @@ where
 impl<Mode> ChobitSexprBuf<Mode> where Mode: private::Sealed {
     /// Drops self and clear buffer and take back [Empty] state.
     ///
-    /// * _Return_ : ChobitSexpr of Empty state.
+    /// - _Return_ : ChobitSexpr of Empty state.
     #[inline]
     pub fn clear(self) -> ChobitSexprBuf<Empty> {
         let Self {mut buffer, ..} = self;
@@ -1133,7 +1133,7 @@ r#"` value and returns completed sexpr.
 impl ChobitSexprBuf<Empty> {
     /// Creates ChobitSexprBuf. Not allocated on heap memory yet.
     ///
-    /// * _Return_ : Instance.
+    /// - _Return_ : Instance.
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -1145,8 +1145,8 @@ impl ChobitSexprBuf<Empty> {
 
     /// Creates ChobitSexprBuf with memory allocation.
     ///
-    /// * `capacity` : allocation size.
-    /// * _Return_ : Instance.
+    /// - `capacity` : allocation size.
+    /// - _Return_ : Instance.
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -1158,7 +1158,7 @@ impl ChobitSexprBuf<Empty> {
 
     /// Drops and returns completed empty sexpr.
     ///
-    /// * _Return_ : Completed sexpr.
+    /// - _Return_ : Completed sexpr.
     #[inline]
     pub fn empty_sexpr(self) -> ChobitSexprBuf<Completed> {
         let Self {buffer, ..} = self;
@@ -1171,7 +1171,7 @@ impl ChobitSexprBuf<Empty> {
 
     /// Drops and returns instance to be able to push car.
     ///
-    /// * _Return_ : ChobitSexprBuf that can push car.
+    /// - _Return_ : ChobitSexprBuf that can push car.
     #[inline]
     pub fn build_cons(self) -> ChobitSexprBuf<Car> {
         let Self {buffer, ..} = self;
@@ -1185,7 +1185,7 @@ impl ChobitSexprBuf<Empty> {
 
     /// Drops and returns instance to be able to push list item.
     ///
-    /// * _Return_ : ChobitSexprBuf that can push list item.
+    /// - _Return_ : ChobitSexprBuf that can push list item.
     #[inline]
     pub fn build_list(self) -> ChobitSexprBuf<List> {
         let Self {buffer, ..} = self;
@@ -1199,8 +1199,8 @@ impl ChobitSexprBuf<Empty> {
 
     /// Drops and pushes sexpr and completes.
     ///
-    /// * `sexpr` : Sexpr.
-    /// * _Return_ : Comleted sexpr.
+    /// - `sexpr` : Sexpr.
+    /// - _Return_ : Comleted sexpr.
     #[inline]
     pub fn push_sexpr(self, sexpr: &ChobitSexpr) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
@@ -1216,8 +1216,8 @@ impl ChobitSexprBuf<Empty> {
 
     /// Drops and pushes atom and completes.
     ///
-    /// * `value` : Payload of atom.
-    /// * _Return_ : Completed sexpr.
+    /// - `value` : Payload of atom.
+    /// - _Return_ : Completed sexpr.
     pub fn push_atom(self, value: &[u8]) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
 
@@ -1236,7 +1236,7 @@ impl ChobitSexprBuf<Empty> {
 
     /// Drops and returns nil sexpr.
     ///
-    /// * _Return_ : Completed sexpr.
+    /// - _Return_ : Completed sexpr.
     pub fn push_nil(self) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
 
@@ -1276,7 +1276,7 @@ impl ChobitSexprBuf<Empty> {
 impl ChobitSexprBuf<Completed> {
     /// Borrows self as immutable sexpr.
     ///
-    /// * _Return_ : Self as immutable ChobitSexpr.
+    /// - _Return_ : Self as immutable ChobitSexpr.
     #[inline]
     pub fn as_sexpr(&self) -> &ChobitSexpr {
         ChobitSexpr::new(self.buffer.as_slice())
@@ -1284,7 +1284,7 @@ impl ChobitSexprBuf<Completed> {
 
     /// Borrows self as mutable sexpr.
     ///
-    /// * _Return_ : Self as mutable ChobitSexpr.
+    /// - _Return_ : Self as mutable ChobitSexpr.
     #[inline]
     pub fn as_mut_sexpr(&mut self) -> &mut ChobitSexpr {
         ChobitSexpr::new_mut(self.buffer.as_mut_slice())
@@ -1292,7 +1292,7 @@ impl ChobitSexprBuf<Completed> {
 
     /// Drops self and returns buffer.
     ///
-    /// * _Return_ : buffer.
+    /// - _Return_ : buffer.
     #[inline]
     pub fn drop_buffer(self) -> Vec<u8> {
         self.buffer
@@ -1302,8 +1302,8 @@ impl ChobitSexprBuf<Completed> {
 impl ChobitSexprBuf<Car> {
     /// Drops and pushes car and returns instance to be able to push cdr.
     ///
-    /// * `sexpr` : sexpr contained on car.
-    /// * _Return_ : ChobitSexprBuf that can push cdr.
+    /// - `sexpr` : sexpr contained on car.
+    /// - _Return_ : ChobitSexprBuf that can push cdr.
     pub fn push_car(self, sexpr: &ChobitSexpr) -> ChobitSexprBuf<Cdr> {
         let Self {mut buffer, ..} = self;
 
@@ -1326,8 +1326,8 @@ impl ChobitSexprBuf<Car> {
 impl ChobitSexprBuf<Cdr> {
     /// Drops and pushes car and completes.
     ///
-    /// * `sexpr` : sexpr contained on car.
-    /// * _Return_ : Completed sexpr.
+    /// - `sexpr` : sexpr contained on car.
+    /// - _Return_ : Completed sexpr.
     pub fn push_cdr(self, sexpr: &ChobitSexpr) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
 
@@ -1344,8 +1344,8 @@ impl ChobitSexprBuf<Cdr> {
 impl ChobitSexprBuf<List> {
     /// Drops and pushes list item and returns instance self.
     ///
-    /// * `sexpr` : list item.
-    /// * _Return_ : Instance that can push list item.
+    /// - `sexpr` : list item.
+    /// - _Return_ : Instance that can push list item.
     pub fn push_item(self, sexpr: &ChobitSexpr) -> ChobitSexprBuf<List> {
         let Self {mut buffer, ..} = self;
 
@@ -1366,7 +1366,7 @@ impl ChobitSexprBuf<List> {
 
     /// Drops and pushes nil to cdr and completes.
     ///
-    /// * _Return_ : Complete sexpr.
+    /// - _Return_ : Complete sexpr.
     pub fn finish(self) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
 
@@ -1381,8 +1381,8 @@ impl ChobitSexprBuf<List> {
 
     /// Drops and pushes sexpr to cdr and completes.
     ///
-    /// * `sexpr` : Last sexpr.
-    /// * _Return_ : Complete sexpr.
+    /// - `sexpr` : Last sexpr.
+    /// - _Return_ : Complete sexpr.
     pub fn finish_with(
         self,
         sexpr: &ChobitSexpr

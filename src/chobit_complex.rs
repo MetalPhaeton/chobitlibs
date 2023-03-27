@@ -161,9 +161,9 @@ pub struct Complex {
 impl Complex {
     /// Creates complex.
     ///
-    /// * `re` : Real number.
-    /// * `im` : Imaginary number.
-    /// * __Return__ : Complex number.
+    /// - `re` : Real number.
+    /// - `im` : Imaginary number.
+    /// - __Return__ : Complex number.
     #[inline]
     pub const fn new(re: f32, im: f32) -> Self {
         Self {
@@ -174,7 +174,7 @@ impl Complex {
 
     /// Calculates absolute square.
     ///
-    /// * __Return__ : Absolute square.
+    /// - __Return__ : Absolute square.
     #[inline]
     pub fn abs_sq(&self) -> f32 {
         (self.re * self.re) + (self.im * self.im)
@@ -182,7 +182,7 @@ impl Complex {
 
     /// Calculates absolute value.
     ///
-    /// * __Return__ : Absolute value.
+    /// - __Return__ : Absolute value.
     #[inline]
     pub fn abs(&self) -> f32 {
         sqrt(self.abs_sq())
@@ -190,7 +190,7 @@ impl Complex {
 
     /// Calculates complex conjugate
     ///
-    /// * __Return__ : complex conjugate.
+    /// - __Return__ : complex conjugate.
     #[inline]
     pub fn conj(&self) -> Self {
         Self {
@@ -201,7 +201,7 @@ impl Complex {
 
     /// Calculates reciprocal.
     ///
-    /// * __Return__ : Reciprocal.
+    /// - __Return__ : Reciprocal.
     #[inline]
     pub fn recip(&self) -> Self {
         let abs_sq = self.abs_sq();
@@ -214,7 +214,7 @@ impl Complex {
 
     /// Returns normalized value of self.
     ///
-    /// * __Return__ : Normalized value.
+    /// - __Return__ : Normalized value.
     #[inline]
     pub fn normalize(&self) -> Self {
         let abs = self.abs();
@@ -227,7 +227,7 @@ impl Complex {
 
     /// Returns self multiplied by `i`.
     ///
-    /// * __Return__ : Self multiplied by `i`.
+    /// - __Return__ : Self multiplied by `i`.
     #[inline]
     pub fn mul_i(&self) -> Self {
         Self {
@@ -238,7 +238,7 @@ impl Complex {
 
     /// Returns self multiplied by `-i`.
     ///
-    /// * __Return__ : Self multiplied by `-i`.
+    /// - __Return__ : Self multiplied by `-i`.
     #[inline]
     pub fn mul_neg_i(&self) -> Self {
         Self {
@@ -1602,7 +1602,7 @@ pub struct CisTable {
 impl CisTable {
     /// Returns `8192`.
     ///
-    /// * __Return__ : `8192`.
+    /// - __Return__ : `8192`.
     #[inline]
     pub const fn full_circle_angle() -> usize {
         const ANGLE: usize = COS_TABLE_SIZE << 2;
@@ -1612,8 +1612,8 @@ impl CisTable {
 
     /// Normalizes any angle into [0, 8192).
     ///
-    /// * `angle` : Angle.
-    /// * __Return__ : Normalized angle.
+    /// - `angle` : Angle.
+    /// - __Return__ : Normalized angle.
     #[inline]
     pub const fn normalize_angle(angle: usize) -> usize {
         const MASK: usize = CisTable::full_circle_angle() - 1;
@@ -1622,8 +1622,8 @@ impl CisTable {
 
     /// Converts from radian to angle.
     ///
-    /// * `rad` : Radian.
-    /// * __Return__ : Angle.
+    /// - `rad` : Radian.
+    /// - __Return__ : Angle.
     #[inline]
     pub fn radian_to_angle(rad: f32) -> usize {
         const MAX_ANGLE: f32 = CisTable::full_circle_angle() as f32;
@@ -1635,8 +1635,8 @@ impl CisTable {
 
     /// Converts from angle to radian.
     ///
-    /// * `rad` : Angle.
-    /// * __Return__ : Radian.
+    /// - `rad` : Angle.
+    /// - __Return__ : Radian.
     #[inline]
     pub fn angle_to_radian(angle: usize) -> f32 {
         const MAX_ANGLE: f32 = CisTable::full_circle_angle() as f32;
@@ -1646,7 +1646,7 @@ impl CisTable {
 
     /// Creates CisTable.
     ///
-    /// * __Return__ : Instance.
+    /// - __Return__ : Instance.
     pub fn new() -> Self {
         const QUADRANT_0_ANGLE: usize = 0;
         const QUADRANT_1_ANGLE: usize = CisTable::full_circle_angle() >> 2;
@@ -1679,8 +1679,8 @@ impl CisTable {
 
     /// Gets complex number.
     ///
-    /// * `angle` : angle.
-    /// * __Return__ : Returns complex number but if angle is greater than 8192, returns None.
+    /// - `angle` : angle.
+    /// - __Return__ : Returns complex number but if angle is greater than 8192, returns None.
     #[inline]
     pub fn get(&self, angle: usize) -> Option<&Complex> {
         self.body.get(angle)
@@ -1688,8 +1688,8 @@ impl CisTable {
 
     /// Gets complex number.
     ///
-    /// * `angle` : angle.
-    /// * __Return__ : Returns complex number.
+    /// - `angle` : angle.
+    /// - __Return__ : Returns complex number.
     #[inline]
     pub unsafe fn get_unchecked(&self, angle: usize) -> &Complex {
         self.body.get_unchecked(angle)
@@ -1697,7 +1697,7 @@ impl CisTable {
 
     /// Gets self as slice.
     ///
-    /// * __Return__ : Self as slice.
+    /// - __Return__ : Self as slice.
     #[inline]
     pub fn as_slice(&self) -> &[Complex] {
         self.body.as_slice()
@@ -1752,8 +1752,8 @@ impl Complex {
 
     /// Gets magnitude and phase.
     ///
-    /// * `table` : CisTable to calculate phase.
-    /// * __Return__ : (magnitude, phase)
+    /// - `table` : CisTable to calculate phase.
+    /// - __Return__ : (magnitude, phase)
     #[inline]
     pub fn polar(&self, table: &CisTable) -> (f32, usize) {
         const MIN_ANGLE: usize = 0;

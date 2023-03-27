@@ -38,8 +38,8 @@ macro_rules! fnv_1a {
 
 /// 32 bits FNV-1a function.
 ///
-/// * `bytes` : Bytes that you want to calculate hash value.
-/// * _Return_ : Hash value.
+/// - `bytes` : Bytes that you want to calculate hash value.
+/// - _Return_ : Hash value.
 ///
 /// ```ignore
 /// use chobitlibs::chobit_hash::fnv_1a_32;
@@ -55,8 +55,8 @@ pub const fn fnv_1a_32(bytes: &[u8]) -> u32 {
 
 /// 64 bits FNV-1a function.
 ///
-/// * `bytes` : Bytes that you want to calculate hash value.
-/// * _Return_ : Hash value.
+/// - `bytes` : Bytes that you want to calculate hash value.
+/// - _Return_ : Hash value.
 ///
 /// ```ignore
 /// use chobitlibs::chobit_hash::fnv_1a_64;
@@ -72,8 +72,8 @@ pub const fn fnv_1a_64(bytes: &[u8]) -> u64 {
 
 /// 128 bits FNV-1a function.
 ///
-/// * `bytes` : Bytes that you want to calculate hash value.
-/// * _Return_ : Hash value.
+/// - `bytes` : Bytes that you want to calculate hash value.
+/// - _Return_ : Hash value.
 ///
 /// ```ignore
 /// use chobitlibs::chobit_hash::fnv_1a_128;

@@ -39,8 +39,8 @@ pub struct ChobitMap<T> {
 impl<T> ChobitMap<T> {
     /// Creates ChobitMap.
     ///
-    /// * `table_size` : Key-value table size. this is repaired into power of 2.
-    /// * _Return_ : Instance.
+    /// - `table_size` : Key-value table size. this is repaired into power of 2.
+    /// - _Return_ : Instance.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
@@ -119,7 +119,7 @@ impl<T> ChobitMap<T> {
 
     /// Gets key-value table size.
     ///
-    /// * _Return_ : Key-value table size.
+    /// - _Return_ : Key-value table size.
     #[inline]
     pub fn table_size(&self) -> usize {self.key_table.len()}
     #[inline]
@@ -136,8 +136,8 @@ impl<T> ChobitMap<T> {
 
     /// Gets a value by `key`.
     ///
-    /// * `key` : A key of the value.
-    /// * _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
+    /// - `key` : A key of the value.
+    /// - _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
@@ -170,8 +170,8 @@ impl<T> ChobitMap<T> {
 
     /// Gets a mutable value by `key`.
     ///
-    /// * `key` : A key of the value.
-    /// * _Return_ : If `key` exists, returns the mutable value. Otherwise, returns `None`.
+    /// - `key` : A key of the value.
+    /// - _Return_ : If `key` exists, returns the mutable value. Otherwise, returns `None`.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
@@ -199,9 +199,9 @@ impl<T> ChobitMap<T> {
     /// let value_2_2: i32 = 2000;
     /// let value_3_2: i32 = 3000;
     ///
-    /// *map.get_mut(key_1).unwrap() = value_1_2;
-    /// *map.get_mut(key_2).unwrap() = value_2_2;
-    /// *map.get_mut(key_3).unwrap() = value_3_2;
+    /// -map.get_mut(key_1).unwrap() = value_1_2;
+    /// -map.get_mut(key_2).unwrap() = value_2_2;
+    /// -map.get_mut(key_3).unwrap() = value_3_2;
     ///
     /// assert_eq!(*map.get(key_1).unwrap(), value_1_2);
     /// assert_eq!(*map.get(key_2).unwrap(), value_2_2);
@@ -216,9 +216,9 @@ impl<T> ChobitMap<T> {
 
     /// Adds a value.
     ///
-    /// * `key` : A key of the value.
-    /// * `value` : A value that you want to put into `ChobitMap`.
-    /// * _Return_ : If the key is conflicted, returns `None`. Otherwise, returns `Some(())`.
+    /// - `key` : A key of the value.
+    /// - `value` : A value that you want to put into `ChobitMap`.
+    /// - _Return_ : If the key is conflicted, returns `None`. Otherwise, returns `Some(())`.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
@@ -261,8 +261,8 @@ impl<T> ChobitMap<T> {
 
     /// Removes a value.
     ///
-    /// * `key` : A key of the value.
-    /// * _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
+    /// - `key` : A key of the value.
+    /// - _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
@@ -311,7 +311,7 @@ impl<T> ChobitMap<T> {
 
     /// Makes a iterator.
     ///
-    /// * _Return_ : A iterator of `ChobitMap`.
+    /// - _Return_ : A iterator of `ChobitMap`.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
