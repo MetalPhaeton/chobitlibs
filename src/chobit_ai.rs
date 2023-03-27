@@ -17,7 +17,8 @@
 //! Neural network library.
 //!
 //! This library needs `alloc` crate.  
-//! This AI works on single thread, but is able to work on `no_std`.
+//! This AI works on single thread, but is able to work on `no_std`.  
+//! (But you can devise to do machine learning in multithread. See the following list.)
 //!
 //! - [Example of Single Thread Machine Learning](#example-of-single-thread-machine-learning)
 //! - [Example of Multithread Machine Learning](#example-of-multithread-machine-learning)
@@ -576,6 +577,114 @@ macro_rules! scalar_op {
 /// Vector for mathematics.
 ///
 /// - `N` : Dimension.
+///
+/// # Example
+///
+/// ```ignore
+/// const DIM: usize = 3;
+///
+/// let mut v_1 = MathVec::<DIM>::new();
+///
+/// v_1[0] = 1.0;
+/// v_1[1] = 2.0;
+/// v_1[2] = 3.0;
+///
+/// let mut v_2 = MathVec::<DIM>::new();
+///
+/// v_2[0] = 4.0;
+/// v_2[1] = 5.0;
+/// v_2[2] = 6.0;
+///
+/// let x: f32 = 10.0;
+/// ```
+///
+/// ## Addition
+///
+/// ```ignore
+/// // Add
+/// let mut v_3 = &v_1 + &v_2;
+/// assert_eq!(v_3[0], 1.0 + 4.0);
+/// assert_eq!(v_3[1], 2.0 + 5.0);
+/// assert_eq!(v_3[2], 3.0 + 6.0);
+///
+/// // Add assign
+/// v_3 += &v_1;
+/// assert_eq!(v_3[0], 1.0 + 4.0 + 1.0);
+/// assert_eq!(v_3[1], 2.0 + 5.0 + 2.0);
+/// assert_eq!(v_3[2], 3.0 + 6.0 + 3.0);
+/// ```
+///
+/// ## Subtract
+///
+/// ```ignore
+/// // Sub
+/// let mut v_3 = &v_1 - &v_2;
+/// assert_eq!(v_3[0], 1.0 - 4.0);
+/// assert_eq!(v_3[1], 2.0 - 5.0);
+/// assert_eq!(v_3[2], 3.0 - 6.0);
+///
+/// // Sub assign
+/// v_3 -= &v_1;
+/// assert_eq!(v_3[0], 1.0 - 4.0 - 1.0);
+/// assert_eq!(v_3[1], 2.0 - 5.0 - 2.0);
+/// assert_eq!(v_3[2], 3.0 - 6.0 - 3.0);
+/// ```
+///
+/// ## Multiply
+///
+/// ```ignore
+/// // Multiply.
+/// let mut v_3 = &v_1 * x;
+/// assert_eq!(v_3[0], 1.0 * 10.0);
+/// assert_eq!(v_3[1], 2.0 * 10.0);
+/// assert_eq!(v_3[2], 3.0 * 10.0);
+///
+/// // Multiply assign.
+/// v_3 *= x;
+/// assert_eq!(v_3[0], 1.0 * 10.0 * 10.0);
+/// assert_eq!(v_3[1], 2.0 * 10.0 * 10.0);
+/// assert_eq!(v_3[2], 3.0 * 10.0 * 10.0);
+/// ```
+///
+/// ## Division
+///
+/// ```ignore
+/// // Division.
+/// let mut v_3 = &v_1 / x;
+/// assert_eq!(v_3[0], 1.0 / 10.0);
+/// assert_eq!(v_3[1], 2.0 / 10.0);
+/// assert_eq!(v_3[2], 3.0 / 10.0);
+///
+/// // Division assign.
+/// v_3 /= x;
+/// assert_eq!(v_3[0], 1.0 / 10.0 / 10.0);
+/// assert_eq!(v_3[1], 2.0 / 10.0 / 10.0);
+/// assert_eq!(v_3[2], 3.0 / 10.0 / 10.0);
+/// ```
+///
+/// ## Division remainder
+///
+/// ```ignore
+/// // Division remainder.
+/// let mut v_3 = &v_1 % x;
+/// assert_eq!(v_3[0], 1.0 % 10.0);
+/// assert_eq!(v_3[1], 2.0 % 10.0);
+/// assert_eq!(v_3[2], 3.0 % 10.0);
+///
+/// // Division remainder assign.
+/// v_3 %= x;
+/// assert_eq!(v_3[0], 1.0 % 10.0 % 10.0);
+/// assert_eq!(v_3[1], 2.0 % 10.0 % 10.0);
+/// assert_eq!(v_3[2], 3.0 % 10.0 % 10.0);
+/// ```
+///
+/// ## Inner product
+///
+/// ```ignore
+/// // Inner product.
+/// let y = &v_1 * &v_2;
+/// assert_eq!(y, (1.0 * 4.0) + (2.0 * 5.0) + (3.0 * 6.0));
+/// ```
 #[derive(Debug)]
 pub struct MathVec<const N: usize> {
     body: Box<[f32]>,
@@ -1754,7 +1863,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
     /// Gets immutable total gradient.
     ///
-    /// Total gradient is increased every time to call [`Self::study()`].
+    /// Total gradient is increased every time to call [`study()`](Self::study()).
     ///
     /// - _Return_ : Total gradient.
     #[inline]
@@ -1762,7 +1871,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
     /// Gets mutable total gradient.
     ///
-    /// Total gradient is increased every time to call [`Self::study()`].
+    /// Total gradient is increased every time to call [`study()`](Self::study()).
     ///
     /// - _Return_ : Total gradient.
     #[inline]
@@ -1770,7 +1879,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         &mut self.total_grad
     }
 
-    /// Writes infomation on [`MLCache`] for [Self::study()].
+    /// Writes infomation on [`MLCache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `state` : State if it exists.
@@ -1983,6 +2092,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 
 /// AI for fixed length data.
 ///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
+///
 /// # Example
 ///
 /// Letter classifier.
@@ -2125,10 +2238,6 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 ///     assert_eq!(output.to_u32_label(), ENGLISH_ID as u32);
 /// }
 /// ```
-///
-/// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hidden layer.
-/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: Layer<MIDDLE, IN>,
@@ -2341,7 +2450,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLAICache`] for [`Self::study()`].
+    /// Writes information on [`MLAICache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `cache` : Cache.
@@ -2512,31 +2621,6 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
     #[inline]
     pub fn o_gate_mut(&mut self) -> &mut Layer<OUT, IN> {&mut self.o_gate}
 
-    /// Accesses each immutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
-        self.main_layer.weights().iter().for_each(|val| {f(val)});
-        self.f_gate.weights().iter().for_each(|val| {f(val)});
-        self.i_gate.weights().iter().for_each(|val| {f(val)});
-        self.o_gate.weights().iter().for_each(|val| {f(val)});
-    }
-
-    /// Accesses each mutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight_mut<F>(
-        &mut self,
-        mut f: F
-    ) where F: FnMut(&mut f32) {
-        self.main_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
-        self.f_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
-        self.i_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
-        self.o_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
-    }
-
     /// Calculates only state.
     ///
     /// - `input` : Input.
@@ -2586,6 +2670,31 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
         ).for_each(|(output_one, next_s)| {
             *output_one *= self.tanh.activate(*next_s);
         });
+    }
+
+    /// Accesses each immutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.main_layer.weights().iter().for_each(|val| {f(val)});
+        self.f_gate.weights().iter().for_each(|val| {f(val)});
+        self.i_gate.weights().iter().for_each(|val| {f(val)});
+        self.o_gate.weights().iter().for_each(|val| {f(val)});
+    }
+
+    /// Accesses each mutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.main_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.f_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.i_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
+        self.o_gate.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -2837,7 +2946,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.clear_study_data();
     }
 
-    /// Writes information on [`MLLSTMStateCache`] for [`Self::study_state()`] or [`MLLSTM::study()`].
+    /// Writes information on [`MLLSTMStateCache`] for [`study_state()`](Self::study_state()) or [`MLLSTM::study()`].
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.
@@ -2872,9 +2981,9 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         });
     }
 
-    /// Writes information on [`MLLSTMOutputCache`] for [`Self::study()`].
+    /// Writes information on [`MLLSTMOutputCache`] for [`study()`](Self::study()).
     ///
-    /// - `last_state_cache` : Cache written at [`Self::ready_state_cache()`] just before.
+    /// - `last_state_cache` : Cache written at [`ready_state_cache()`](Self::ready_state_cache()) just before.
     /// - `cache` : Cache.
     pub fn ready_output_cache(
         &self,
@@ -2907,7 +3016,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     /// Accumulates gradient.
     ///
     /// - `state_error` : Backpropagated state error.
-    /// - `cache` : Cache written at [`Self::ready_state_cache()`].
+    /// - `cache` : Cache written at [`ready_state_cache()`](Self::ready_state_cache()).
     /// - `input_error` : Error to backpropagate for previous output error.
     /// - `prev_state_error` : Error to backpropagate previous state error.
     pub fn study_state(
@@ -3008,8 +3117,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     ///
     /// - `output_error` : Backpropagated output error.
     /// - `state_error` : Backpropagated state error.
-    /// - `state_cache` : Cache written at [`Self::ready_state_cache()`].
-    /// - `output_cache` : Cache written at [`Self::ready_output_cache()`].
+    /// - `state_cache` : Cache written at [`ready_state_cache()`](Self::ready_state_cache()).
+    /// - `output_cache` : Cache written at [`ready_output_cache()`](Self::ready_output_cache()).
     /// - `input_error` : Error to backpropagate for previous output error.
     /// - `prev_state_error` : Error to backpropagate for previous state error.
     pub fn study(
@@ -3232,6 +3341,10 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 
 /// Encoder from sequence data to fixed length data.
 ///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
+///
 /// # Example
 ///
 /// Variable length word classifier.
@@ -3445,10 +3558,6 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 ///     assert_eq!(output.to_u32_label(), ENGLISH_ID as u32);
 /// }
 /// ```
-///
-/// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hidden layer.
-/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitEncoder<
     const OUT: usize,
@@ -3518,7 +3627,7 @@ impl<
 
     /// Gets immutable state.
     ///
-    /// This should be initialized before the first input.
+    /// This should be initialized before the first [`input_next()`](Self::input_next).
     ///
     /// - _Return_ : State.
     #[inline]
@@ -3526,7 +3635,7 @@ impl<
 
     /// Gets mutable state.
     ///
-    /// This should be initialized before the first input.
+    /// This should be initialized before the first [`input_next()`](Self::input_next).
     ///
     /// - _Return_ : State.
     #[inline]
@@ -3788,7 +3897,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLEncoderCache`] for [`Self::study()`].
+    /// Writes information on [`MLEncoderCache`] for [`study()`](Self::study()).
     ///
     /// - `train_in` : Input data sequence.
     /// - `prev_state` : Previous state.
@@ -3941,6 +4050,10 @@ impl<
 
 /// Decoder from fixed length data to sequence data.
 ///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
+///
 /// # Example
 ///
 /// Letter commentator.
@@ -4036,7 +4149,10 @@ impl<
 ///         );
 ///
 ///         // Calculates error.
-///         cache.calc_output_error(&output, &mut output_error);
+///         cache.calc_output_error(
+///             &output[..japanese_message_len],
+///             &mut output_error[..japanese_message_len]
+///         );
 ///
 ///         // Studies.
 ///         decoder.study(
@@ -4060,7 +4176,10 @@ impl<
 ///         );
 ///
 ///         // Calculates error.
-///         cache.calc_output_error(&output, &mut output_error);
+///         cache.calc_output_error(
+///             &output[..english_message_len],
+///             &mut output_error[..english_message_len]
+///         );
 ///
 ///         // Studies.
 ///         decoder.study(
@@ -4086,8 +4205,7 @@ impl<
 ///
 /// // Tests Japanese.
 /// // Sets input.
-/// input.load_u32_label(JAPANESE_ID as u32);
-/// decoder.input_mut().copy_from(&input);
+/// decoder.input_mut().load_u32_label(JAPANESE_ID as u32);
 ///
 /// // Initializes state.
 /// decoder.state_mut().copy_from(&initial_state);
@@ -4101,8 +4219,7 @@ impl<
 ///
 /// // Tests English.
 /// // Sets input.
-/// input.load_u32_label(ENGLISH_ID as u32);
-/// decoder.input_mut().copy_from(&input);
+/// decoder.input_mut().load_u32_label(ENGLISH_ID as u32);
 ///
 /// // Initializes state.
 /// decoder.state_mut().copy_from(&initial_state);
@@ -4114,10 +4231,6 @@ impl<
 ///     assert_eq!(output.to_u32_label(), c as u32);
 /// });
 /// ```
-///
-/// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hidden layer.
-/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitDecoder<
     const OUT: usize,
@@ -4186,13 +4299,15 @@ impl<
 
     /// Gets immutable input.
     ///
+    /// This should be set before to call [`output_next()`](Self::output_next()).
+    ///
     /// - _Return_ : Input.
     #[inline]
     pub fn input(&self) -> &MathVec<IN> {&self.input}
 
     /// Gets mutable input.
     ///
-    /// This should be set before to call [`ChobitDecoder::output_next`].
+    /// This should be set before to call [`output_next()`](Self::output_next()).
     ///
     /// - _Return_ : Input.
     #[inline]
@@ -4200,17 +4315,36 @@ impl<
 
     /// Gets immutable state.
     ///
+    /// This should be initialized before to call [`output_next()`](Self::output_next()).
+    ///
     /// - _Return_ : State.
     #[inline]
     pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
 
     /// Gets mutable state.
     ///
-    /// This should be initialized before the first input.
+    /// This should be initialized before to call [`output_next()`](Self::output_next()).
     ///
     /// - _Return_ : State.
     #[inline]
     pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {&mut self.state}
+
+    /// Output next data calculated by current state and input.
+    ///
+    /// - `output` : Buffer for next data.
+    pub fn output_next(&mut self, output: &mut MathVec<OUT>) {
+        self.prev_state.copy_from(&self.state);
+
+        self.lstm.calc(
+            &self.input,
+            &self.prev_state,
+            &mut self.middle_output,
+            &mut self.state,
+            &mut self.tmpbuf,
+        );
+
+        self.output_layer.calc(&self.middle_output, None, output);
+    }
 
     /// Accesses each immutable weight with closure.
     ///
@@ -4231,23 +4365,6 @@ impl<
     ) where F: FnMut(&mut f32) {
         self.lstm.for_each_weight_mut(|val| {f(val)});
         self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
-    }
-
-    /// Output next data calculated by current state and input.
-    ///
-    /// - `output` : Buffer for next data.
-    pub fn output_next(&mut self, output: &mut MathVec<OUT>) {
-        self.prev_state.copy_from(&self.state);
-
-        self.lstm.calc(
-            &self.input,
-            &self.prev_state,
-            &mut self.middle_output,
-            &mut self.state,
-            &mut self.tmpbuf,
-        );
-
-        self.output_layer.calc(&self.middle_output, None, output);
     }
 }
 
@@ -4462,7 +4579,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLDecoderCache`] for [`Self::study()`].
+    /// Writes information on [`MLDecoderCache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.
@@ -4597,6 +4714,10 @@ impl<
 
 /// Seq2Seq AI.
 ///
+/// - `OUT` : Dimension of output.
+/// - `MIDDLE` : Dimension of hidden layer.
+/// - `IN` : Dimension of input.
+///
 /// # Example
 ///
 /// ChatCHOBIT
@@ -4729,7 +4850,10 @@ impl<
 ///         );
 ///
 ///         // Calculates error.
-///         cache.calc_output_error(&output, &mut output_error);
+///         cache.calc_output_error(
+///             &output[..japanese_message_len],
+///             &mut output_error[..japanese_message_len]
+///         );
 ///
 ///         // Studies.
 ///         ai.study(
@@ -4754,7 +4878,10 @@ impl<
 ///         );
 ///
 ///         // Calculates error.
-///         cache.calc_output_error(&output, &mut output_error);
+///         cache.calc_output_error(
+///             &output[..english_message_len],
+///             &mut output_error[..english_message_len]
+///         );
 ///
 ///         // Studies.
 ///         ai.study(
@@ -4822,10 +4949,6 @@ impl<
 ///     });
 /// }
 /// ```
-///
-/// - `OUT` : Dimension of output.
-/// - `MIDDLE` : Dimension of hidden layer.
-/// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChobitSeqAI<
     const OUT: usize,
@@ -4913,41 +5036,20 @@ impl<
 
     /// Gets immutable state.
     ///
+    /// This should be initialized before the first [`input_next()`](Self::input_next).
+    ///
     /// - _Return_ : State.
     #[inline]
     pub fn state(&self) -> &MathVec<MIDDLE> {&self.state}
 
     /// Gets mutable state.
     ///
-    /// This should be initialized before the first input.
+    /// This should be initialized before the first [`input_next()`](Self::input_next).
     ///
     /// - _Return_ : State.
     #[inline]
     pub fn state_mut(&mut self) -> &mut MathVec<MIDDLE> {
         &mut self.state
-    }
-
-    /// Accesses each immutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
-        self.enc_layer.for_each_weight(|val| {f(val)});
-        self.dec_layer.for_each_weight(|val| {f(val)});
-        self.output_layer.weights().iter().for_each(|val| {f(val)});
-    }
-
-    /// Accesses each mutable weight with closure.
-    ///
-    /// - `f` : Closure.
-    #[inline]
-    pub fn for_each_weight_mut<F>(
-        &mut self,
-        mut f: F
-    ) where F: FnMut(&mut f32) {
-        self.enc_layer.for_each_weight_mut(|val| {f(val)});
-        self.dec_layer.for_each_weight_mut(|val| {f(val)});
-        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
 
     /// Input next data.
@@ -4982,6 +5084,29 @@ impl<
         );
 
         self.output_layer.calc(&self.dec_output, None, output);
+    }
+
+    /// Accesses each immutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight<F>(&self, mut f: F) where F: FnMut(&f32) {
+        self.enc_layer.for_each_weight(|val| {f(val)});
+        self.dec_layer.for_each_weight(|val| {f(val)});
+        self.output_layer.weights().iter().for_each(|val| {f(val)});
+    }
+
+    /// Accesses each mutable weight with closure.
+    ///
+    /// - `f` : Closure.
+    #[inline]
+    pub fn for_each_weight_mut<F>(
+        &mut self,
+        mut f: F
+    ) where F: FnMut(&mut f32) {
+        self.enc_layer.for_each_weight_mut(|val| {f(val)});
+        self.dec_layer.for_each_weight_mut(|val| {f(val)});
+        self.output_layer.mut_weights().iter_mut().for_each(|val| {f(val)});
     }
 }
 
@@ -5251,7 +5376,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLSeqAICache`] for [`Self::study()`].
+    /// Writes information on [`MLSeqAICache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.

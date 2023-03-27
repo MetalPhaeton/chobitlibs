@@ -110,7 +110,10 @@ fn main() {
             );
 
             // Calculates error.
-            cache.calc_output_error(&output, &mut output_error);
+            cache.calc_output_error(
+                &output[..japanese_message_len],
+                &mut output_error[..japanese_message_len]
+            );
 
             // Studies.
             ai.study(
@@ -135,7 +138,10 @@ fn main() {
             );
 
             // Calculates error.
-            cache.calc_output_error(&output, &mut output_error);
+            cache.calc_output_error(
+                &output[..english_message_len],
+                &mut output_error[..english_message_len]
+            );
 
             // Studies.
             ai.study(

@@ -73,7 +73,10 @@ fn main() {
             );
 
             // Calculates error.
-            cache.calc_output_error(&output, &mut output_error);
+            cache.calc_output_error(
+                &output[..japanese_message_len],
+                &mut output_error[..japanese_message_len]
+            );
 
             // Studies.
             decoder.study(
@@ -97,7 +100,10 @@ fn main() {
             );
 
             // Calculates error.
-            cache.calc_output_error(&output, &mut output_error);
+            cache.calc_output_error(
+                &output[..english_message_len],
+                &mut output_error[..english_message_len]
+            );
 
             // Studies.
             decoder.study(
@@ -119,8 +125,7 @@ fn main() {
 
     // Tests Japanese.
     // Sets input.
-    input.load_u32_label(JAPANESE_ID as u32);
-    decoder.input_mut().copy_from(&input);
+    decoder.input_mut().load_u32_label(JAPANESE_ID as u32);
 
     // Initializes state.
     decoder.state_mut().copy_from(&initial_state);
@@ -134,8 +139,7 @@ fn main() {
 
     // Tests English.
     // Sets input.
-    input.load_u32_label(ENGLISH_ID as u32);
-    decoder.input_mut().copy_from(&input);
+    decoder.input_mut().load_u32_label(ENGLISH_ID as u32);
 
     // Initializes state.
     decoder.state_mut().copy_from(&initial_state);
