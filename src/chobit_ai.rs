@@ -923,7 +923,7 @@ impl MathVec<1> {
     /// - _Return_ : Boolean value.
     #[inline]
     pub fn to_bool(&self) -> bool {
-        self[0] >= 0.0
+        unsafe {*self.body.get_unchecked(0) >= 0.0}
     }
 
     /// Loads values from `bool`.
@@ -931,7 +931,13 @@ impl MathVec<1> {
     /// - `boolean_value` : Boolean value.
     #[inline]
     pub fn load_bool(&mut self, boolean_value: bool) {
-        self[0] = if boolean_value {1.0} else {-1.0};
+        unsafe {
+            *self.body.get_unchecked_mut(0) = if boolean_value {
+                1.0
+            } else {
+                -1.0
+            };
+        }
     }
 }
 
