@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//#![allow(dead_code)]
+#![allow(dead_code)]
 
 //! Neural network library.
 //!
