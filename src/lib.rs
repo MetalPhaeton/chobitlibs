@@ -31,3 +31,5 @@ pub mod chobit_sexpr;
 pub mod chobit_module;
 
 pub mod chobit_complex;
+
+pub mod chobit_playbook;
