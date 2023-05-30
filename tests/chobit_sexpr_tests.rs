@@ -243,8 +243,8 @@ fn chobit_sexpr_error_test_1() {
     let data = gen_test_data();
 
     let buf = ChobitSexprBuf::new().push_atom(data.as_slice());
-    assert!(buf.car().is_none());
-    assert!(buf.cdr().is_none());
+    assert_eq!(Err(ChobitSexprError::NotCons), buf.car());
+    assert_eq!(Err(ChobitSexprError::NotCons), buf.cdr());
 
     let mut new_data = buf.as_bytes().to_vec();
     let len = new_data.len();
@@ -252,9 +252,9 @@ fn chobit_sexpr_error_test_1() {
 
     let sexpr = ChobitSexpr::new(&new_data);
     assert_eq!(sexpr.as_bytes(), new_data.as_slice());
-    assert!(sexpr.car().is_none());
-    assert!(sexpr.cdr().is_none());
-    assert!(sexpr.atom().is_none());
+    assert_eq!(Err(ChobitSexprError::NotCons), sexpr.car());
+    assert_eq!(Err(ChobitSexprError::NotCons), sexpr.cdr());
+    assert_eq!(Err(ChobitSexprError::NotSexpr), sexpr.atom());
 }
 
 #[test]
@@ -276,9 +276,9 @@ fn chobit_sexpr_error_test_2() {
     new_data.truncate(data[..INDEX_1].len() + (size_of::<u32>() * 2) - 1);
 
     let sexpr = ChobitSexpr::new(&new_data);
-    assert!(sexpr.car().is_none());
-    assert!(sexpr.cdr().is_none());
-    assert!(sexpr.atom().is_none());
+    assert_eq!(Err(ChobitSexprError::NotSexpr), sexpr.car());
+    assert_eq!(Err(ChobitSexprError::NotSexpr), sexpr.cdr());
+    assert_eq!(Err(ChobitSexprError::NotAtom), sexpr.atom());
 
     let header = sexpr.header().unwrap();
     assert!(header.is_cons());

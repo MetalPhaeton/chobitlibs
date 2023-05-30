@@ -60,6 +60,53 @@ use core::{
     fmt
 };
 
+/// Error for [ChobitSexpr].
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChobitSexprError {
+    /// Error for [SexprHeader].
+    HeaderError(SexprHeaderError),
+
+    /// Error in reading value.
+    CouldNotRead(ValueType),
+
+    /// Error in writing value.
+    CouldNotWrite(ValueType),
+
+    /// It is not [ChobitSexpr].
+    NotSexpr,
+
+    /// It is not atom of [ChobitSexpr].
+    NotAtom,
+
+    /// It is not cons of [ChobitSexpr].
+    NotCons
+}
+
+/// Error for [SexprHeader].
+#[derive(Debug, Clone, PartialEq)]
+pub enum SexprHeaderError {
+    /// Couldn't convert from `&[u8]` to [SexprHeader].
+    CouldNotConvertFromSlice
+}
+
+/// Value type for [ChobitSexprError].
+#[derive(Debug, Clone, PartialEq)]
+pub enum ValueType {
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    I32,
+    U64,
+    I64,
+    U128,
+    I128,
+    F32,
+    F64,
+    Str
+}
+
 /// Header size on byte string.
 pub const HEADER_SIZE: usize = size_of::<u32>();
 
@@ -120,14 +167,18 @@ impl SexprHeader {
     /// Creates from slice.
     ///
     /// - `slice` : Header as byte string.
-    /// - _Return_ : If slice length is 4 bytes or more, returns instance. Otherwise `None`.
+    /// - _Return_ : If slice length is 4 bytes or more, returns instance. Otherwise returns error.
     #[inline]
-    pub fn from_slice(slice: &[u8]) -> Option<Self> {
-        (slice.len() >= HEADER_SIZE).then(|| {
-            Self {
-                body: u32::from_le(unsafe {*(slice.as_ptr() as *const u32)})
-            }
-        })
+    pub fn from_slice(slice: &[u8]) -> Result<Self, SexprHeaderError> {
+        if slice.len() >= HEADER_SIZE {
+            Ok(
+                Self {
+                    body: u32::from_le(unsafe {*(slice.as_ptr() as *const u32)})
+                }
+            )
+        } else {
+            Err(SexprHeaderError::CouldNotConvertFromSlice)
+        }
     }
 
     /// Creates Nil header.
@@ -505,7 +556,7 @@ r#"` value.
 
 * _Return_ : If the sexpr is atom and the size equals `size_of::<"#,
             stringify!($type), 
-r#">()` , returns value. Otherwise, `None`"#
+r#">()` , returns value. Otherwise, error"#
         )
     };
 }
@@ -520,34 +571,50 @@ r#"` value.
 * `value` : Value.
 * _Return_ : If the sexpr is atom and the size equals `size_of::<"#,
             stringify!($type), 
-r#">()` , returns `Some(())` . Otherwise, `None`"#
+r#">()` , returns `Some(())` . Otherwise, error"#
         )
     };
+}
+
+macro_rules! value_type {
+    (u8) => {ValueType::U8};
+    (i8) => {ValueType::I8};
+    (u16) => {ValueType::U16};
+    (i16) => {ValueType::I16};
+    (u32) => {ValueType::U32};
+    (i32) => {ValueType::I32};
+    (u64) => {ValueType::U64};
+    (i64) => {ValueType::I64};
+    (u128) => {ValueType::U128};
+    (i128) => {ValueType::I128};
 }
 
 macro_rules! def_read_write {
     (
         $read_func_name: ident,
         $write_func_name:ident,
-        $type:ty
+        $type:tt
     ) => {
         #[doc = gen_read_doc!($type)]
         #[inline]
-        pub fn $read_func_name(&self) -> Option<$type> {
+        pub fn $read_func_name(&self) -> Result<$type, ChobitSexprError> {
             let atom = self.atom()?;
 
             if atom.len() == size_of::<$type>() {
                 unsafe {
-                    Some(<$type>::from_le(*(atom.as_ptr() as *const $type)))
+                    Ok(<$type>::from_le(*(atom.as_ptr() as *const $type)))
                 }
             } else {
-                None
+                Err(ChobitSexprError::CouldNotRead(value_type!($type)))
             }
         }
 
         #[doc = gen_write_doc!($type)]
         #[inline]
-        pub fn $write_func_name(&mut self, value: $type) -> Option<()> {
+        pub fn $write_func_name(
+            &mut self,
+            value: $type
+        ) -> Result<(), ChobitSexprError> {
             let atom = self.atom_mut()?;
 
             if atom.len() == size_of::<$type>() {
@@ -555,9 +622,9 @@ macro_rules! def_read_write {
                     *(atom.as_mut_ptr() as *mut $type) = value.to_le();
                 }
 
-                Some(())
+                Ok(())
             } else {
-                None
+                Err(ChobitSexprError::CouldNotWrite(value_type!($type)))
             }
         }
     };
@@ -592,70 +659,80 @@ impl ChobitSexpr {
 
     /// Gets header.
     ///
-    /// - _Return_ : If it has header, returns it. otherwise returns `None`.
+    /// - _Return_ : If it has header, returns it. otherwise returns error.
     #[inline]
-    pub fn header(&self) -> Option<SexprHeader> {
-        SexprHeader::from_slice(&self.body)
+    pub fn header(&self) -> Result<SexprHeader, ChobitSexprError> {
+        SexprHeader::from_slice(&self.body).map_err(
+            |error| ChobitSexprError::HeaderError(error)
+        )
     }
 
     #[inline]
-    fn get_atom_size(&self) -> Option<usize> {
+    fn get_atom_size(&self) -> Result<usize, ChobitSexprError> {
         let header = self.header()?;
 
         if header.is_atom() {
             let size = header.size();
 
-            (size <= (self.body.len() - HEADER_SIZE)).then(|| size)
+            if size <= (self.body.len() - HEADER_SIZE) {
+                Ok(size)
+            } else {
+                Err(ChobitSexprError::NotSexpr)
+            }
         } else {
-            None
+            Err(ChobitSexprError::NotAtom)
         }
     }
 
     /// Gets immutable payload of atom.
     ///
-    /// - _Return_ : If it is correct atom, returns its payload. otherwise returns `None`.
+    /// - _Return_ : If it is correct atom, returns its payload. otherwise returns error.
     #[inline]
-    pub fn atom(&self) -> Option<&[u8]> {
+    pub fn atom(&self) -> Result<&[u8], ChobitSexprError> {
         let size = self.get_atom_size()?;
 
-        Some(unsafe {
+        Ok(unsafe {
             from_raw_parts(self.body.as_ptr().add(HEADER_SIZE), size)
         })
     }
 
     /// Gets mutable payload of atom.
     ///
-    /// - _Return_ : If it is correct atom, returns its payload. otherwise returns `None`.
+    /// - _Return_ : If it is correct atom, returns its payload. otherwise returns error.
     #[inline]
-    pub fn atom_mut(&mut self) -> Option<&mut [u8]> {
+    pub fn atom_mut(&mut self) -> Result<&mut [u8], ChobitSexprError> {
         let size = self.get_atom_size()?;
 
-        Some(unsafe {
+        Ok(unsafe {
             from_raw_parts_mut(self.body.as_mut_ptr().add(HEADER_SIZE), size)
         })
     }
 
     #[inline]
-    fn cons_size(&self) -> Option<usize> {
+    fn cons_size(&self) -> Result<usize, ChobitSexprError> {
         let header = self.header()?;
 
         if header.is_cons() {
             let size = header.size();
 
-            (size <= (self.body.len() - HEADER_SIZE)).then(|| size)
+            if size <= (self.body.len() - HEADER_SIZE) {
+                Ok(size)
+            } else {
+                Err(ChobitSexprError::NotSexpr)
+            }
         } else {
-            None
+            Err(ChobitSexprError::NotCons)
         }
     }
 
     /// Gets immutable car of cons.
     ///
-    /// - _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its car. otherwise returns error.
     #[inline]
-    pub fn car(&self) -> Option<&ChobitSexpr> {
+    pub fn car(&self) -> Result<&ChobitSexpr, ChobitSexprError> {
         let size = self.cons_size()?;
 
-        Some(ChobitSexpr::new(unsafe {
+        Ok(ChobitSexpr::new(unsafe {
             from_raw_parts(
                 self.body.as_ptr().add(HEADER_SIZE),
                 size
@@ -665,12 +742,12 @@ impl ChobitSexpr {
 
     /// Gets mutable car of cons.
     ///
-    /// - _Return_ : If it is correct cons, returns its car. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its car. otherwise returns error.
     #[inline]
-    pub fn car_mut(&mut self) -> Option<&mut ChobitSexpr> {
+    pub fn car_mut(&mut self) -> Result<&mut ChobitSexpr, ChobitSexprError> {
         let size = self.cons_size()?;
 
-        Some(ChobitSexpr::new_mut(unsafe {
+        Ok(ChobitSexpr::new_mut(unsafe {
             from_raw_parts_mut(
                 self.body.as_mut_ptr().add(HEADER_SIZE),
                 size
@@ -680,12 +757,12 @@ impl ChobitSexpr {
 
     /// Gets immutable cdr of cons.
     ///
-    /// - _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its cdr. otherwise returns error.
     #[inline]
-    pub fn cdr(&self) -> Option<&ChobitSexpr> {
+    pub fn cdr(&self) -> Result<&ChobitSexpr, ChobitSexprError> {
         let cdr_pos = self.cons_size()? + HEADER_SIZE;
 
-        Some(ChobitSexpr::new(unsafe {
+        Ok(ChobitSexpr::new(unsafe {
             from_raw_parts(
                 self.body.as_ptr().add(cdr_pos),
                 self.body.len() - cdr_pos
@@ -695,12 +772,12 @@ impl ChobitSexpr {
 
     /// Gets mutable cdr of cons.
     ///
-    /// - _Return_ : If it is correct cons, returns its cdr. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its cdr. otherwise returns error.
     #[inline]
-    pub fn cdr_mut(&mut self) -> Option<&mut ChobitSexpr> {
+    pub fn cdr_mut(&mut self) -> Result<&mut ChobitSexpr, ChobitSexprError> {
         let cdr_pos = self.cons_size()? + HEADER_SIZE;
 
-        Some(ChobitSexpr::new_mut(unsafe {
+        Ok(ChobitSexpr::new_mut(unsafe {
             from_raw_parts_mut(
                 self.body.as_mut_ptr().add(cdr_pos),
                 self.body.len() - cdr_pos
@@ -710,12 +787,14 @@ impl ChobitSexpr {
 
     /// Gets immutable car and cdr of cons.
     ///
-    /// - _Return_ : If it is correct cons, returns its car and cdr. otherwise returns `None`.
+    /// - _Return_ : If it is correct cons, returns its car and cdr. otherwise returns error.
     #[inline]
-    pub fn car_cdr(&self) -> Option<(&ChobitSexpr, &ChobitSexpr)> {
+    pub fn car_cdr(
+        &self
+    ) -> Result<(&ChobitSexpr, &ChobitSexpr), ChobitSexprError> {
         let car_size = self.cons_size()? + HEADER_SIZE;
 
-        Some((
+        Ok((
             ChobitSexpr::new(unsafe{
                 from_raw_parts(
                     self.body.as_ptr().add(HEADER_SIZE),
@@ -744,23 +823,23 @@ impl ChobitSexpr {
 
     #[doc = gen_read_doc!(f32)]
     #[inline]
-    pub fn read_f32(&self) -> Option<f32> {
+    pub fn read_f32(&self) -> Result<f32, ChobitSexprError> {
         let atom = self.atom()?;
 
         if atom.len() == size_of::<f32>() {
             unsafe {
-                Some(f32::from_bits(
+                Ok(f32::from_bits(
                     u32::from_le(*(atom.as_ptr() as *const u32))
                 ))
             }
         } else {
-            None
+            Err(ChobitSexprError::CouldNotRead(ValueType::F32))
         }
     }
 
     #[doc = gen_write_doc!(f32)]
     #[inline]
-    pub fn write_f32(&mut self, value: f32) -> Option<()> {
+    pub fn write_f32(&mut self, value: f32) -> Result<(), ChobitSexprError> {
         let atom = self.atom_mut()?;
 
         if atom.len() == size_of::<f32>() {
@@ -768,31 +847,31 @@ impl ChobitSexpr {
                 *(atom.as_mut_ptr() as *mut u32) = value.to_bits().to_le();
             }
 
-            Some(())
+            Ok(())
         } else {
-            None
+            Err(ChobitSexprError::CouldNotWrite(ValueType::F32))
         }
     }
 
     #[doc = gen_read_doc!(f64)]
     #[inline]
-    pub fn read_f64(&self) -> Option<f64> {
+    pub fn read_f64(&self) -> Result<f64, ChobitSexprError> {
         let atom = self.atom()?;
 
         if atom.len() == size_of::<f64>() {
             unsafe {
-                Some(f64::from_bits(
+                Ok(f64::from_bits(
                     u64::from_le(*(atom.as_ptr() as *const u64))
                 ))
             }
         } else {
-            None
+            Err(ChobitSexprError::CouldNotRead(ValueType::F64))
         }
     }
 
     #[doc = gen_write_doc!(f64)]
     #[inline]
-    pub fn write_f64(&mut self, value: f64) -> Option<()> {
+    pub fn write_f64(&mut self, value: f64) -> Result<(), ChobitSexprError> {
         let atom = self.atom_mut()?;
 
         if atom.len() == size_of::<f64>() {
@@ -800,9 +879,9 @@ impl ChobitSexpr {
                 *(atom.as_mut_ptr() as *mut u64) = value.to_bits().to_le();
             }
 
-            Some(())
+            Ok(())
         } else {
-            None
+            Err(ChobitSexprError::CouldNotWrite(ValueType::F64))
         }
     }
 
@@ -844,7 +923,7 @@ impl<'a> Iterator for Iter<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<&'a ChobitSexpr> {
-        let (car, cdr) = self.body.car_cdr()?;
+        let (car, cdr) = self.body.car_cdr().ok()?;
         self.body = cdr;
 
         Some(car)
@@ -935,13 +1014,13 @@ impl ToOwned for ChobitSexpr {
 macro_rules! def_try_from {
     ($type:ty, $read_func_name:ident) => {
         impl TryFrom<&ChobitSexpr> for $type {
-            type Error = ();
+            type Error = ChobitSexprError;
 
             #[inline]
             fn try_from(
                 sexpr: &ChobitSexpr
-            ) -> Result<$type, ()> {
-                Ok(sexpr.$read_func_name().ok_or_else(|| ())?)
+            ) -> Result<$type, ChobitSexprError> {
+                sexpr.$read_func_name()
             }
         }
     };
@@ -959,29 +1038,45 @@ def_try_from!(i128, read_i128);
 def_try_from!(u128, read_u128);
 
 impl TryFrom<&ChobitSexpr> for f32 {
-    type Error = ();
+    type Error = ChobitSexprError;
 
     #[inline]
-    fn try_from(sexpr: &ChobitSexpr) -> Result<f32, ()> {
-        u32::try_from(sexpr).map(|bits| f32::from_bits(bits))
+    fn try_from(sexpr: &ChobitSexpr) -> Result<f32, ChobitSexprError> {
+        match u32::try_from(sexpr) {
+            Ok(bits) => Ok(f32::from_bits(bits)),
+
+            Err(ChobitSexprError::CouldNotRead(..)) =>
+                Err(ChobitSexprError::CouldNotRead(ValueType::F32)),
+
+            Err(error) => Err(error)
+        }
     }
 }
 
 impl TryFrom<&ChobitSexpr> for f64 {
-    type Error = ();
+    type Error = ChobitSexprError;
 
     #[inline]
-    fn try_from(sexpr: &ChobitSexpr) -> Result<f64, ()> {
-        u64::try_from(sexpr).map(|bits| f64::from_bits(bits))
+    fn try_from(sexpr: &ChobitSexpr) -> Result<f64, ChobitSexprError> {
+        match u64::try_from(sexpr) {
+            Ok(bits) => Ok(f64::from_bits(bits)),
+
+            Err(ChobitSexprError::CouldNotRead(..)) =>
+                Err(ChobitSexprError::CouldNotRead(ValueType::F64)),
+
+            Err(error) => Err(error)
+        }
     }
 }
 
 impl<'a> TryFrom<&'a ChobitSexpr> for &'a str {
-    type Error = ();
+    type Error = ChobitSexprError;
 
     #[inline]
-    fn try_from(sexpr: &'a ChobitSexpr) -> Result<&'a str, ()> {
-        core::str::from_utf8(sexpr.atom().ok_or_else(|| ())?).map_err(|_| ())
+    fn try_from(sexpr: &'a ChobitSexpr) -> Result<&'a str, ChobitSexprError> {
+        core::str::from_utf8(sexpr.atom()?).map_err(
+            |_| ChobitSexprError::CouldNotRead(ValueType::Str)
+        )
     }
 }
 
@@ -1011,9 +1106,9 @@ impl ChobitSexpr {
         formatter: &mut fmt::Formatter
     ) -> fmt::Result {
         match self.atom() {
-            Some(atom) => Self::fmt_atom(indent, atom, formatter),
+            Ok(atom) => Self::fmt_atom(indent, atom, formatter),
 
-            None => self.fmt_cons(indent, formatter)
+            Err(..) => self.fmt_cons(indent, formatter)
         }
     }
 
@@ -1032,13 +1127,13 @@ impl ChobitSexpr {
         indent: usize,
         formatter: &mut fmt::Formatter
     ) -> fmt::Result {
-        let car = self.car().ok_or_else(|| fmt::Error)?;
+        let car = self.car().map_err(|_| fmt::Error)?;
 
         Self::write_indent(indent, formatter)?;
         write!(formatter, "car:\n")?;
         car.fmt_sexpr(indent + 1, formatter)?;
 
-        let cdr = self.cdr().ok_or_else(|| fmt::Error)?;
+        let cdr = self.cdr().map_err(|_| fmt::Error)?;
 
         Self::write_indent(indent, formatter)?;
         write!(formatter, "cdr:\n")?;
