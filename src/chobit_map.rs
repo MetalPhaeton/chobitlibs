@@ -26,6 +26,20 @@ use alloc::vec::Vec;
 
 use core::{iter::Iterator, slice::Iter as SIter};
 
+/// Error for [ChobitMap]
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChobitMapError {
+    /// Key already exists.
+    ///
+    /// - `key` : Key.
+    AlreadyExists {key: u64},
+
+    /// Key is not found.
+    ///
+    /// - `key` : Key.
+    NotFound {key: u64}
+}
+
 /// This is a so-called `HashMap`, but key is specialized by `u64`.
 ///
 /// `ChobitMap` is the faster than Rust's `HashMap`.
@@ -153,9 +167,9 @@ impl<T> ChobitMap<T> {
     /// let key_3: u64 = 333;
     /// let value_3: i32 = 300;
     ///
-    /// assert!(map.add(key_1, value_1).is_some());
-    /// assert!(map.add(key_2, value_2).is_some());
-    /// assert!(map.add(key_3, value_3).is_some());
+    /// assert!(map.add(key_1, value_1).is_ok());
+    /// assert!(map.add(key_2, value_2).is_ok());
+    /// assert!(map.add(key_3, value_3).is_ok());
     ///
     /// assert_eq!(*map.get(key_1).unwrap(), value_1);
     /// assert_eq!(*map.get(key_2).unwrap(), value_2);
@@ -187,9 +201,9 @@ impl<T> ChobitMap<T> {
     /// let key_3: u64 = 333;
     /// let value_3: i32 = 300;
     ///
-    /// assert!(map.add(key_1, value_1).is_some());
-    /// assert!(map.add(key_2, value_2).is_some());
-    /// assert!(map.add(key_3, value_3).is_some());
+    /// assert!(map.add(key_1, value_1).is_ok());
+    /// assert!(map.add(key_2, value_2).is_ok());
+    /// assert!(map.add(key_3, value_3).is_ok());
     ///
     /// assert_eq!(*map.get(key_1).unwrap(), value_1);
     /// assert_eq!(*map.get(key_2).unwrap(), value_2);
@@ -199,9 +213,9 @@ impl<T> ChobitMap<T> {
     /// let value_2_2: i32 = 2000;
     /// let value_3_2: i32 = 3000;
     ///
-    /// -map.get_mut(key_1).unwrap() = value_1_2;
-    /// -map.get_mut(key_2).unwrap() = value_2_2;
-    /// -map.get_mut(key_3).unwrap() = value_3_2;
+    /// *map.get_mut(key_1).unwrap() = value_1_2;
+    /// *map.get_mut(key_2).unwrap() = value_2_2;
+    /// *map.get_mut(key_3).unwrap() = value_3_2;
     ///
     /// assert_eq!(*map.get(key_1).unwrap(), value_1_2);
     /// assert_eq!(*map.get(key_2).unwrap(), value_2_2);
@@ -234,27 +248,31 @@ impl<T> ChobitMap<T> {
     /// let key_3: u64 = 333;
     /// let value_3: i32 = 300;
     ///
-    /// assert!(map.add(key_1, value_1).is_some());
-    /// assert!(map.add(key_2, value_2).is_some());
-    /// assert!(map.add(key_3, value_3).is_some());
+    /// assert!(map.add(key_1, value_1).is_ok());
+    /// assert!(map.add(key_2, value_2).is_ok());
+    /// assert!(map.add(key_3, value_3).is_ok());
     ///
     /// assert_eq!(*map.get(key_1).unwrap(), value_1);
     /// assert_eq!(*map.get(key_2).unwrap(), value_2);
     /// assert_eq!(*map.get(key_3).unwrap(), value_3);
     /// ```
-    pub fn add(&mut self, key: u64, value: T) -> Option<()> {
+    pub fn add(
+        &mut self,
+        key: u64,
+        value: T
+    ) -> Result<(), ChobitMapError> {
         let table_index = (key & self.key_mask) as usize;
 
         let key_vec = &mut self.key_table[table_index];
 
         match key_vec.binary_search(&key) {
-            Ok(..) => None,
+            Ok(..) => Err(ChobitMapError::AlreadyExists {key: key}),
 
             Err(record_index) => {
                 key_vec.insert(record_index, key);
                 self.value_table[table_index].insert(record_index, value);
 
-                Some(())
+                Ok(())
             }
         }
     }
@@ -278,9 +296,9 @@ impl<T> ChobitMap<T> {
     /// let key_3: u64 = 333;
     /// let value_3: i32 = 300;
     ///
-    /// assert!(map.add(key_1, value_1).is_some());
-    /// assert!(map.add(key_2, value_2).is_some());
-    /// assert!(map.add(key_3, value_3).is_some());
+    /// assert!(map.add(key_1, value_1).is_ok());
+    /// assert!(map.add(key_2, value_2).is_ok());
+    /// assert!(map.add(key_3, value_3).is_ok());
     ///
     /// assert_eq!(*map.get(key_1).unwrap(), value_1);
     /// assert_eq!(*map.get(key_2).unwrap(), value_2);
@@ -294,7 +312,7 @@ impl<T> ChobitMap<T> {
     /// assert!(map.get(key_2).is_none());
     /// assert!(map.get(key_3).is_none());
     /// ```
-    pub fn remove(&mut self, key: u64) -> Option<T> {
+    pub fn remove(&mut self, key: u64) -> Result<T, ChobitMapError> {
         let table_index = (key & self.key_mask) as usize;
 
         let key_vec = &mut self.key_table[table_index];
@@ -302,10 +320,10 @@ impl<T> ChobitMap<T> {
         match key_vec.binary_search(&key) {
             Ok(record_index) => {
                 key_vec.remove(record_index);
-                Some(self.value_table[table_index].remove(record_index))
+                Ok(self.value_table[table_index].remove(record_index))
             },
 
-            Err(..) => None
+            Err(..) => Err(ChobitMapError::NotFound {key: key})
         }
     }
 
@@ -327,9 +345,9 @@ impl<T> ChobitMap<T> {
     /// let key_3: u64 = 3;
     /// let value_3: i32 = 300;
     ///
-    /// assert!(map.add(key_1, value_1).is_some());
-    /// assert!(map.add(key_2, value_2).is_some());
-    /// assert!(map.add(key_3, value_3).is_some());
+    /// assert!(map.add(key_1, value_1).is_ok());
+    /// assert!(map.add(key_2, value_2).is_ok());
+    /// assert!(map.add(key_3, value_3).is_ok());
     ///
     /// let mut iter = map.iter();
     ///

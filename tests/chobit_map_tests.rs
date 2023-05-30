@@ -11,11 +11,14 @@ fn chobit_map_test() {
     const MAX: u64 = 10000;
 
     for i in 0..MAX {
-        assert!(map.add(i, i as i32).is_some());
+        assert!(map.add(i, i as i32).is_ok());
     }
 
     for i in 0..MAX {
-        assert!(map.add(i, i as i32).is_none());
+        assert_eq!(
+            map.add(i, i as i32),
+            Err(ChobitMapError::AlreadyExists {key: i})
+        );
     }
 
     for i in 0..MAX {
@@ -37,7 +40,10 @@ fn chobit_map_test() {
     }
 
     for i in 0..MAX {
-        assert!(map.remove(i).is_none());
+        assert_eq!(
+            map.remove(i),
+            Err(ChobitMapError::NotFound {key: i})
+        );
         assert!(map.get(i).is_none());
         assert!(map.get_mut(i).is_none());
     }
@@ -51,19 +57,19 @@ fn iter_test() {
 
     let key_1: u64 = 0x111;
     let value_1: i32 = 100;
-    assert!(map.add(key_1, value_1).is_some());
+    assert!(map.add(key_1, value_1).is_ok());
 
     let key_2: u64 = 0x222;
     let value_2: i32 = 200;
-    assert!(map.add(key_2, value_2).is_some());
+    assert!(map.add(key_2, value_2).is_ok());
 
     let key_3: u64 = 0x311;
     let value_3: i32 = 300;
-    assert!(map.add(key_3, value_3).is_some());
+    assert!(map.add(key_3, value_3).is_ok());
 
     let key_4: u64 = 0x444;
     let value_4: i32 = 400;
-    assert!(map.add(key_4, value_4).is_some());
+    assert!(map.add(key_4, value_4).is_ok());
 
     let mut iter = map.iter();
 
