@@ -232,7 +232,7 @@ impl<T> ChobitMap<T> {
     ///
     /// - `key` : A key of the value.
     /// - `value` : A value that you want to put into `ChobitMap`.
-    /// - _Return_ : If the key is conflicted, returns `None`. Otherwise, returns `Some(())`.
+    /// - _Return_ : If the key is conflicted, returns error. Otherwise, returns the value.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
@@ -280,7 +280,7 @@ impl<T> ChobitMap<T> {
     /// Removes a value.
     ///
     /// - `key` : A key of the value.
-    /// - _Return_ : If `key` exists, returns the value. Otherwise, returns `None`.
+    /// - _Return_ : If `key` exists, returns the value. Otherwise, returns error.
     ///
     /// ```ignore
     /// use chobitlibs::chobit_map::ChobitMap;
