@@ -1,4 +1,12 @@
-import {ChobitSexpr, Iter} from "./chobit_sexpr.ts";
+import {
+    NotAtomError,
+    NotConsError,
+    ReadError,
+    WriteError,
+    ValueType,
+    ChobitSexpr,
+    Iter
+} from "../src/chobit_sexpr.ts";
 
 function chobitSexprTest1() {
     const data = new Uint8Array([1, 2, 3, 4, 5]);
@@ -8,9 +16,7 @@ function chobitSexprTest1() {
     console.assert(!sexpr.isCons());
 
     const atom = sexpr.atom();
-    if (atom) {
-        console.assert(data.toString() == atom.toString());
-    }
+    console.assert(data.toString() == atom.toString());
 }
 
 function chobitSexprTest2() {
@@ -58,24 +64,22 @@ function chobitSexprTest3() {
     );
     console.log(sexpr);
 
-    let current: ChobitSexpr | null = sexpr;
+    let current: ChobitSexpr = sexpr;
     while (current) {
-        const car = current.car();
-        if (car) {
+        try {
+            const car = current.car();
+
             console.assert(!current.isAtom());
             console.assert(current.isCons());
 
             const data = car.atom();
-            if (data) {
-                console.log(data);
-                current = current.cdr();
-            } else {
-                console.error("Error 1");
-                break;
-            }
-        } else {
+            console.log(data);
+        } catch (e) {
+            console.assert(e instanceof NotConsError);
             break;
         }
+
+        current = current.cdr();
     }
 
     console.log(current);
@@ -221,43 +225,228 @@ function chobitSexprTest6() {
     );
 
     const ret1 = sexpr.carCdr();
-    if (ret1) {
-        const [car1, cdr1] = ret1;
-        const atom1 = car1.atom();
-        if (atom1) {
-            console.assert(atom1.length == data1.length);
-            for (let i in atom1) {
-                console.assert(atom1[i] == data1[i]);
-            }
+    const [car1, cdr1] = ret1;
+    const atom1 = car1.atom();
+    console.assert(atom1.length == data1.length);
+    for (let i in atom1) {
+        console.assert(atom1[i] == data1[i]);
+    }
+
+    const ret2 = cdr1.carCdr();
+    const [car2, cdr2] = ret2;
+    const atom2 = car2.atom();
+    console.assert(atom2.length == data2.length);
+    for (let i in atom2) {
+        console.assert(atom2[i] == data2[i]);
+    }
+
+    const ret3 = cdr2.carCdr();
+    const [car3, cdr3] = ret3;
+    const atom3 = car3.atom();
+    console.assert(atom3.length == data3.length);
+    for (let i in atom3) {
+        console.assert(atom3[i] == data3[i]);
+    }
+
+    const atom4 = cdr3.atom();
+    console.assert(atom4.length == 0);
+}
+
+function chobitSexprTest7() {
+    {
+        const value = 11;
+        const sexpr = ChobitSexpr.genI8(value);
+        const atom = sexpr.readI8();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = 12;
+        const sexpr = ChobitSexpr.genU8(value);
+        const atom = sexpr.readU8();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = 13;
+        const sexpr = ChobitSexpr.genI16(value);
+        const atom = sexpr.readI16();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = 14;
+        const sexpr = ChobitSexpr.genU16(value);
+        const atom = sexpr.readU16();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = 15;
+        const sexpr = ChobitSexpr.genI32(value);
+        const atom = sexpr.readI32();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = 16;
+        const sexpr = ChobitSexpr.genU32(value);
+        const atom = sexpr.readU32();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = BigInt(17);
+        const sexpr = ChobitSexpr.genI64(value);
+        const atom = sexpr.readI64();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = BigInt(18);
+        const sexpr = ChobitSexpr.genU64(value);
+        const atom = sexpr.readU64();
+        console.assert(atom == value);
+    }
+
+    {
+        const value = new Float32Array(1);
+        value[0] = 19.1;
+        const sexpr = ChobitSexpr.genF32(value[0]);
+        const atom = sexpr.readF32();
+        console.assert(atom == value[0]);
+    }
+
+    {
+        const value = new Float64Array(1);
+        value[0] = 20.2;
+        const sexpr = ChobitSexpr.genF64(value[0]);
+        const atom = sexpr.readF64();
+        console.assert(atom == value[0]);
+    }
+}
+
+function chobitSexprTest8() {
+    const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const sexpr = ChobitSexpr.genAtom(data);
+
+    try {
+        const atom = sexpr.readI8();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.I8);
+        } else {
+            console.assert(false);
         }
+    }
 
-        const ret2 = cdr1.carCdr();
-        if (ret2) {
-            const [car2, cdr2] = ret2;
-            const atom2 = car2.atom();
-            if (atom2) {
-                console.assert(atom2.length == data2.length);
-                for (let i in atom2) {
-                    console.assert(atom2[i] == data2[i]);
-                }
-            }
+    try {
+        const atom = sexpr.readU8();
 
-            const ret3 = cdr2.carCdr();
-            if (ret3) {
-                const [car3, cdr3] = ret3;
-                const atom3 = car3.atom();
-                if (atom3) {
-                    console.assert(atom3.length == data3.length);
-                    for (let i in atom3) {
-                        console.assert(atom3[i] == data3[i]);
-                    }
-                }
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.U8);
+        } else {
+            console.assert(false);
+        }
+    }
 
-                const atom4 = cdr3.atom();
-                if (atom4) {
-                    console.assert(atom4.length == 0);
-                }
-            }
+    try {
+        const atom = sexpr.readI16();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.I16);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readU16();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.U16);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readI32();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.I32);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readU32();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.U32);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readI64();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.I64);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readU64();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.U64);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readF32();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.F32);
+        } else {
+            console.assert(false);
+        }
+    }
+
+    try {
+        const atom = sexpr.readF64();
+
+        console.assert(false);
+    } catch (e) {
+        if (e instanceof ReadError) {
+            console.assert(e.valueType == ValueType.F64);
+        } else {
+            console.assert(false);
         }
     }
 }
@@ -279,4 +468,10 @@ chobitSexprTest5();
 
 console.log("chobitSexprTest6 ===========================================")
 chobitSexprTest6();
+
+console.log("chobitSexprTest7 ===========================================")
+chobitSexprTest7();
+
+console.log("chobitSexprTest8 ===========================================")
+chobitSexprTest8();
 console.log("============================================================")

@@ -14,6 +14,93 @@
 
 const SEXPR_HEADER_LEN: number = 4 as const;
 
+export class SexprHeaderError extends Error {
+    constructor() {
+        super("SexprHeaderError");
+    }
+}
+
+export class NotSexprError extends Error {
+    constructor() {
+        super("NotSexprError");
+    }
+}
+
+export class NotAtomError extends Error {
+    constructor() {
+        super("NotAtomError");
+    }
+}
+
+export class NotConsError extends Error {
+    constructor() {
+        super("NotConsError");
+    }
+}
+
+function getValueTypeStr(valueType: ValueType): String {
+    switch (valueType) {
+        case ValueType.I8:
+            return "ValueType.I8";
+        case ValueType.U8:
+            return "ValueType.U8";
+        case ValueType.I16:
+            return "ValueType.I16";
+        case ValueType.U16:
+            return "ValueType.U16";
+        case ValueType.I32:
+            return "ValueType.I32";
+        case ValueType.U32:
+            return "ValueType.U32";
+        case ValueType.I64:
+            return "ValueType.I64";
+        case ValueType.U64:
+            return "ValueType.U64";
+        case ValueType.F32:
+            return "ValueType.F32";
+        case ValueType.F64:
+            return "ValueType.F64";
+        case ValueType.Str:
+            return "ValueType.Str";
+        default:
+            return "Others";
+    }
+}
+
+export class ReadError extends Error {
+    public valueType: ValueType;
+
+    constructor(valueType: ValueType) {
+        super("ReadError(" + getValueTypeStr(valueType) + ")");
+
+        this.valueType = valueType;
+    }
+}
+
+export class WriteError extends Error {
+    public valueType: ValueType;
+
+    constructor(valueType: ValueType) {
+        super("WriteError(" + getValueTypeStr(valueType) + ")");
+
+        this.valueType = valueType;
+    }
+}
+
+export enum ValueType {
+    I8,
+    U8,
+    I16,
+    U16,
+    I32,
+    U32,
+    I64,
+    U64,
+    F32,
+    F64,
+    Str
+}
+
 /**
  * ChobitSexpr for Typescript.
  */
@@ -97,8 +184,10 @@ export class ChobitSexpr {
         return new ChobitSexpr(sexpr);
     }
 
-    #header(): number | null {
-        if (this.#body.length < SEXPR_HEADER_LEN) {return null;}
+    #header(): number {
+        if (this.#body.length < SEXPR_HEADER_LEN) {
+            throw new SexprHeaderError();
+        }
 
         return new DataView(this.#body.buffer).getUint32(
             this.#body.byteOffset,
@@ -145,102 +234,114 @@ export class ChobitSexpr {
     /**
      * Gets atom.
      *
-     * @return If this sexpr is atom, returns payload. Otherwise, null.
+     * @return Payload of atom.
+     * @throws {SexprHeaderError}.
+     * @throws {NotAtomError}.
+     * @throws {NotSexprError}.
      */
-    atom(): Uint8Array | null {
+    atom(): Uint8Array {
         const header = this.#header();
 
-        if (header != null) {
-            if (ChobitSexpr.#flag(header) != 0) {return null;}
-
-            const size = ChobitSexpr.#size(header);
-            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
-
-            return new Uint8Array(
-                this.#body.buffer,
-                this.#body.byteOffset + SEXPR_HEADER_LEN,
-                size
-            );
-        } else {
-            return null;
+        if (ChobitSexpr.#flag(header) != 0) {
+            throw new NotAtomError();
         }
+
+        const size = ChobitSexpr.#size(header);
+        if ((SEXPR_HEADER_LEN + size) > this.#body.length) {
+            throw new NotSexprError();
+        }
+
+        return new Uint8Array(
+            this.#body.buffer,
+            this.#body.byteOffset + SEXPR_HEADER_LEN,
+            size
+        );
     }
 
     /**
      * Gets car.
      *
-     * @return If this sexpr is cons, returns car. Otherwise, null.
+     * @return Sexpr of car.
+     * @throws {SexprHeaderError}.
+     * @throws {NotConsError}.
+     * @throws {NotSexprError}.
      */
-    car(): ChobitSexpr | null {
+    car(): ChobitSexpr {
         const header = this.#header();
 
-        if (header != null) {
-            if (ChobitSexpr.#flag(header) == 0) {return null;}
-
-            const size = ChobitSexpr.#size(header);
-            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
-
-            return new ChobitSexpr(new Uint8Array(
-                this.#body.buffer,
-                this.#body.byteOffset + SEXPR_HEADER_LEN,
-                size
-            ));
-        } else {
-            return null;
+        if (ChobitSexpr.#flag(header) == 0) {
+            throw new NotConsError();
         }
+
+        const size = ChobitSexpr.#size(header);
+        if ((SEXPR_HEADER_LEN + size) > this.#body.length) {
+            throw new NotSexprError();
+        }
+
+        return new ChobitSexpr(new Uint8Array(
+            this.#body.buffer,
+            this.#body.byteOffset + SEXPR_HEADER_LEN,
+            size
+        ));
     }
 
     /**
      * Gets car.
      *
-     * @return If this sexpr is cons, returns cdr. Otherwise, returns null.
+     * @return Sexpr of cdr.
+     * @throws {SexprHeaderError}.
+     * @throws {NotConsError}.
+     * @throws {NotSexprError}.
      */
-    cdr(): ChobitSexpr | null {
+    cdr(): ChobitSexpr {
         const header = this.#header();
 
-        if (header != null) {
-            if (ChobitSexpr.#flag(header) == 0) {return null;}
-
-            const size = ChobitSexpr.#size(header);
-            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
-
-            return new ChobitSexpr(new Uint8Array(
-                this.#body.buffer,
-                this.#body.byteOffset + SEXPR_HEADER_LEN + size,
-            ));
-        } else {
-            return null;
+        if (ChobitSexpr.#flag(header) == 0) {
+            throw new NotConsError();
         }
+
+        const size = ChobitSexpr.#size(header);
+        if ((SEXPR_HEADER_LEN + size) > this.#body.length) {
+            throw new NotSexprError();
+        }
+
+        return new ChobitSexpr(new Uint8Array(
+            this.#body.buffer,
+            this.#body.byteOffset + SEXPR_HEADER_LEN + size,
+        ));
     }
 
     /**
      * Gets car and cdr.
      *
-     * @return If this sexpr is cons, returns [car, cdr]. Otherwise, returns null.
+     * @return Sexpr of [car, cdr].
+     * @throws {SexprHeaderError}.
+     * @throws {NotConsError}.
+     * @throws {NotSexprError}.
      */
-    carCdr(): [ChobitSexpr, ChobitSexpr] | null {
+    carCdr(): [ChobitSexpr, ChobitSexpr] {
         const header = this.#header();
 
-        if (header != null) {
-            if (ChobitSexpr.#flag(header) == 0) {return null;}
-
-            const size = ChobitSexpr.#size(header);
-            if ((SEXPR_HEADER_LEN + size) > this.#body.length) {return null;}
-
-            return [
-                new ChobitSexpr(new Uint8Array(
-                    this.#body.buffer,
-                    this.#body.byteOffset + SEXPR_HEADER_LEN,
-                    size
-                )),
-                new ChobitSexpr(new Uint8Array(
-                    this.#body.buffer,
-                    this.#body.byteOffset + SEXPR_HEADER_LEN + size,
-                ))
-            ];
-        } else {
-            return null;
+        if (ChobitSexpr.#flag(header) == 0) {
+            throw new NotConsError();
         }
+
+        const size = ChobitSexpr.#size(header);
+        if ((SEXPR_HEADER_LEN + size) > this.#body.length) {
+            throw new NotSexprError();
+        }
+
+        return [
+            new ChobitSexpr(new Uint8Array(
+                this.#body.buffer,
+                this.#body.byteOffset + SEXPR_HEADER_LEN,
+                size
+            )),
+            new ChobitSexpr(new Uint8Array(
+                this.#body.buffer,
+                this.#body.byteOffset + SEXPR_HEADER_LEN + size,
+            ))
+        ];
     }
 
     /**
@@ -255,333 +356,390 @@ export class ChobitSexpr {
     /**
      * Reads Int8 value.
      *
-     * @return If this sexpr is atom and payload is 1 byte, returns value. Otherwise, returns null.
+     * @return Atom as Int8.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readI8(): number | null {
+    readI8(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 1) {
-                return new DataView(atom.buffer).getInt8(atom.byteOffset);
-            }
+
+        if (atom.length == 1) {
+            return new DataView(atom.buffer).getInt8(atom.byteOffset);
         }
 
-        return null;
+        throw new ReadError(ValueType.I8);
     }
 
     /**
      * Writes Int8 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeI8(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 1) {
-                return new DataView(atom.buffer)
-                    .setInt8(atom.byteOffset, value);
-            }
+
+        if (atom.length == 1) {
+            new DataView(atom.buffer)
+                .setInt8(atom.byteOffset, value);
+        } else {
+            throw new WriteError(ValueType.I8)
         }
     }
 
     /**
      * Reads Uint8 value.
      *
-     * @return If this sexpr is atom and payload is 1 byte, returns value. Otherwise, returns null.
+     * @return Atom Uint8.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readU8(): number | null {
+    readU8(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 1) {
-                return new DataView(atom.buffer).getUint8(atom.byteOffset);
-            }
+
+        if (atom.length == 1) {
+            return new DataView(atom.buffer).getUint8(atom.byteOffset);
         }
 
-        return null;
+        throw new ReadError(ValueType.U8);
     }
 
     /**
      * Writes Uint8 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeU8(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 1) {
-                return new DataView(atom.buffer)
-                    .setUint8(atom.byteOffset, value);
-            }
+
+        if (atom.length == 1) {
+            new DataView(atom.buffer)
+                .setUint8(atom.byteOffset, value);
+        } else {
+            throw new WriteError(ValueType.U8)
         }
     }
 
     /**
      * Reads Int16 value.
      *
-     * @return If this sexpr is atom and payload is 2 byte, returns value. Otherwise, returns null.
+     * @return Atom as Int16.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readI16(): number | null {
+    readI16(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 2) {
-                return new DataView(atom.buffer)
-                    .getInt16(atom.byteOffset, true);
-            }
+
+        if (atom.length == 2) {
+            return new DataView(atom.buffer)
+                .getInt16(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.I16);
     }
 
     /**
      * Writes Int16 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeI16(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 2) {
-                return new DataView(atom.buffer)
-                    .setInt16(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 2) {
+            new DataView(atom.buffer)
+                .setInt16(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.I16)
         }
     }
 
     /**
      * Reads Uint16 value.
      *
-     * @return If this sexpr is atom and payload is 2 byte, returns value. Otherwise, returns null.
+     * @return Atom as Uint16.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readU16(): number | null {
+    readU16(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 2) {
-                return new DataView(atom.buffer)
-                    .getUint16(atom.byteOffset, true);
-            }
+
+        if (atom.length == 2) {
+            return new DataView(atom.buffer)
+                .getUint16(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.U16);
     }
 
     /**
      * Writes Uint16 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeU16(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 2) {
-                return new DataView(atom.buffer)
-                    .setUint16(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 2) {
+            new DataView(atom.buffer)
+                .setUint16(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.U16)
         }
     }
 
     /**
      * Reads Int32 value.
      *
-     * @return If this sexpr is atom and payload is 4 byte, returns value. Otherwise, returns null.
+     * @return Atom as Int32.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readI32(): number | null {
+    readI32(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 4) {
-                return new DataView(atom.buffer)
-                    .getInt32(atom.byteOffset, true);
-            }
+
+        if (atom.length == 4) {
+            return new DataView(atom.buffer)
+                .getInt32(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.I32);
     }
 
     /**
      * Writes Int32 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeI32(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 4) {
-                return new DataView(atom.buffer)
-                    .setInt32(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 4) {
+            new DataView(atom.buffer)
+                .setInt32(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.I32);
         }
     }
 
     /**
      * Reads Uint32 value.
      *
-     * @return If this sexpr is atom and payload is 4 byte, returns value. Otherwise, returns null.
+     * @return Atom as Uint32.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readU32(): number | null {
+    readU32(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 4) {
-                return new DataView(atom.buffer)
-                    .getUint32(atom.byteOffset, true);
-            }
+
+        if (atom.length == 4) {
+            return new DataView(atom.buffer)
+                .getUint32(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.U32);
     }
 
     /**
      * Writes Uint32 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeU32(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 4) {
-                return new DataView(atom.buffer)
-                    .setUint32(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 4) {
+            new DataView(atom.buffer)
+                .setUint32(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.U32);
         }
     }
 
     /**
      * Reads Int64 value.
      *
-     * @return If this sexpr is atom and payload is 8 byte, returns value. Otherwise, returns null.
+     * @return Atom as Int64.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readI64(): bigint | null {
+    readI64(): bigint {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 8) {
-                return new DataView(atom.buffer)
-                    .getBigInt64(atom.byteOffset, true);
-            }
+
+        if (atom.length == 8) {
+            return new DataView(atom.buffer)
+                .getBigInt64(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.I64);
     }
 
     /**
      * Writes Int64 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeI64(value: bigint) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 8) {
-                return new DataView(atom.buffer)
-                    .setBigInt64(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 8) {
+            new DataView(atom.buffer)
+                .setBigInt64(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.I64);
         }
     }
 
     /**
      * Reads Uint64 value.
      *
-     * @return If this sexpr is atom and payload is 8 byte, returns value. Otherwise, returns null.
+     * @return Atom as Uint64.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readU64(): bigint | null {
+    readU64(): bigint {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 8) {
-                return new DataView(atom.buffer)
-                    .getBigUint64(atom.byteOffset, true);
-            }
+
+        if (atom.length == 8) {
+            return new DataView(atom.buffer)
+                .getBigUint64(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.U64);
     }
 
     /**
      * Writes Uint64 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeU64(value: bigint) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 8) {
-                return new DataView(atom.buffer)
-                    .setBigUint64(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 8) {
+            new DataView(atom.buffer)
+                .setBigUint64(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.U64);
         }
     }
 
     /**
      * Reads Float32 value.
      *
-     * @return If this sexpr is atom and payload is 4 byte, returns value. Otherwise, returns null.
+     * @return Atom as Float32.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readF32(): number | null {
+    readF32(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 4) {
-                return new DataView(atom.buffer)
-                    .getFloat32(atom.byteOffset, true);
-            }
+
+        if (atom.length == 4) {
+            return new DataView(atom.buffer)
+                .getFloat32(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.F32);
     }
 
     /**
      * Writes Float32 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeF32(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 4) {
-                return new DataView(atom.buffer)
-                    .setFloat32(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 4) {
+            new DataView(atom.buffer)
+                .setFloat32(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.F32);
         }
     }
 
     /**
      * Reads Float64 value.
      *
-     * @return If this sexpr is atom and payload is 8 byte, returns value. Otherwise, returns null.
+     * @return Atom as Float64.
+     * @throws ReadError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readF64(): number | null {
+    readF64(): number {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 8) {
-                return new DataView(atom.buffer)
-                    .getFloat64(atom.byteOffset, true);
-            }
+
+        if (atom.length == 8) {
+            return new DataView(atom.buffer)
+                .getFloat64(atom.byteOffset, true);
         }
 
-        return null;
+        throw new ReadError(ValueType.F64);
     }
 
     /**
      * Writes Float64 value.
      *
      * @param value A value.
+     * @throws WriteError
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
     writeF64(value: number) {
         const atom = this.atom();
-        if (atom != null) {
-            if (atom.length == 8) {
-                return new DataView(atom.buffer)
-                    .setFloat64(atom.byteOffset, value, true);
-            }
+
+        if (atom.length == 8) {
+            new DataView(atom.buffer)
+                .setFloat64(atom.byteOffset, value, true);
+        } else {
+            throw new WriteError(ValueType.F64);
         }
     }
 
     /**
      * Reads String.
      *
-     * @return If this sexpr is atom, returns value. Otherwise, returns null.
+     * @return Atom as string.
+     * @throws NotAtomError
+     * @throws NotSexprError
      */
-    readString(): string | null {
-        const atom = this.atom();
-        if (atom != null) {
-            return new TextDecoder().decode(atom);
-        }
-
-        return null;
+    readString(): string {
+        return new TextDecoder().decode(this.atom());
     }
 
     static #genNumberSexpr(length: number): ChobitSexpr {
@@ -742,8 +900,9 @@ export class Iter implements IterableIterator<ChobitSexpr> {
     }
 
     next(): IteratorResult<ChobitSexpr> {
-        const carCdr = this.#sexpr.carCdr();
-        if (carCdr != null) {
+        try {
+            const carCdr = this.#sexpr.carCdr();
+
             const [car, cdr] = carCdr;
 
             this.#sexpr = cdr;
@@ -752,11 +911,15 @@ export class Iter implements IterableIterator<ChobitSexpr> {
                 done: false,
                 value: car
             };
-        } else {
-            return {
-                done: true,
-                value: null
-            };
+        } catch (e) {
+            if (e instanceof NotConsError) {
+                return {
+                    done: true,
+                    value: null
+                };
+            }
+
+            throw e
         }
     }
 
