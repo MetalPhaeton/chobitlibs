@@ -1,16 +1,10 @@
 import {
+    DecodeError,
     MessageBuffer,
     ChobitWasm,
     ChobitWorker,
     ChobitBase
 } from "../src/chobit_module_util.ts";
-
-function test1Core(msgBuffer2: MessageBuffer, msg: ArrayBuffer) {
-    console.log("decode***() ----------------------------");
-    console.log("decodeInitMsg(): " + msgBuffer2.decodeInitMsg(msg));
-    console.log("decodeRecvMsg(): " + msgBuffer2.decodeRecvMsg(msg));
-    console.log("decodeSendMsg(): " + msgBuffer2.decodeSendMsg(msg));
-}
 
 function test1() {
     const msgBuffer1 = new MessageBuffer(10);
@@ -38,28 +32,56 @@ function test1() {
     console.log("----------------------------------------");
 
     const init = msgBuffer1.encodeInitMsg(BigInt(100), data);
-    if (init != null) {
-        test1Core(msgBuffer2, init);
-    } else {
-        console.log("init is null");
+    console.log("decodeInitMsg(): " + msgBuffer2.decodeInitMsg(init));
+    try {
+        msgBuffer2.decodeRecvMsg(init);
+        console.assert(false);
+    } catch (e) {
+        console.assert(e instanceof DecodeError);
+    }
+
+    try {
+        msgBuffer2.decodeSendMsg(init);
+        console.assert(false);
+    } catch (e) {
+        console.assert(e instanceof DecodeError);
     }
 
     console.log("----------------------------------------");
 
     const recv = msgBuffer1.encodeRecvMsg(BigInt(100), data);
-    if (recv != null) {
-        test1Core(msgBuffer2, recv);
-    } else {
-        console.log("recv is null");
+    console.log("decodeRecvMsg(): " + msgBuffer2.decodeRecvMsg(recv));
+    try {
+        msgBuffer2.decodeInitMsg(recv);
+        console.assert(false);
+    } catch (e) {
+        console.log("mark");
+        console.assert(e instanceof DecodeError);
+    }
+
+    try {
+        msgBuffer2.decodeSendMsg(recv);
+        console.assert(false);
+    } catch (e) {
+        console.assert(e instanceof DecodeError);
     }
 
     console.log("----------------------------------------");
 
     const send = msgBuffer1.encodeSendMsg(BigInt(100), data);
-    if (send != null) {
-        test1Core(msgBuffer2, send);
-    } else {
-        console.log("send is null");
+    console.log("decodeSendMsg(): " + msgBuffer2.decodeSendMsg(send));
+    try {
+        msgBuffer2.decodeInitMsg(send);
+        console.assert(false);
+    } catch (e) {
+        console.assert(e instanceof DecodeError);
+    }
+
+    try {
+        msgBuffer2.decodeRecvMsg(send);
+        console.assert(false);
+    } catch (e) {
+        console.assert(e instanceof DecodeError);
     }
 }
 

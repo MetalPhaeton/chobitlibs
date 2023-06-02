@@ -357,9 +357,9 @@ export class ChobitSexpr {
      * Reads Int8 value.
      *
      * @return Atom as Int8.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readI8(): number {
         const atom = this.atom();
@@ -375,9 +375,9 @@ export class ChobitSexpr {
      * Writes Int8 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeI8(value: number) {
         const atom = this.atom();
@@ -394,9 +394,9 @@ export class ChobitSexpr {
      * Reads Uint8 value.
      *
      * @return Atom Uint8.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readU8(): number {
         const atom = this.atom();
@@ -412,9 +412,9 @@ export class ChobitSexpr {
      * Writes Uint8 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeU8(value: number) {
         const atom = this.atom();
@@ -431,9 +431,9 @@ export class ChobitSexpr {
      * Reads Int16 value.
      *
      * @return Atom as Int16.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readI16(): number {
         const atom = this.atom();
@@ -450,9 +450,9 @@ export class ChobitSexpr {
      * Writes Int16 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeI16(value: number) {
         const atom = this.atom();
@@ -469,9 +469,9 @@ export class ChobitSexpr {
      * Reads Uint16 value.
      *
      * @return Atom as Uint16.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readU16(): number {
         const atom = this.atom();
@@ -488,9 +488,9 @@ export class ChobitSexpr {
      * Writes Uint16 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeU16(value: number) {
         const atom = this.atom();
@@ -507,9 +507,9 @@ export class ChobitSexpr {
      * Reads Int32 value.
      *
      * @return Atom as Int32.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readI32(): number {
         const atom = this.atom();
@@ -526,9 +526,9 @@ export class ChobitSexpr {
      * Writes Int32 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeI32(value: number) {
         const atom = this.atom();
@@ -545,9 +545,9 @@ export class ChobitSexpr {
      * Reads Uint32 value.
      *
      * @return Atom as Uint32.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readU32(): number {
         const atom = this.atom();
@@ -564,9 +564,9 @@ export class ChobitSexpr {
      * Writes Uint32 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeU32(value: number) {
         const atom = this.atom();
@@ -583,9 +583,9 @@ export class ChobitSexpr {
      * Reads Int64 value.
      *
      * @return Atom as Int64.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readI64(): bigint {
         const atom = this.atom();
@@ -602,9 +602,9 @@ export class ChobitSexpr {
      * Writes Int64 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeI64(value: bigint) {
         const atom = this.atom();
@@ -621,9 +621,9 @@ export class ChobitSexpr {
      * Reads Uint64 value.
      *
      * @return Atom as Uint64.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readU64(): bigint {
         const atom = this.atom();
@@ -640,9 +640,9 @@ export class ChobitSexpr {
      * Writes Uint64 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeU64(value: bigint) {
         const atom = this.atom();
@@ -659,9 +659,9 @@ export class ChobitSexpr {
      * Reads Float32 value.
      *
      * @return Atom as Float32.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readF32(): number {
         const atom = this.atom();
@@ -678,9 +678,9 @@ export class ChobitSexpr {
      * Writes Float32 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeF32(value: number) {
         const atom = this.atom();
@@ -697,9 +697,9 @@ export class ChobitSexpr {
      * Reads Float64 value.
      *
      * @return Atom as Float64.
-     * @throws ReadError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {ReadError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readF64(): number {
         const atom = this.atom();
@@ -716,9 +716,9 @@ export class ChobitSexpr {
      * Writes Float64 value.
      *
      * @param value A value.
-     * @throws WriteError
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {WriteError}
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     writeF64(value: number) {
         const atom = this.atom();
@@ -735,8 +735,8 @@ export class ChobitSexpr {
      * Reads String.
      *
      * @return Atom as string.
-     * @throws NotAtomError
-     * @throws NotSexprError
+     * @throws {NotAtomError}
+     * @throws {NotSexprError}
      */
     readString(): string {
         return new TextDecoder().decode(this.atom());

@@ -13,6 +13,15 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 /**
+ * Error of decoding.
+ */
+export class DecodeError extends Error {
+    constructor() {
+        super("DecodeError");
+    }
+}
+
+/**
  * FNV-1a 64 bits.
  *
  * @param bytes Bytes to hash.
@@ -119,15 +128,19 @@ export class MessageBuffer {
         return this.#buffer;
     }
 
-    #decodeMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
-        if (msg.byteLength < HEADER_OFFSET) {return null;}
+    #decodeMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] {
+        if (msg.byteLength < HEADER_OFFSET) {
+            throw new DecodeError();
+        }
 
         const view = new DataView(msg);
         const msgID = view.getBigUint64(0, true);
         const moduleID = view.getBigUint64(8, true);
         const dataLength = view.getUint32(16, true);
 
-        if ((dataLength + HEADER_OFFSET) > msg.byteLength) {return null;}
+        if ((dataLength + HEADER_OFFSET) > msg.byteLength) {
+            throw new DecodeError();
+        }
 
         const tmp = new Uint8Array(msg, HEADER_OFFSET, dataLength);
 
@@ -150,14 +163,15 @@ export class MessageBuffer {
      *
      * @param msg Message as byte string.
      * @return [message ID, module ID, additional data]
+     * @throws {DecodeError}
      */
-    decodeInitMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
+    decodeInitMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] {
         const ret = this.#decodeMsg(msg);
 
-        if ((ret != null) && (ret[0] == this.#initID)) {
+        if (ret[0] == this.#initID) {
             return ret;
         } else {
-            return null;
+            throw new DecodeError();
         }
     }
 
@@ -177,14 +191,15 @@ export class MessageBuffer {
      *
      * @param msg Message as byte string.
      * @return [message ID, sender ID, additional data]
+     * @throws {DecodeError}
      */
-    decodeRecvMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
+    decodeRecvMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] {
         const ret = this.#decodeMsg(msg);
 
-        if ((ret != null) && (ret[0] == this.#recvID)) {
+        if (ret[0] == this.#recvID) {
             return ret;
         } else {
-            return null;
+            throw new DecodeError();
         }
     }
 
@@ -204,14 +219,15 @@ export class MessageBuffer {
      *
      * @param msg Message as byte string.
      * @return [message ID, receiver ID, additional data]
+     * @throws {DecodeError}
      */
-    decodeSendMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] | null {
+    decodeSendMsg(msg: ArrayBuffer): [bigint, bigint, Uint8Array] {
         const ret = this.#decodeMsg(msg);
 
-        if ((ret != null) && (ret[0] == this.#sendID)) {
+        if (ret[0] == this.#sendID) {
             return ret;
         } else {
-            return null;
+            throw new DecodeError();
         }
     }
 }
@@ -376,30 +392,26 @@ export class ChobitModule {
                     evt.data as unknown as ArrayBuffer
                 );
 
-                if (msg != null) {
-                    this.#firstMessage = false;
-                    this.#moduleID = msg[1];
+                this.#firstMessage = false;
+                this.#moduleID = msg[1];
 
-                    ChobitWasm.instantiate(
-                        msg[1],
-                        new URL(new TextDecoder().decode(msg[2])),
-                        (to, data) => {
-                            this.#channel.port2.postMessage(
-                                this.#msgBuffer.encodeSendMsg(to, data)
-                            );
-                        }
-                    ).then((wasm) => {
-                        this.#channel.port2.onmessage = (evt) => {
-                            const msg = this.#msgBuffer.decodeRecvMsg(
-                                evt.data as unknown as ArrayBuffer
-                            );
+                ChobitWasm.instantiate(
+                    msg[1],
+                    new URL(new TextDecoder().decode(msg[2])),
+                    (to, data) => {
+                        this.#channel.port2.postMessage(
+                            this.#msgBuffer.encodeSendMsg(to, data)
+                        );
+                    }
+                ).then((wasm) => {
+                    this.#channel.port2.onmessage = (evt) => {
+                        const msg = this.#msgBuffer.decodeRecvMsg(
+                            evt.data as unknown as ArrayBuffer
+                        );
 
-                            if (msg != null) {
-                                wasm.postData(msg[1], msg[2]);
-                            }
-                        };
-                    });
-                }
+                        wasm.postData(msg[1], msg[2]);
+                    };
+                });
             } else {
                 this.#channel.port1.postMessage(evt.data, [evt.data]);
             }
@@ -464,9 +476,7 @@ export class ChobitWorker{
                 evt.data as unknown as ArrayBuffer
             );
 
-            if (msg != null) {
-                sendMsgHandler(msg[1], msg[2]);
-            }
+            sendMsgHandler(msg[1], msg[2]);
         };
 
         const msg = this.#msgBuffer.encodeInitMsg(
