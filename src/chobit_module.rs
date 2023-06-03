@@ -263,14 +263,12 @@ fn __on_received($($args)*) {
 #[no_mangle]
 extern fn init(id: u64) {
     unsafe {
-        __MODULE = __MODULE.take().or_else(|| {
-            Some(ChobitModule::<$user_object_type>::__new(
-                id,
-                $input_buffer_size,
-                $output_buffer_size,
-                __on_created()
-            ))
-        })
+        __MODULE = Some(ChobitModule::<$user_object_type>::__new(
+            id,
+            $input_buffer_size,
+            $output_buffer_size,
+            __on_created()
+        ));
     }
 }
 
