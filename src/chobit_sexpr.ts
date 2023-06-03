@@ -226,28 +226,20 @@ export class ChobitSexpr {
      * Whether this sexpr is atom or not.
      *
      * @return If this sexpr is atom, true.
+     * @throws {SexprHeaderError}
      */
     isAtom(): boolean {
-        const header = this.#header();
-        if (header != null) {
-            return ChobitSexpr.#flag(header) == 0;
-        }
-
-        return false;
+        return ChobitSexpr.#flag(this.#header()) == 0;
     }
 
     /**
      * Whether this sexpr is cons or not.
      *
      * @return If this sexpr is cons, true.
+     * @throws {SexprHeaderError}
      */
     isCons(): boolean {
-        const header = this.#header();
-        if (header != null) {
-            return ChobitSexpr.#flag(header) != 0;
-        }
-
-        return false;
+        return ChobitSexpr.#flag(this.#header()) != 0;
     }
 
     /**
