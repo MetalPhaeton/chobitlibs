@@ -14,24 +14,36 @@
 
 const SEXPR_HEADER_LEN: number = 4 as const;
 
+/**
+ * Error of header of ChobitSexpr.
+ */
 export class SexprHeaderError extends Error {
     constructor() {
         super("SexprHeaderError");
     }
 }
 
+/**
+ * It is not ChobitSexpr.
+ */
 export class NotSexprError extends Error {
     constructor() {
         super("NotSexprError");
     }
 }
 
+/**
+ * It is not atom of ChobitSexpr.
+ */
 export class NotAtomError extends Error {
     constructor() {
         super("NotAtomError");
     }
 }
 
+/**
+ * It is not cons of ChobitSexpr.
+ */
 export class NotConsError extends Error {
     constructor() {
         super("NotConsError");
@@ -67,6 +79,9 @@ function getValueTypeStr(valueType: ValueType): String {
     }
 }
 
+/**
+ * Error in reading value.
+ */
 export class ReadError extends Error {
     public valueType: ValueType;
 
@@ -77,6 +92,9 @@ export class ReadError extends Error {
     }
 }
 
+/**
+ * Error in writing value.
+ */
 export class WriteError extends Error {
     public valueType: ValueType;
 
@@ -87,6 +105,7 @@ export class WriteError extends Error {
     }
 }
 
+/// Value for ReadError and WriteError.
 export enum ValueType {
     I8,
     U8,
