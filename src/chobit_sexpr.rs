@@ -227,7 +227,7 @@ impl SexprHeader {
     /// - _Return_ : If atom, true.
     #[inline]
     pub fn is_atom(&self) -> bool {
-        (self.body & FLAG_MASK) == ATOM_FLAG
+        self.body < FLAG_MASK
     }
 
     /// Judge if cons or not.
@@ -235,7 +235,7 @@ impl SexprHeader {
     /// - _Return_ : If cons, true.
     #[inline]
     pub fn is_cons(&self) -> bool {
-        (self.body & FLAG_MASK) == CONS_FLAG
+        self.body >= FLAG_MASK
     }
 
     /// Gets size.
