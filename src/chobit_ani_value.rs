@@ -285,63 +285,45 @@ impl ChobitAniValue {
         Ok(())
     }
 
-    /// - _Return_ : Whether the current column is rewound or not.
     #[inline]
-    pub fn next_frame(&mut self) -> bool {
-        match self.current_frame {
-            Some(frame) => {
-                debug_assert!(self.next_frame.get(frame).is_some());
+    pub fn next_frame(&mut self) {
+        if let Some(frame) = self.current_frame {
+            debug_assert!(self.next_frame.get(frame).is_some());
 
-                self.current_frame = unsafe {
-                    debug_assert!(self.next_frame.get_unchecked(
-                        frame
-                    ).get(
-                        self.current_row
-                    ).is_some());
+            self.current_frame = unsafe {
+                debug_assert!(self.next_frame.get_unchecked(
+                    frame
+                ).get(
+                    self.current_row
+                ).is_some());
 
-                    *self.next_frame.get_unchecked(
-                        frame
-                    ).get_unchecked(
-                        self.current_row
-                    )
-                };
-
-                debug_assert!(self.current_frame.is_some());
-
-                unsafe {self.current_frame.unwrap_unchecked() == 0}
-            },
-
-            None => false
+                *self.next_frame.get_unchecked(
+                    frame
+                ).get_unchecked(
+                    self.current_row
+                )
+            };
         }
     }
 
-    /// - _Return_ : Whether the current column is rewound or not.
     #[inline]
-    pub fn prev_frame(&mut self) -> bool {
-        match self.current_frame {
-            Some(frame) => {
-                let ret = frame == 0;
+    pub fn prev_frame(&mut self) {
+        if let Some(frame) = self.current_frame {
+            debug_assert!(self.next_frame.get(frame).is_some());
 
-                debug_assert!(self.next_frame.get(frame).is_some());
+            self.current_frame = unsafe {
+                debug_assert!(self.prev_frame.get_unchecked(
+                    frame
+                ).get(
+                    self.current_row
+                ).is_some());
 
-                self.current_frame = unsafe {
-                    debug_assert!(self.prev_frame.get_unchecked(
-                        frame
-                    ).get(
-                        self.current_row
-                    ).is_some());
-
-                    *self.prev_frame.get_unchecked(
-                        frame
-                    ).get_unchecked(
-                        self.current_row
-                    )
-                };
-
-                ret
-            },
-
-            None => false
+                *self.prev_frame.get_unchecked(
+                    frame
+                ).get_unchecked(
+                    self.current_row
+                )
+            };
         }
     }
 
@@ -371,45 +353,33 @@ impl ChobitAniValue {
         (self.ticks_per_second as f32) / (tps as f32)
     }
 
-    /// - _Return_ : Whether the current column is rewound or not.
-    pub fn elapse_ticks(&mut self, ticks: usize) -> bool {
+    pub fn elapse_ticks(&mut self, ticks: usize) {
         self.accumulated_ticks += ticks;
 
-        let mut ret: bool = false;
-
         while self.accumulated_ticks >= self.ticks_per_frame {
-            ret = self.next_frame() || ret;
+            self.next_frame();
 
             self.accumulated_ticks -= self.ticks_per_frame;
         }
-
-        ret
     }
 
-    /// - _Return_ : Whether the current column is rewound or not.
-    pub fn elapse_ticks_inv(&mut self, ticks: usize) -> bool {
+    pub fn elapse_ticks_inv(&mut self, ticks: usize) {
         self.accumulated_ticks += ticks;
 
-        let mut ret: bool = false;
-
         while self.accumulated_ticks >= self.ticks_per_frame {
-            ret = self.prev_frame() || ret;
+            self.prev_frame();
 
             self.accumulated_ticks -= self.ticks_per_frame;
         }
-
-        ret
     }
 
-    /// - _Return_ : Whether the current column is rewound or not.
     #[inline]
-    pub fn elapse_seconds(&mut self, seconds: f32) -> bool {
+    pub fn elapse_seconds(&mut self, seconds: f32) {
         self.elapse_ticks(self.seconds_to_ticks(seconds))
     }
 
-    /// - _Return_ : Whether the current column is rewound or not.
     #[inline]
-    pub fn elapse_seconds_inv(&mut self, seconds: f32) -> bool {
+    pub fn elapse_seconds_inv(&mut self, seconds: f32) {
         self.elapse_ticks_inv(self.seconds_to_ticks(seconds))
     }
 }

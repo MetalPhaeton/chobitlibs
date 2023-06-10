@@ -59,7 +59,7 @@ fn next_frame_test_1() {
 
     assert_eq!(value.last_frame(), Some(2));
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -72,7 +72,7 @@ fn next_frame_test_1() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -85,7 +85,7 @@ fn next_frame_test_1() {
         )
     );
 
-    assert!(value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -98,7 +98,7 @@ fn next_frame_test_1() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -120,7 +120,7 @@ fn next_frame_test_2() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -133,7 +133,7 @@ fn next_frame_test_2() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -146,7 +146,7 @@ fn next_frame_test_2() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -159,7 +159,7 @@ fn next_frame_test_2() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -172,7 +172,7 @@ fn next_frame_test_2() {
         )
     );
 
-    assert!(value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -185,7 +185,7 @@ fn next_frame_test_2() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -207,7 +207,7 @@ fn next_frame_test_3() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -220,7 +220,7 @@ fn next_frame_test_3() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -233,7 +233,7 @@ fn next_frame_test_3() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -246,7 +246,7 @@ fn next_frame_test_3() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -259,7 +259,7 @@ fn next_frame_test_3() {
         )
     );
 
-    assert!(value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -272,7 +272,7 @@ fn next_frame_test_3() {
         )
     );
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -294,12 +294,12 @@ fn next_frame_test_4() {
 
     assert_eq!(value.last_frame(), None);
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
 
-    assert!(!value.next_frame());
+    value.next_frame();
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
@@ -312,7 +312,7 @@ fn prev_frame_test_1() {
 
     assert_eq!(value.last_frame(), Some(2));
 
-    assert!(value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -325,7 +325,7 @@ fn prev_frame_test_1() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -338,7 +338,7 @@ fn prev_frame_test_1() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -351,7 +351,7 @@ fn prev_frame_test_1() {
         )
     );
 
-    assert!(value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -373,7 +373,7 @@ fn prev_frame_test_2() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -386,7 +386,7 @@ fn prev_frame_test_2() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -399,7 +399,7 @@ fn prev_frame_test_2() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -413,7 +413,7 @@ fn prev_frame_test_2() {
     );
 
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -426,7 +426,7 @@ fn prev_frame_test_2() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -439,7 +439,7 @@ fn prev_frame_test_2() {
         )
     );
 
-    assert!(value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -461,7 +461,7 @@ fn prev_frame_test_3() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -474,7 +474,7 @@ fn prev_frame_test_3() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -487,7 +487,7 @@ fn prev_frame_test_3() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -500,7 +500,7 @@ fn prev_frame_test_3() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -513,7 +513,7 @@ fn prev_frame_test_3() {
         )
     );
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -526,7 +526,7 @@ fn prev_frame_test_3() {
         )
     );
 
-    assert!(value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -548,12 +548,12 @@ fn prev_frame_test_4() {
 
     assert_eq!(value.last_frame(), None);
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
 
-    assert!(!value.prev_frame());
+    value.prev_frame();
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
@@ -566,7 +566,7 @@ fn elapse_test_1() {
 
     assert_eq!(value.last_frame(), Some(2));
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -579,7 +579,7 @@ fn elapse_test_1() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -592,7 +592,7 @@ fn elapse_test_1() {
         )
     );
 
-    assert!(value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -605,7 +605,7 @@ fn elapse_test_1() {
         )
     );
 
-    assert!(!value.elapse_ticks(2));
+    value.elapse_ticks(2);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -618,7 +618,7 @@ fn elapse_test_1() {
         )
     );
 
-    assert!(!value.elapse_ticks(6));
+    value.elapse_ticks(6);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -631,7 +631,7 @@ fn elapse_test_1() {
         )
     );
 
-    assert!(value.elapse_ticks(12));
+    value.elapse_ticks(12);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -653,7 +653,7 @@ fn elapse_test_2() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -666,7 +666,7 @@ fn elapse_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -679,7 +679,7 @@ fn elapse_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -692,7 +692,7 @@ fn elapse_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -705,7 +705,7 @@ fn elapse_test_2() {
         )
     );
 
-    assert!(value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -718,7 +718,7 @@ fn elapse_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks(12));
+    value.elapse_ticks(12);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -731,7 +731,7 @@ fn elapse_test_2() {
         )
     );
 
-    assert!(value.elapse_ticks(24));
+    value.elapse_ticks(24);
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -753,7 +753,7 @@ fn elapse_test_3() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -766,7 +766,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -779,7 +779,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -792,7 +792,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -805,7 +805,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -818,7 +818,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks(2));
+    value.elapse_ticks(2);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -831,7 +831,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks(6));
+    value.elapse_ticks(6);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -844,7 +844,7 @@ fn elapse_test_3() {
         )
     );
 
-    assert!(value.elapse_ticks(24));
+    value.elapse_ticks(24);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -866,12 +866,12 @@ fn elapse_test_4() {
 
     assert_eq!(value.last_frame(), None);
 
-    assert!(!value.elapse_ticks(4));
+    value.elapse_ticks(4);
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
 
-    assert!(!value.elapse_ticks(10));
+    value.elapse_ticks(10);
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
@@ -884,7 +884,7 @@ fn elapse_test_5() {
 
     assert_eq!(value.last_frame(), Some(2));
 
-    assert!(!value.elapse_seconds(0.4));
+    value.elapse_seconds(0.4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -897,7 +897,7 @@ fn elapse_test_5() {
         )
     );
 
-    assert!(!value.elapse_seconds(0.4));
+    value.elapse_seconds(0.4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -910,7 +910,7 @@ fn elapse_test_5() {
         )
     );
 
-    assert!(value.elapse_seconds(0.4));
+    value.elapse_seconds(0.4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -923,7 +923,7 @@ fn elapse_test_5() {
         )
     );
 
-    assert!(!value.elapse_seconds(0.2));
+    value.elapse_seconds(0.2);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -936,7 +936,7 @@ fn elapse_test_5() {
         )
     );
 
-    assert!(!value.elapse_seconds(0.6));
+    value.elapse_seconds(0.6);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -949,7 +949,7 @@ fn elapse_test_5() {
         )
     );
 
-    assert!(value.elapse_seconds(1.2));
+    value.elapse_seconds(1.2);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -969,7 +969,7 @@ fn elapse_inv_test_1() {
 
     assert_eq!(value.last_frame(), Some(2));
 
-    assert!(value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -982,7 +982,7 @@ fn elapse_inv_test_1() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -995,7 +995,7 @@ fn elapse_inv_test_1() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1008,7 +1008,7 @@ fn elapse_inv_test_1() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(2));
+    value.elapse_ticks_inv(2);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1021,7 +1021,7 @@ fn elapse_inv_test_1() {
         )
     );
 
-    assert!(value.elapse_ticks_inv(6));
+    value.elapse_ticks_inv(6);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1034,7 +1034,7 @@ fn elapse_inv_test_1() {
         )
     );
 
-    assert!(value.elapse_ticks_inv(12));
+    value.elapse_ticks_inv(12);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1056,7 +1056,7 @@ fn elapse_inv_test_2() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1069,7 +1069,7 @@ fn elapse_inv_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1082,7 +1082,7 @@ fn elapse_inv_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1095,7 +1095,7 @@ fn elapse_inv_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1108,7 +1108,7 @@ fn elapse_inv_test_2() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1121,7 +1121,7 @@ fn elapse_inv_test_2() {
         )
     );
 
-    assert!(value.elapse_ticks_inv(12));
+    value.elapse_ticks_inv(12);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1134,7 +1134,7 @@ fn elapse_inv_test_2() {
         )
     );
 
-    assert!(value.elapse_ticks_inv(24));
+    value.elapse_ticks_inv(24);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
@@ -1156,7 +1156,7 @@ fn elapse_inv_test_3() {
 
     assert_eq!(value.last_frame(), Some(4));
 
-    assert!(value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1169,7 +1169,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1182,7 +1182,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1195,7 +1195,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1208,7 +1208,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1221,7 +1221,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(!value.elapse_ticks_inv(2));
+    value.elapse_ticks_inv(2);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1234,7 +1234,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(value.elapse_ticks_inv(6));
+    value.elapse_ticks_inv(6);
     assert_eq!(value.current_frame(), Some(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1247,7 +1247,7 @@ fn elapse_inv_test_3() {
         )
     );
 
-    assert!(value.elapse_ticks_inv(24));
+    value.elapse_ticks_inv(24);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
@@ -1269,12 +1269,12 @@ fn elapse_inv_test_4() {
 
     assert_eq!(value.last_frame(), None);
 
-    assert!(!value.elapse_ticks_inv(4));
+    value.elapse_ticks_inv(4);
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
 
-    assert!(!value.elapse_ticks_inv(10));
+    value.elapse_ticks_inv(10);
     assert_eq!(value.current_frame(), None);
     assert_eq!(value.current_row(), 3);
     assert_eq!(value.uv_frame_left_top_right_bottom(), None);
@@ -1287,7 +1287,7 @@ fn elapse_inv_test_5() {
 
     assert_eq!(value.last_frame(), Some(2));
 
-    assert!(value.elapse_seconds_inv(0.4));
+    value.elapse_seconds_inv(0.4);
     assert_eq!(value.current_frame(), Some(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1300,7 +1300,7 @@ fn elapse_inv_test_5() {
         )
     );
 
-    assert!(!value.elapse_seconds_inv(0.4));
+    value.elapse_seconds_inv(0.4);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1313,7 +1313,7 @@ fn elapse_inv_test_5() {
         )
     );
 
-    assert!(!value.elapse_seconds_inv(0.4));
+    value.elapse_seconds_inv(0.4);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1326,7 +1326,7 @@ fn elapse_inv_test_5() {
         )
     );
 
-    assert!(!value.elapse_seconds_inv(0.2));
+    value.elapse_seconds_inv(0.2);
     assert_eq!(value.current_frame(), Some(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1339,7 +1339,7 @@ fn elapse_inv_test_5() {
         )
     );
 
-    assert!(value.elapse_seconds_inv(0.6));
+    value.elapse_seconds_inv(0.6);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
@@ -1352,7 +1352,7 @@ fn elapse_inv_test_5() {
         )
     );
 
-    assert!(value.elapse_seconds_inv(1.2));
+    value.elapse_seconds_inv(1.2);
     assert_eq!(value.current_frame(), Some(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
