@@ -28,8 +28,7 @@ pub enum ChobitAniValueError {
 pub enum GenerationError {
     InvalidColumns,
     InvalidRows,
-    InvalidTicksPerSecond,
-    InvalidTicksPerFrame,
+    InvalidFramesPerSecond
 }
 
 impl From<GenerationError> for ChobitAniValueError {
@@ -55,26 +54,21 @@ pub struct ChobitAniValue {
     uv_frame_height: f32,
     uv_frame: Box<[Box<[(f32, f32, f32, f32)]>]>,
 
-    ticks_per_second: usize,
-    accumulated_ticks: usize,
-    ticks_per_frame: usize
+    saved_time: f32,
+    seconds_per_frame: f32
 }
 
 pub const MIN_COLUMNS: usize = 1;
 pub const MIN_ROWS: usize = 1;
-pub const MIN_TICKS_PER_SECOND: usize = 1;
-pub const MIN_TICKS_PER_FRAME: usize = 1;
+pub const MIN_FRAMES_PER_SECOND: f32 = f32::EPSILON;
 
 impl ChobitAniValue {
     /// - `columns` : Columns of UV frame. (must be 1 or more)
     /// - `frames_of_each_row` : Frames of each row of UV frame. (lenght must be 1 or more)
-    /// - `ticks_per_second` : Defines ticks per second. (must be 1 or more)
-    /// - `ticks_per_frame` : Defines ticks per frame. (must be 1 or more)
     pub fn new(
         columns: usize,
         frames_of_each_row: &[usize],
-        ticks_per_second: usize,
-        ticks_per_frame: usize
+        frames_per_second: f32,
     ) -> Result<Self, ChobitAniValueError> {
         if columns < MIN_COLUMNS {
             return Err(ChobitAniValueError::from(
@@ -82,15 +76,9 @@ impl ChobitAniValue {
             ));
         }
 
-        if ticks_per_second < MIN_TICKS_PER_SECOND {
+        if frames_per_second < MIN_FRAMES_PER_SECOND {
             return Err(ChobitAniValueError::from(
-                GenerationError::InvalidTicksPerSecond
-            ));
-        }
-
-        if ticks_per_frame < MIN_TICKS_PER_FRAME {
-            return Err(ChobitAniValueError::from(
-                GenerationError::InvalidTicksPerFrame
+                GenerationError::InvalidFramesPerSecond
             ));
         }
 
@@ -137,9 +125,8 @@ impl ChobitAniValue {
             uv_frame_height: uv_frame_height,
             uv_frame: uv_frame,
 
-            ticks_per_second: ticks_per_second,
-            accumulated_ticks: 0,
-            ticks_per_frame: ticks_per_frame
+            saved_time: 0.0,
+            seconds_per_frame: frames_per_second.recip()
         })
     }
 
@@ -221,10 +208,13 @@ impl ChobitAniValue {
     }
 
     #[inline]
-    pub fn ticks_per_second(&self) -> usize {self.ticks_per_second}
+    pub fn saved_time(&self) -> f32 {self.saved_time}
 
     #[inline]
-    pub fn ticks_per_frame(&self) -> usize {self.ticks_per_frame}
+    pub fn seconds_per_frame(&self) -> f32 {self.seconds_per_frame}
+
+    #[inline]
+    pub fn frames_per_second(&self) -> f32 {self.seconds_per_frame.recip()}
 
     #[inline]
     pub fn uv_frame_height(&self) -> f32 {self.uv_frame_height}
@@ -250,6 +240,16 @@ impl ChobitAniValue {
                 self.current_row
             )
         })
+    }
+
+    #[inline]
+    pub fn set_saved_time(&mut self, time: f32) {
+        self.saved_time = time;
+    }
+
+    #[inline]
+    pub fn set_frames_per_second(&mut self, frames_per_second: f32) {
+        self.seconds_per_frame = frames_per_second.recip();
     }
 
     #[inline]
@@ -328,58 +328,24 @@ impl ChobitAniValue {
     }
 
     #[inline]
-    pub fn seconds_to_ticks(&self, seconds: f32) -> usize {
-        let seconds = seconds.max(0.0);
+    pub fn elapse(&mut self, dt: f32) {
+        self.saved_time += dt;
 
-        (((self.ticks_per_second as f32) * seconds) + 0.5) as usize
-    }
-
-    #[inline]
-    pub fn ticks_to_seconds(&self, ticks: usize) -> f32 {
-        (ticks as f32) / (self.ticks_per_second as f32)
-    }
-
-    #[inline]
-    pub fn fps_to_tpf(&self, fps: f32) -> usize {
-        let fps = fps.max(f32::EPSILON);
-
-        (((self.ticks_per_second as f32) / fps) + 0.5) as usize
-    }
-
-    #[inline]
-    pub fn tpf_to_fps(&self, tps: usize) -> f32 {
-        let tps = (tps as f32).max(f32::EPSILON);
-
-        (self.ticks_per_second as f32) / (tps as f32)
-    }
-
-    pub fn elapse_ticks(&mut self, ticks: usize) {
-        self.accumulated_ticks += ticks;
-
-        while self.accumulated_ticks >= self.ticks_per_frame {
+        while self.saved_time >= self.seconds_per_frame {
             self.next_frame();
 
-            self.accumulated_ticks -= self.ticks_per_frame;
+            self.saved_time -= self.seconds_per_frame;
         }
     }
 
-    pub fn elapse_ticks_inv(&mut self, ticks: usize) {
-        self.accumulated_ticks += ticks;
+    #[inline]
+    pub fn elapse_inv(&mut self, dt: f32) {
+        self.saved_time += dt;
 
-        while self.accumulated_ticks >= self.ticks_per_frame {
+        while self.saved_time >= self.seconds_per_frame {
             self.prev_frame();
 
-            self.accumulated_ticks -= self.ticks_per_frame;
+            self.saved_time -= self.seconds_per_frame;
         }
-    }
-
-    #[inline]
-    pub fn elapse_seconds(&mut self, seconds: f32) {
-        self.elapse_ticks(self.seconds_to_ticks(seconds))
-    }
-
-    #[inline]
-    pub fn elapse_seconds_inv(&mut self, seconds: f32) {
-        self.elapse_ticks_inv(self.seconds_to_ticks(seconds))
     }
 }
