@@ -195,16 +195,24 @@ impl ChobitAniValue {
     pub fn rows(&self) -> usize {self.rows}
 
     #[inline]
-    pub fn current_frame(&self) -> Option<usize> {self.current_frame}
+    pub fn current_frame(&self) -> Result<usize, ChobitAniValueError> {
+        self.current_frame.ok_or_else(
+            || ChobitAniValueError::NoFrameInCurrentRow
+        )
+    }
 
     #[inline]
     pub fn current_row(&self) -> usize {self.current_row}
 
     #[inline]
-    pub fn last_frame(&self) -> Option<usize> {
+    pub fn last_frame(&self) -> Result<usize, ChobitAniValueError> {
         debug_assert!(self.last_frame.get(self.current_row).is_some());
 
-        unsafe {*self.last_frame.get_unchecked(self.current_row)}
+        unsafe {
+            self.last_frame.get_unchecked(self.current_row).ok_or_else(
+                || ChobitAniValueError::NoFrameInCurrentRow
+            )
+        }
     }
 
     #[inline]
@@ -225,7 +233,7 @@ impl ChobitAniValue {
     #[inline]
     pub fn uv_frame_left_top_right_bottom(
         &self
-    ) -> Option<&(f32, f32, f32, f32)> {
+    ) -> Result<&(f32, f32, f32, f32), ChobitAniValueError> {
         self.current_frame.map(|frame| unsafe {
             debug_assert!(self.uv_frame.get(frame).is_some());
             debug_assert!(self.uv_frame.get_unchecked(
@@ -239,7 +247,9 @@ impl ChobitAniValue {
             ).get_unchecked(
                 self.current_row
             )
-        })
+        }).ok_or_else(
+            || ChobitAniValueError::NoFrameInCurrentRow
+        )
     }
 
     #[inline]
@@ -257,16 +267,12 @@ impl ChobitAniValue {
         &mut self,
         frame: usize
     ) -> Result<(), ChobitAniValueError> {
-        match self.last_frame() {
-            Some(last_frame) => if frame <= last_frame {
-                self.current_frame = Some(frame);
+         if frame <= self.last_frame()? {
+            self.current_frame = Some(frame);
 
-                Ok(())
-            } else {
-                Err(ChobitAniValueError::InvalidFrame)
-            },
-
-            None => Err(ChobitAniValueError::NoFrameInCurrentRow)
+            Ok(())
+        } else {
+            Err(ChobitAniValueError::InvalidFrame)
         }
     }
 

@@ -14,7 +14,7 @@ fn new_test_1() {
 
     assert_eq!(value.columns(), 5);
     assert_eq!(value.rows(), 4);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(value.saved_time(), 0.0);
     assert_eq!(value.seconds_per_frame(), 10.0f32.recip());
@@ -49,10 +49,10 @@ fn new_test_2() {
 fn next_frame_test_1() {
     let mut value = gen_chobit_ani_value();
 
-    assert_eq!(value.last_frame(), Some(2));
+    assert_eq!(value.last_frame(), Ok(2));
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -65,7 +65,7 @@ fn next_frame_test_1() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -78,7 +78,7 @@ fn next_frame_test_1() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -91,7 +91,7 @@ fn next_frame_test_1() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -110,10 +110,10 @@ fn next_frame_test_2() {
 
     assert!(value.set_row(value.current_row() + 1).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -126,7 +126,7 @@ fn next_frame_test_2() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -139,7 +139,7 @@ fn next_frame_test_2() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -152,7 +152,7 @@ fn next_frame_test_2() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -165,7 +165,7 @@ fn next_frame_test_2() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -178,7 +178,7 @@ fn next_frame_test_2() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -197,10 +197,10 @@ fn next_frame_test_3() {
 
     assert!(value.set_row(value.current_row() + 2).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -213,7 +213,7 @@ fn next_frame_test_3() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -226,7 +226,7 @@ fn next_frame_test_3() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -239,7 +239,7 @@ fn next_frame_test_3() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -252,7 +252,7 @@ fn next_frame_test_3() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -265,7 +265,7 @@ fn next_frame_test_3() {
     );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -284,17 +284,32 @@ fn next_frame_test_4() {
 
     assert!(value.set_row(value.current_row() + 3).is_ok());
 
-    assert_eq!(value.last_frame(), None);
+    assert_eq!(
+        value.last_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.next_frame();
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
 }
 
@@ -302,10 +317,10 @@ fn next_frame_test_4() {
 fn prev_frame_test_1() {
     let mut value = gen_chobit_ani_value();
 
-    assert_eq!(value.last_frame(), Some(2));
+    assert_eq!(value.last_frame(), Ok(2));
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -318,7 +333,7 @@ fn prev_frame_test_1() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -331,7 +346,7 @@ fn prev_frame_test_1() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -344,7 +359,7 @@ fn prev_frame_test_1() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -363,10 +378,10 @@ fn prev_frame_test_2() {
 
     assert!(value.set_row(value.current_row() + 1).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -379,7 +394,7 @@ fn prev_frame_test_2() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -392,7 +407,7 @@ fn prev_frame_test_2() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -406,7 +421,7 @@ fn prev_frame_test_2() {
 
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -419,7 +434,7 @@ fn prev_frame_test_2() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -432,7 +447,7 @@ fn prev_frame_test_2() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -451,10 +466,10 @@ fn prev_frame_test_3() {
 
     assert!(value.set_row(value.current_row() + 2).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -467,7 +482,7 @@ fn prev_frame_test_3() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -480,7 +495,7 @@ fn prev_frame_test_3() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -493,7 +508,7 @@ fn prev_frame_test_3() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -506,7 +521,7 @@ fn prev_frame_test_3() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -519,7 +534,7 @@ fn prev_frame_test_3() {
     );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -538,28 +553,42 @@ fn prev_frame_test_4() {
 
     assert!(value.set_row(value.current_row() + 3).is_ok());
 
-    assert_eq!(value.last_frame(), None);
+    assert_eq!(
+        value.last_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.prev_frame();
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
-
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 }
 
 #[test]
 fn elapse_test_1() {
     let mut value = gen_chobit_ani_value();
 
-    assert_eq!(value.last_frame(), Some(2));
+    assert_eq!(value.last_frame(), Ok(2));
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -572,7 +601,7 @@ fn elapse_test_1() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -585,7 +614,7 @@ fn elapse_test_1() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -598,7 +627,7 @@ fn elapse_test_1() {
     );
 
     value.elapse(0.05);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -611,7 +640,7 @@ fn elapse_test_1() {
     );
 
     value.elapse(0.15);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -624,7 +653,7 @@ fn elapse_test_1() {
     );
 
     value.elapse(0.3);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -643,10 +672,10 @@ fn elapse_test_2() {
 
     assert!(value.set_row(value.current_row() + 1).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -659,7 +688,7 @@ fn elapse_test_2() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -672,7 +701,7 @@ fn elapse_test_2() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -685,7 +714,7 @@ fn elapse_test_2() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -698,7 +727,7 @@ fn elapse_test_2() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -711,7 +740,7 @@ fn elapse_test_2() {
     );
 
     value.elapse(0.3);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -724,7 +753,7 @@ fn elapse_test_2() {
     );
 
     value.elapse(0.6);
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -743,10 +772,10 @@ fn elapse_test_3() {
 
     assert!(value.set_row(value.current_row() + 2).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -759,7 +788,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -772,7 +801,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -785,7 +814,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -798,7 +827,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -811,7 +840,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.05);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -824,7 +853,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.15);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -837,7 +866,7 @@ fn elapse_test_3() {
     );
 
     value.elapse(0.6);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -856,28 +885,42 @@ fn elapse_test_4() {
 
     assert!(value.set_row(value.current_row() + 3).is_ok());
 
-    assert_eq!(value.last_frame(), None);
+    assert_eq!(
+        value.last_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
-
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 }
 
 #[test]
 fn elapse_inv_test_1() {
     let mut value = gen_chobit_ani_value();
 
-    assert_eq!(value.last_frame(), Some(2));
+    assert_eq!(value.last_frame(), Ok(2));
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -890,7 +933,7 @@ fn elapse_inv_test_1() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -903,7 +946,7 @@ fn elapse_inv_test_1() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -916,7 +959,7 @@ fn elapse_inv_test_1() {
     );
 
     value.elapse_inv(0.05);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -929,7 +972,7 @@ fn elapse_inv_test_1() {
     );
 
     value.elapse_inv(0.15);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -942,7 +985,7 @@ fn elapse_inv_test_1() {
     );
 
     value.elapse_inv(0.3);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -961,10 +1004,10 @@ fn elapse_inv_test_2() {
 
     assert!(value.set_row(value.current_row() + 1).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -977,7 +1020,7 @@ fn elapse_inv_test_2() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -990,7 +1033,7 @@ fn elapse_inv_test_2() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1003,7 +1046,7 @@ fn elapse_inv_test_2() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1016,7 +1059,7 @@ fn elapse_inv_test_2() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1029,7 +1072,7 @@ fn elapse_inv_test_2() {
     );
 
     value.elapse_inv(0.3);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1042,7 +1085,7 @@ fn elapse_inv_test_2() {
     );
 
     value.elapse_inv(0.6);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 1);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1061,10 +1104,10 @@ fn elapse_inv_test_3() {
 
     assert!(value.set_row(value.current_row() + 2).is_ok());
 
-    assert_eq!(value.last_frame(), Some(4));
+    assert_eq!(value.last_frame(), Ok(4));
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(4));
+    assert_eq!(value.current_frame(), Ok(4));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1077,7 +1120,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1090,7 +1133,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1103,7 +1146,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1116,7 +1159,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1129,7 +1172,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.05);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1142,7 +1185,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.15);
-    assert_eq!(value.current_frame(), Some(3));
+    assert_eq!(value.current_frame(), Ok(3));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1155,7 +1198,7 @@ fn elapse_inv_test_3() {
     );
 
     value.elapse_inv(0.6);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 2);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1174,28 +1217,42 @@ fn elapse_inv_test_4() {
 
     assert!(value.set_row(value.current_row() + 3).is_ok());
 
-    assert_eq!(value.last_frame(), None);
+    assert_eq!(
+        value.last_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), None);
+    assert_eq!(
+        value.current_frame(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
     assert_eq!(value.current_row(), 3);
-    assert_eq!(value.uv_frame_left_top_right_bottom(), None);
-
+    assert_eq!(
+        value.uv_frame_left_top_right_bottom(),
+        Err(ChobitAniValueError::NoFrameInCurrentRow)
+    );
 }
 
 #[test]
 fn elapse_other_test_1() {
     let mut value = gen_chobit_ani_value();
 
-    assert_eq!(value.last_frame(), Some(2));
+    assert_eq!(value.last_frame(), Ok(2));
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1210,7 +1267,7 @@ fn elapse_other_test_1() {
     value.set_frames_per_second(5.0);
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1223,7 +1280,7 @@ fn elapse_other_test_1() {
     );
 
     value.elapse(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1236,7 +1293,7 @@ fn elapse_other_test_1() {
     );
 
     value.elapse(0.3);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1253,10 +1310,10 @@ fn elapse_other_test_1() {
 fn elapse_other_test_2() {
     let mut value = gen_chobit_ani_value();
 
-    assert_eq!(value.last_frame(), Some(2));
+    assert_eq!(value.last_frame(), Ok(2));
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1271,7 +1328,7 @@ fn elapse_other_test_2() {
     value.set_frames_per_second(5.0);
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(2));
+    assert_eq!(value.current_frame(), Ok(2));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1284,7 +1341,7 @@ fn elapse_other_test_2() {
     );
 
     value.elapse_inv(0.1);
-    assert_eq!(value.current_frame(), Some(1));
+    assert_eq!(value.current_frame(), Ok(1));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
@@ -1297,7 +1354,7 @@ fn elapse_other_test_2() {
     );
 
     value.elapse_inv(0.3);
-    assert_eq!(value.current_frame(), Some(0));
+    assert_eq!(value.current_frame(), Ok(0));
     assert_eq!(value.current_row(), 0);
     assert_eq!(
         *value.uv_frame_left_top_right_bottom().unwrap(),
