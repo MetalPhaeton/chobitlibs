@@ -19,14 +19,12 @@ use alloc::{vec::Vec, boxed::Box};
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChobitAniValueError {
     GenerationError(GenerationError),
-    NoFrameInCurrentRow,
-    InvalidFrame,
-    InvalidRow,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GenerationError {
     InvalidColumns,
+    InvalidFramesOfEachRow,
     InvalidRows,
     InvalidFramesPerSecond
 }
@@ -42,12 +40,12 @@ impl From<GenerationError> for ChobitAniValueError {
 pub struct ChobitAniValue {
     columns: usize,
     rows: usize,
-    last_frame: Box<[Option<usize>]>,
+    last_frame: Box<[usize]>,
     last_row: usize,
-    next_frame: Box<[Box<[Option<usize>]>]>,
-    prev_frame: Box<[Box<[Option<usize>]>]>,
+    next_frame: Box<[Box<[usize]>]>,
+    prev_frame: Box<[Box<[usize]>]>,
 
-    current_frame: Option<usize>,
+    current_frame: usize,
     current_row: usize,
 
     uv_frame_width: f32,
@@ -59,12 +57,13 @@ pub struct ChobitAniValue {
 }
 
 pub const MIN_COLUMNS: usize = 1;
+pub const MIN_FRAMES: usize = 1;
 pub const MIN_ROWS: usize = 1;
 pub const MIN_FRAMES_PER_SECOND: f32 = f32::EPSILON;
 
 impl ChobitAniValue {
     /// - `columns` : Columns of UV frame. (must be 1 or more)
-    /// - `frames_of_each_row` : Frames of each row of UV frame. (lenght must be 1 or more)
+    /// - `frames_of_each_row` : Frames of each row of UV frame. (lenght must be 1 or more and each element must be 1 or more)
     pub fn new(
         columns: usize,
         frames_of_each_row: &[usize],
@@ -82,17 +81,26 @@ impl ChobitAniValue {
             ));
         }
 
-        let last_frame = frames_of_each_row.iter().map(
-            |&frames| (frames >= 1).then(|| frames.min(columns) - 1)
-        ).collect::<Vec<Option<usize>>>().into_boxed_slice();
-
-        let rows = last_frame.len();
+        let rows = frames_of_each_row.len();
 
         if rows < MIN_ROWS {
             return Err(ChobitAniValueError::from(
                 GenerationError::InvalidRows
             ));
         }
+
+        let mut last_frame = Vec::<usize>::with_capacity(rows);
+
+        for &frames in frames_of_each_row {
+            if (frames >= MIN_FRAMES) && (frames <= columns) {
+                last_frame.push(frames - 1);
+            } else {
+                return Err(ChobitAniValueError::from(
+                    GenerationError::InvalidFramesOfEachRow
+                ));
+            }
+        }
+
 
         let next_frame = Self::gen_next_frame(columns, rows, &*last_frame);
         let prev_frame = Self::gen_prev_frame(columns, rows, &*last_frame);
@@ -107,19 +115,16 @@ impl ChobitAniValue {
             uv_frame_height
         );
 
-        let current_row: usize = 0;
-        let current_frame: Option<usize> = last_frame[current_row].map(|_| 0);
-
         Ok(Self {
             columns: columns,
             rows: rows,
-            last_frame: last_frame,
+            last_frame: last_frame.into_boxed_slice(),
             last_row: rows - 1,
             next_frame: next_frame,
             prev_frame: prev_frame,
 
-            current_frame: current_frame,
-            current_row: current_row,
+            current_frame: 0,
+            current_row: 0,
 
             uv_frame_width: uv_frame_width,
             uv_frame_height: uv_frame_height,
@@ -133,41 +138,37 @@ impl ChobitAniValue {
     fn gen_next_frame(
         columns: usize,
         rows: usize,
-        last_frame: &[Option<usize>]
-    ) -> Box<[Box<[Option<usize>]>]> {
+        last_frame: &[usize]
+    ) -> Box<[Box<[usize]>]> {
         (0..columns).map(move |col| {
             (0..rows).map(move |ro| {
-                let last_frame = last_frame[ro]?;
+                let last_frame = last_frame[ro];
 
                 if col == last_frame {
-                    Some(0)
-                } else if col > last_frame {
-                    None
+                    0
                 } else {
-                    Some(col + 1)
+                    col + 1
                 }
-            }).collect::<Vec<Option<usize>>>().into_boxed_slice()
-        }).collect::<Vec<Box<[Option<usize>]>>>().into_boxed_slice()
+            }).collect::<Vec<usize>>().into_boxed_slice()
+        }).collect::<Vec<Box<[usize]>>>().into_boxed_slice()
     }
 
     fn gen_prev_frame(
         columns: usize,
         rows: usize,
-        last_frame: &[Option<usize>]
-    ) -> Box<[Box<[Option<usize>]>]> {
+        last_frame: &[usize]
+    ) -> Box<[Box<[usize]>]> {
         (0..columns).map(move |col| {
             (0..rows).map(move |ro| {
-                let last_frame = last_frame[ro]?;
+                let last_frame = last_frame[ro];
 
                 if col == 0 {
-                    Some(last_frame)
-                } else if col > last_frame {
-                    None
+                    last_frame
                 } else {
-                    Some(col - 1)
+                    col - 1
                 }
-            }).collect::<Vec<Option<usize>>>().into_boxed_slice()
-        }).collect::<Vec<Box<[Option<usize>]>>>().into_boxed_slice()
+            }).collect::<Vec<usize>>().into_boxed_slice()
+        }).collect::<Vec<Box<[usize]>>>().into_boxed_slice()
     }
 
     fn gen_uv_frame(
@@ -195,28 +196,23 @@ impl ChobitAniValue {
     pub fn rows(&self) -> usize {self.rows}
 
     #[inline]
-    pub fn current_frame(&self) -> Result<usize, ChobitAniValueError> {
-        self.current_frame.ok_or_else(
-            || ChobitAniValueError::NoFrameInCurrentRow
-        )
-    }
+    pub fn current_frame(&self) -> usize {self.current_frame}
 
     #[inline]
     pub fn current_row(&self) -> usize {self.current_row}
 
     #[inline]
-    pub fn last_frame(&self) -> Result<usize, ChobitAniValueError> {
+    pub fn last_frame(&self) -> usize {
         debug_assert!(self.last_frame.get(self.current_row).is_some());
 
-        unsafe {
-            self.last_frame.get_unchecked(self.current_row).ok_or_else(
-                || ChobitAniValueError::NoFrameInCurrentRow
-            )
-        }
+        unsafe {*self.last_frame.get_unchecked(self.current_row)}
     }
 
     #[inline]
     pub fn saved_time(&self) -> f32 {self.saved_time}
+
+    #[inline]
+    pub fn saved_time_mut(&mut self) -> &mut f32 {&mut self.saved_time}
 
     #[inline]
     pub fn seconds_per_frame(&self) -> f32 {self.seconds_per_frame}
@@ -233,28 +229,22 @@ impl ChobitAniValue {
     #[inline]
     pub fn uv_frame_left_top_right_bottom(
         &self
-    ) -> Result<&(f32, f32, f32, f32), ChobitAniValueError> {
-        self.current_frame.map(|frame| unsafe {
-            debug_assert!(self.uv_frame.get(frame).is_some());
+    ) -> &(f32, f32, f32, f32) {
+        debug_assert!(self.uv_frame.get(self.current_frame).is_some());
+
+        unsafe {
             debug_assert!(self.uv_frame.get_unchecked(
-                frame
+                self.current_frame
             ).get(
                 self.current_row
             ).is_some());
 
             self.uv_frame.get_unchecked(
-                frame
+                self.current_frame
             ).get_unchecked(
                 self.current_row
             )
-        }).ok_or_else(
-            || ChobitAniValueError::NoFrameInCurrentRow
-        )
-    }
-
-    #[inline]
-    pub fn set_saved_time(&mut self, time: f32) {
-        self.saved_time = time;
+        }
     }
 
     #[inline]
@@ -263,95 +253,99 @@ impl ChobitAniValue {
     }
 
     #[inline]
-    pub fn set_frame(
-        &mut self,
-        frame: usize
-    ) -> Result<(), ChobitAniValueError> {
-         if frame <= self.last_frame()? {
-            self.current_frame = Some(frame);
-
-            Ok(())
-        } else {
-            Err(ChobitAniValueError::InvalidFrame)
-        }
+    pub fn set_frame(&mut self, frame: usize) {
+        self.saved_time = 0.0;
+        self.current_frame = self.last_frame().min(frame);
     }
 
     #[inline]
-    pub fn set_row(
-        &mut self,
-        row: usize
-    ) -> Result<(), ChobitAniValueError> {
-        if row >= self.rows {
-            return Err(ChobitAniValueError::InvalidRow);
-        }
-
-        self.current_row = row;
-        self.current_frame = self.last_frame[self.current_row].map(|_| 0);
-
-        Ok(())
+    pub fn set_row(&mut self, row: usize) {
+        self.saved_time = 0.0;
+        self.current_row = self.rows.min(row);
+        self.current_frame = 0;
     }
 
     #[inline]
-    pub fn next_frame(&mut self) {
-        if let Some(frame) = self.current_frame {
-            debug_assert!(self.next_frame.get(frame).is_some());
+    fn next_frame_core(&mut self) -> usize {
+        debug_assert!(self.next_frame.get(self.current_frame).is_some());
 
-            self.current_frame = unsafe {
-                debug_assert!(self.next_frame.get_unchecked(
-                    frame
-                ).get(
-                    self.current_row
-                ).is_some());
+        self.current_frame = unsafe {
+            debug_assert!(self.next_frame.get_unchecked(
+                self.current_frame
+            ).get(
+                self.current_row
+            ).is_some());
 
-                *self.next_frame.get_unchecked(
-                    frame
-                ).get_unchecked(
-                    self.current_row
-                )
-            };
-        }
+            *self.next_frame.get_unchecked(
+                self.current_frame
+            ).get_unchecked(
+                self.current_row
+            )
+        };
+
+        self.current_frame
     }
 
     #[inline]
-    pub fn prev_frame(&mut self) {
-        if let Some(frame) = self.current_frame {
-            debug_assert!(self.next_frame.get(frame).is_some());
-
-            self.current_frame = unsafe {
-                debug_assert!(self.prev_frame.get_unchecked(
-                    frame
-                ).get(
-                    self.current_row
-                ).is_some());
-
-                *self.prev_frame.get_unchecked(
-                    frame
-                ).get_unchecked(
-                    self.current_row
-                )
-            };
-        }
+    pub fn next_frame(&mut self) -> usize {
+        self.saved_time = 0.0;
+        self.next_frame_core()
     }
 
     #[inline]
-    pub fn elapse(&mut self, dt: f32) {
+    fn prev_frame_core(&mut self) -> usize {
+        debug_assert!(self.next_frame.get(self.current_frame).is_some());
+
+        self.current_frame = unsafe {
+            debug_assert!(self.prev_frame.get_unchecked(
+                self.current_frame
+            ).get(
+                self.current_row
+            ).is_some());
+
+            *self.prev_frame.get_unchecked(
+                self.current_frame
+            ).get_unchecked(
+                self.current_row
+            )
+        };
+
+        self.current_frame
+    }
+
+    #[inline]
+    pub fn prev_frame(&mut self) -> usize {
+        self.saved_time = 0.0;
+        self.prev_frame_core()
+    }
+
+    #[inline]
+    pub fn elapse(&mut self, dt: f32) -> usize {
         self.saved_time += dt;
 
+        let mut ret: usize = self.current_frame;
+
         while self.saved_time >= self.seconds_per_frame {
-            self.next_frame();
+            ret = self.next_frame_core();
 
             self.saved_time -= self.seconds_per_frame;
         }
+
+        ret
     }
 
     #[inline]
-    pub fn elapse_inv(&mut self, dt: f32) {
+    pub fn elapse_inv(&mut self, dt: f32) -> usize {
         self.saved_time += dt;
 
+        let mut ret: usize = self.current_frame;
+
         while self.saved_time >= self.seconds_per_frame {
-            self.prev_frame();
+            ret = self.prev_frame_core();
 
             self.saved_time -= self.seconds_per_frame;
         }
+
+        ret
     }
 }
