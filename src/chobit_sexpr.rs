@@ -1142,23 +1142,23 @@ impl ChobitSexpr {
 }
 
 /// Typestate of ChobitSexprBuf. Indicates empty and imcomplete sexpr.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Empty {}
 
 /// Typestate of ChobitSexprBuf. Indicates comleted sexpr.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Completed {}
 
 /// Typestate of ChobitSexprBuf. Indicates to be able to push car.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Car {}
 
 /// Typestate of ChobitSexprBuf. Indicates to be able to push cdr.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Cdr {}
 
 /// Typestate of ChobitSexprBuf. Indicates to be able to push list item.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum List {}
 
 mod private {
