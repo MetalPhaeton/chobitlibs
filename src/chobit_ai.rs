@@ -17,7 +17,7 @@
 //! Neural network library.
 //!
 //! This library needs `alloc` crate.  
-//! This AI works on single thread, but is able to work on `no_std`.  
+//! This Ai works on single thread, but is able to work on `no_std`.  
 //! (But you can devise to do machine learning in multithread. See the following list.)
 //!
 //! - [Example of Single Thread Machine Learning](#example-of-single-thread-machine-learning)
@@ -38,9 +38,9 @@
 //! use chobitlibs::chobit_ai::{
 //!     MathVec,
 //!     Activation,
-//!     ChobitAI,
-//!     ChobitMLAI,
-//!     MLAICache
+//!     ChobitAi,
+//!     ChobitMlAi,
+//!     MlAiCache
 //! };
 //! 
 //! use chobitlibs::chobit_rand::ChobitRand;
@@ -69,16 +69,16 @@
 //! const ENGLISH_ID: char = 'E';
 //! ```
 //!
-//! (2) Creates [`ChobitAI`] and randomises weights.
+//! (2) Creates [`ChobitAi`] and randomises weights.
 //!
 //! ```ignore
 //! const OUT: usize = 32;
 //! const MIDDLE: usize = 64;
 //! const IN: usize = 32;
 //!
-//! let mut rng = ChobitRand::new(b"ChobitAI Example");
+//! let mut rng = ChobitRand::new(b"ChobitAi Example");
 //!
-//! let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//! let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 //!
 //! // Randomises weights.
 //! ai.for_each_weight_mut(|weight| {
@@ -89,11 +89,11 @@
 //! let mut output = MathVec::<OUT>::new();
 //! ```
 //!
-//! (3) Wraps AI with [`ChobitMLAI`] for machine learning.
+//! (3) Wraps Ai with [`ChobitMlAi`] for machine learning.
 //!
 //! ```ignore
-//! let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-//! let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+//! let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
+//! let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
 //!
 //! let mut input_error = MathVec::<IN>::new();
 //! let mut output_error = MathVec::<OUT>::new();
@@ -140,10 +140,10 @@
 //! }
 //! ```
 //!
-//! (5) Tests AI.
+//! (5) Tests Ai.
 //!
 //! ```ignore
-//! // Unwrap AI.
+//! // Unwrap Ai.
 //! let ai = ai.drop();
 //!
 //! let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -191,9 +191,9 @@
 //! use chobitlibs::chobit_ai::{
 //!     MathVec,
 //!     Activation,
-//!     ChobitAI,
-//!     ChobitMLAI,
-//!     MLAICache
+//!     ChobitAi,
+//!     ChobitMlAi,
+//!     MlAiCache
 //! };
 //! 
 //! use chobitlibs::chobit_rand::ChobitRand;
@@ -258,7 +258,7 @@
 //! ```ignore
 //! // Initializes shared gradient.
 //! fn init_grad(
-//!     ai: &ChobitMLAI<OUT, MIDDLE, IN>,
+//!     ai: &ChobitMlAi<OUT, MIDDLE, IN>,
 //!     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 //! ) {
 //!     let mut lock = grads.lock().unwrap();
@@ -269,9 +269,9 @@
 //!     });
 //! }
 //! 
-//! // Loads from shared gradient to AI's gradient.
+//! // Loads from shared gradient to Ai's gradient.
 //! fn load_grad(
-//!     ai: &mut ChobitMLAI<OUT, MIDDLE, IN>,
+//!     ai: &mut ChobitMlAi<OUT, MIDDLE, IN>,
 //!     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 //! ) {
 //!     let lock = grads.lock().unwrap();
@@ -285,9 +285,9 @@
 //!     });
 //! }
 //! 
-//! // Adds AI's gradient to shared gradient.
+//! // Adds Ai's gradient to shared gradient.
 //! fn save_grad(
-//!     ai: &ChobitMLAI<OUT, MIDDLE, IN>,
+//!     ai: &ChobitMlAi<OUT, MIDDLE, IN>,
 //!     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 //! ) {
 //!     let mut lock = grads.lock().unwrap();
@@ -326,18 +326,18 @@
 //!     rng_seed: &[u8],
 //!     p2c_rx: mpsc::Receiver<P2C>,
 //!     c2p_tx: mpsc::Sender<C2P>,
-//!     ai: ChobitAI<OUT, MIDDLE, IN>,
+//!     ai: ChobitAi<OUT, MIDDLE, IN>,
 //!     grads: Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 //! ) -> thread::JoinHandle<()> {
 //!     let rng_seed = rng_seed.to_vec();
 //! 
 //!     thread::spawn(move || {
-//!         // Wraps AI for machine learning.
-//!         let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+//!         // Wraps Ai for machine learning.
+//!         let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
 //! 
 //!         let mut rng = ChobitRand::new(&rng_seed);
 //! 
-//!         let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+//!         let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
 //!         let mut input = MathVec::<IN>::new();
 //!         let mut output = MathVec::<OUT>::new();
 //! 
@@ -397,10 +397,10 @@
 //! }
 //! ```
 //! 
-//! (6) Defines AI test.
+//! (6) Defines Ai test.
 //! 
 //! ```ignore
-//! fn test_ai(ai: &ChobitAI<OUT, MIDDLE, IN>, rng: &mut ChobitRand) {
+//! fn test_ai(ai: &ChobitAi<OUT, MIDDLE, IN>, rng: &mut ChobitRand) {
 //!     let mut input = MathVec::<IN>::new();
 //!     let mut output = MathVec::<OUT>::new();
 //!     let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -425,13 +425,13 @@
 //! }
 //! ```
 //! 
-//! (7) Starts main thread and Creates AI and randomise weights.
+//! (7) Starts main thread and Creates Ai and randomise weights.
 //! 
 //! ```ignore
 //! fn main() {
-//!     let mut rng = ChobitRand::new(b"ChobitAI Example");
+//!     let mut rng = ChobitRand::new(b"ChobitAi Example");
 //! 
-//!     let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+//!     let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 //! 
 //!     // Randomises weights.
 //!     ai.for_each_weight_mut(|weight| {
@@ -475,8 +475,8 @@
 //! (11) Process on parent thread.
 //! 
 //! ```ignore
-//!     // Wraps AI for machine learning.
-//!     let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+//!     // Wraps Ai for machine learning.
+//!     let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
 //!     let mut tmpbuf = Vec::<f32>::new();
 //! 
 //!     // Initialize shared gradient.
@@ -1144,8 +1144,8 @@ impl MathVec<128> {
 ///
 /// | Formula |
 /// |:-:|
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
 ///
 /// - `OUT` : Dimension of output.
 /// - `IN` : Dimension of input.
@@ -1394,8 +1394,8 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>x</mi> <mi>j</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> </mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Coeffcients</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>x</mi> <mi>j</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> </mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Coeffcients</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `coefficient` : Coefficient.
     /// - `grad` : Buffer for output.
@@ -1421,8 +1421,8 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>s</mi> <mi>k</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> </mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Coeffcients</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>s</mi> <mi>k</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>i</mi> </munder> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> </mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Coeffcients</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `coefficient` : Coefficient.
     /// - `grad` : Buffer for output.
@@ -1450,10 +1450,10 @@ impl<const OUT: usize, const IN: usize> Weights<OUT, IN> {
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Coeffcients</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mrow> <mrow> <mfrac> <mo stretchy="false">∂</mo> <mrow> <mo stretchy="false">∂</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mfrac> <msub> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mi>i</mi> </msub> </mrow> <mo stretchy="false">=</mo> <msub> <mi>C</mi> <mi>i</mi> </msub> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>C</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Coeffcients</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `coefficient` : Coefficient.
     /// - `grad` : Buffer for output.
@@ -1645,8 +1645,8 @@ impl Activation {
 ///
 /// | Formula |
 /// |:-:|
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
 ///
 /// - `OUT` : Dimension of output.
 /// - `IN` : Dimension of input.
@@ -1714,12 +1714,12 @@ impl<const OUT: usize, const IN: usize> Layer<OUT, IN> {
     }
 }
 
-/// Cache for [`MLLayer`].
+/// Cache for [`MlLayer`].
 ///
-/// - `OUT` : `OUT` of [`MLLayer`].
-/// - `IN` : `IN` of [`MLLayer`].
+/// - `OUT` : `OUT` of [`MlLayer`].
+/// - `IN` : `IN` of [`MlLayer`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLCache<const OUT: usize, const IN: usize> {
+pub struct MlCache<const OUT: usize, const IN: usize> {
     input: MathVec<IN>,
     state: MathVec<OUT>,
     has_state: bool,
@@ -1730,10 +1730,10 @@ pub struct MLCache<const OUT: usize, const IN: usize> {
     output: MathVec<OUT>
 }
 
-impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
-    /// Creates MLCache.
+impl<const OUT: usize, const IN: usize> MlCache<OUT, IN> {
+    /// Creates MlCache.
     ///
-    /// - _Return_ : MLCache.
+    /// - _Return_ : MlCache.
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -1752,8 +1752,8 @@ impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `train_out` : Correct output.
     /// - `output_error` : Buffer for output error.
@@ -1804,13 +1804,13 @@ impl<const OUT: usize, const IN: usize> MLCache<OUT, IN> {
 ///
 /// | Formula |
 /// |:-:|
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>φ</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> </mrow> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">+</mo> <msub> <mi>b</mi> <mi>i</mi> </msub> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>φ</mi> <mo stretchy="false">≝</mo> <mtext>Activation functin.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>W</mi> <mi mathvariant="italic">ij</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>U</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Weights for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo stretchy="false">≝</mo> <mtext>State.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>b</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Bias.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> ||
 ///
 /// - `OUT` : Dimension of output.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLLayer<const OUT: usize, const IN: usize> {
+pub struct MlLayer<const OUT: usize, const IN: usize> {
     layer: Layer<OUT, IN>,
 
     total_grad: Weights<OUT, IN>,
@@ -1826,11 +1826,11 @@ const BETA_INV_1: f32 = 1.0 - BETA_1;
 
 const BETA_2: f32 = 0.999;
 const BETA_INV_2: f32 = 1.0 - BETA_2;
-impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
-    /// Creates MLLayer.
+impl<const OUT: usize, const IN: usize> MlLayer<OUT, IN> {
+    /// Creates MlLayer.
     ///
     /// - `layer` : Base [`Layer`].
-    /// - _Return_ : MLLayer.
+    /// - _Return_ : MlLayer.
     #[inline]
     pub fn new(layer: Layer<OUT, IN>) -> Self {
         let has_state_weights = layer.weights.ptr_s.is_some();
@@ -1879,7 +1879,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         &mut self.total_grad
     }
 
-    /// Writes infomation on [`MLCache`] for [`study()`](Self::study()).
+    /// Writes infomation on [`MlCache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `state` : State if it exists.
@@ -1888,7 +1888,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         &self,
         input: &MathVec<IN>,
         state: Option<&MathVec<OUT>>,
-        cache: &mut MLCache<OUT, IN>
+        cache: &mut MlCache<OUT, IN>
     ) {
         cache.input.copy_from(input);
 
@@ -1922,14 +1922,14 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     ///
     /// - `output_error` : Backpropagated output error.
     /// - `next_state_error` : Backpropagated state error if it exists.
-    /// - `cache` : Cache generated by [MLLayer::ready].
+    /// - `cache` : Cache generated by [MlLayer::ready].
     /// - `input_error` : Error for previous output.
     /// - `prev_state_error` : Error for previous state.
     pub fn study(
         &mut self,
         output_error: &MathVec<OUT>,
         next_state_error: Option<&MathVec<OUT>>,
-        cache: &MLCache<OUT, IN>,
+        cache: &MlCache<OUT, IN>,
         input_error: &mut MathVec<IN>,
         prev_state_error: Option<&mut MathVec<OUT>>
     ) {
@@ -1967,7 +1967,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
         &mut self,
         output_error: &MathVec<OUT>,
         next_state_error: Option<&MathVec<OUT>>,
-        cache: &MLCache<OUT, IN>
+        cache: &MlCache<OUT, IN>
     ) {
         match next_state_error {
             Some(next_state_error) => {
@@ -1994,10 +1994,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>1</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mi>s</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>2</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <msup> <mi>G</mi> <mn>2</mn> </msup> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">−</mo> <mfrac> <mi>η</mi> <mrow> <msqrt> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> </msqrt> <mo stretchy="false">+</mo> <mi>ε</mi> </mrow> </mfrac> </mrow> </mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Total gradient.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>s</mi> <mo stretchy="false">≝</mo> <mtext>Previous momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">≝</mo> <mtext>Next momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 1.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">=</mo> <mn>0.9</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 2.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">=</mo> <mn>0.999</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>η</mi> <mo stretchy="false">≝</mo> <mtext>Learning rate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>ε</mi> <mo stretchy="false">≝</mo> <mtext>Machine epsilon.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>1</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">=</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mi>s</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mn>1</mn> <mo stretchy="false">−</mo> <msub> <mi>β</mi> <mn>2</mn> </msub> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mstyle mathvariant="bold"> <msup> <mi>G</mi> <mn>2</mn> </msup> </mstyle> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">=</mo> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">−</mo> <mfrac> <mi>η</mi> <mrow> <msqrt> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> </msqrt> <mo stretchy="false">+</mo> <mi>ε</mi> </mrow> </mfrac> </mrow> </mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>G</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Total gradient.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>v</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>v</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next momentum 1.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>s</mi> <mo stretchy="false">≝</mo> <mtext>Previous momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <mi>s</mi> <mo stretchy="false">^</mo> </mover> <mo stretchy="false">≝</mo> <mtext>Next momentum 2.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 1.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>1</mn> </msub> <mo stretchy="false">=</mo> <mn>0.9</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">≝</mo> <mtext>Rate of momentum 2.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <msub> <mi>β</mi> <mn>2</mn> </msub> <mo stretchy="false">=</mo> <mn>0.999</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mi>W</mi> </mstyle> <mo stretchy="false">≝</mo> <mtext>Previous weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mstyle mathvariant="bold"> <mover accent="true"> <mi>W</mi> <mo stretchy="false">^</mo> </mover> </mstyle> <mo stretchy="false">≝</mo> <mtext>Next weights.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>η</mi> <mo stretchy="false">≝</mo> <mtext>Learning rate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>ε</mi> <mo stretchy="false">≝</mo> <mtext>Machine epsilon.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `rate` : Learning rate.
     pub fn update(&mut self, rate: f32) {
@@ -2090,7 +2090,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
     }
 }
 
-/// AI for fixed length data.
+/// Ai for fixed length data.
 ///
 /// - `OUT` : Dimension of output.
 /// - `MIDDLE` : Dimension of hidden layer.
@@ -2110,9 +2110,9 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 /// use chobitlibs::chobit_ai::{
 ///     MathVec,
 ///     Activation,
-///     ChobitAI,
-///     ChobitMLAI,
-///     MLAICache
+///     ChobitAi,
+///     ChobitMlAi,
+///     MlAiCache
 /// };
 /// 
 /// use chobitlibs::chobit_rand::ChobitRand;
@@ -2141,16 +2141,16 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 /// const ENGLISH_ID: char = 'E';
 /// ```
 ///
-/// (2) Creates [`ChobitAI`] and randomises weights.
+/// (2) Creates [`ChobitAi`] and randomises weights.
 ///
 /// ```ignore
 /// const OUT: usize = 32;
 /// const MIDDLE: usize = 64;
 /// const IN: usize = 32;
 ///
-/// let mut rng = ChobitRand::new(b"ChobitAI Example");
+/// let mut rng = ChobitRand::new(b"ChobitAi Example");
 ///
-/// let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+/// let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 ///
 /// // Randomises weights.
 /// ai.for_each_weight_mut(|weight| {
@@ -2161,11 +2161,11 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 /// let mut output = MathVec::<OUT>::new();
 /// ```
 ///
-/// (3) Wraps AI with [`ChobitMLAI`] for machine learning.
+/// (3) Wraps Ai with [`ChobitMlAi`] for machine learning.
 ///
 /// ```ignore
-/// let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-/// let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+/// let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
+/// let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
 ///
 /// let mut input_error = MathVec::<IN>::new();
 /// let mut output_error = MathVec::<OUT>::new();
@@ -2212,10 +2212,10 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 /// }
 /// ```
 ///
-/// (5) Tests AI.
+/// (5) Tests Ai.
 ///
 /// ```ignore
-/// // Unwrap AI.
+/// // Unwrap Ai.
 /// let ai = ai.drop();
 ///
 /// let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -2239,7 +2239,7 @@ impl<const OUT: usize, const IN: usize> MLLayer<OUT, IN> {
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChobitAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+pub struct ChobitAi<const OUT: usize, const MIDDLE: usize, const IN: usize> {
     middle_layer: Layer<MIDDLE, IN>,
     output_layer: Layer<OUT, MIDDLE>
 }
@@ -2248,11 +2248,11 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> ChobitAI<OUT, MIDDLE, IN> {
-    /// Creates ChobitAI.
+> ChobitAi<OUT, MIDDLE, IN> {
+    /// Creates ChobitAi.
     ///
     /// - `activation` : Activation function for output layer.
-    /// - _Return_ : ChobitAI.
+    /// - _Return_ : ChobitAi.
     #[inline]
     pub fn new(activation: Activation) -> Self {
         Self {
@@ -2327,30 +2327,30 @@ impl<
     }
 }
 
-/// Cache for [`ChobitMLAI`].
+/// Cache for [`ChobitMlAi`].
 ///
-/// - `OUT` : `OUT` of [`ChobitMLAI`].
-/// - `MIDDLE` : `MIDDLE` of [`ChobitMLAI`].
-/// - `IN` : `IN` of [`ChobitMLAI`].
+/// - `OUT` : `OUT` of [`ChobitMlAi`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMlAi`].
+/// - `IN` : `IN` of [`ChobitMlAi`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLAICache<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-    middle_cache: MLCache<MIDDLE, IN>,
-    output_cache: MLCache<OUT, MIDDLE>
+pub struct MlAiCache<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_cache: MlCache<MIDDLE, IN>,
+    output_cache: MlCache<OUT, MIDDLE>
 }
 
 impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> MLAICache<OUT, MIDDLE, IN> {
-    /// Creates MLAICache.
+> MlAiCache<OUT, MIDDLE, IN> {
+    /// Creates MlAiCache.
     ///
-    /// - _Return_ : MLAICache.
+    /// - _Return_ : MlAiCache.
     #[inline]
     pub fn new() -> Self {
         Self {
-            middle_cache: MLCache::<MIDDLE, IN>::new(),
-            output_cache: MLCache::<OUT, MIDDLE>::new()
+            middle_cache: MlCache::<MIDDLE, IN>::new(),
+            output_cache: MlCache::<OUT, MIDDLE>::new()
         }
     }
 
@@ -2358,8 +2358,8 @@ impl<
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `train_out` : Correct output.
     /// - `output_error` : Buffer for output error.
@@ -2377,13 +2377,13 @@ impl<
     ///
     /// - _Return_ : Cache for middle layer.
     #[inline]
-    pub fn middle_cache(&self) -> &MLCache<MIDDLE, IN> {&self.middle_cache}
+    pub fn middle_cache(&self) -> &MlCache<MIDDLE, IN> {&self.middle_cache}
 
     /// Gets cache for output layer.
     ///
     /// - _Return_ : Cache for output layer.
     #[inline]
-    pub fn output_cache(&self) -> &MLCache<OUT, MIDDLE> {&self.output_cache}
+    pub fn output_cache(&self) -> &MlCache<OUT, MIDDLE> {&self.output_cache}
 
     /// Gets output.
     ///
@@ -2392,17 +2392,17 @@ impl<
     pub fn output(&self) -> &MathVec<OUT> {&self.output_cache.output}
 }
 
-/// Wrapper of [`ChobitAI`] for machine learning.
+/// Wrapper of [`ChobitAi`] for machine learning.
 ///
-/// See [`ChobitAI`] for details.
+/// See [`ChobitAi`] for details.
 ///
 /// - `OUT` : Dimension of output.
 /// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChobitMLAI<const OUT: usize, const MIDDLE: usize, const IN: usize> {
-    middle_layer: MLLayer<MIDDLE, IN>,
-    output_layer: MLLayer<OUT, MIDDLE>,
+pub struct ChobitMlAi<const OUT: usize, const MIDDLE: usize, const IN: usize> {
+    middle_layer: MlLayer<MIDDLE, IN>,
+    output_layer: MlLayer<OUT, MIDDLE>,
 
     middle_error: MathVec<MIDDLE>,
     output_error: MathVec<OUT>
@@ -2412,32 +2412,32 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> ChobitMLAI<OUT, MIDDLE, IN> {
-    /// Creates ChobitMLAI.
+> ChobitMlAi<OUT, MIDDLE, IN> {
+    /// Creates ChobitMlAi.
     ///
-    /// - `ai` : Base [`ChobitAI`].
-    /// - _Return_ : ChobitMLAI.
+    /// - `ai` : Base [`ChobitAi`].
+    /// - _Return_ : ChobitMlAi.
     #[inline]
-    pub fn new(ai: ChobitAI<OUT, MIDDLE, IN>) -> Self {
-        let ChobitAI::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
+    pub fn new(ai: ChobitAi<OUT, MIDDLE, IN>) -> Self {
+        let ChobitAi::<OUT, MIDDLE, IN> {middle_layer, output_layer} = ai;
 
         Self {
-            middle_layer: MLLayer::<MIDDLE, IN>::new(middle_layer),
-            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+            middle_layer: MlLayer::<MIDDLE, IN>::new(middle_layer),
+            output_layer: MlLayer::<OUT, MIDDLE>::new(output_layer),
 
             middle_error: MathVec::<MIDDLE>::new(),
             output_error: MathVec::<OUT>::new(),
         }
     }
 
-    /// Drops base [`ChobitAI`].
+    /// Drops base [`ChobitAi`].
     ///
-    /// - _Return_ : [`ChobitAI`].
+    /// - _Return_ : [`ChobitAi`].
     #[inline]
-    pub fn drop(self) -> ChobitAI<OUT, MIDDLE, IN> {
+    pub fn drop(self) -> ChobitAi<OUT, MIDDLE, IN> {
         let Self {middle_layer, output_layer, ..} = self;
 
-        ChobitAI::<OUT, MIDDLE, IN> {
+        ChobitAi::<OUT, MIDDLE, IN> {
             middle_layer: middle_layer.drop(),
             output_layer: output_layer.drop()
         }
@@ -2450,7 +2450,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLAICache`] for [`study()`](Self::study()).
+    /// Writes information on [`MlAiCache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `cache` : Cache.
@@ -2458,7 +2458,7 @@ impl<
     pub fn ready(
         &self,
         input: &MathVec<IN>,
-        cache: &mut MLAICache<OUT, MIDDLE, IN>
+        cache: &mut MlAiCache<OUT, MIDDLE, IN>
     ) {
         self.middle_layer.ready(input, None, &mut cache.middle_cache);
 
@@ -2478,7 +2478,7 @@ impl<
     pub fn study(
         &mut self,
         output_error: &MathVec<OUT>,
-        cache: &MLAICache<OUT, MIDDLE, IN>,
+        cache: &MlAiCache<OUT, MIDDLE, IN>,
         input_error: &mut MathVec<IN>
     ) {
         self.output_layer.study(
@@ -2529,22 +2529,22 @@ impl<
     }
 }
 
-/// [Peephole LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_LSTM)
+/// [Peephole Lstm](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_Lstm)
 ///
 /// | Formula |
 /// |:-:|
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>tanh</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>f</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mo stretchy="false">+</mo> <msub> <mi>i</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>o</mi> <mi>i</mi> </msub> </mrow> <mi>tanh</mi> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </semantics> </math> |
-/// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Kronecker&apos;s delta</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">≝</mo> <mtext>Hyperbolic tangent.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">→</mo> <mtext>soft sign</mtext> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">≝</mo> <mtext>Sigmoid function.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">→</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mtext>soft sign</mtext> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mn>1</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">÷</mo> <mn>2</mn> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">≝</mo> <mtext>Previous state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output</mtext> </mrow> <mi>.</mi> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>tanh</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <mi>&sigma;</mi> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>j</mi> </munder> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> </mrow> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">+</mo> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> </mrow> </mrow> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">+</mo> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>f</mi> <mi>i</mi> </msub> </mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="true">(</mo> <mrow> <mrow> <mrow> <munder> <mo stretchy="false">∑</mo> <mi>k</mi> </munder> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> </mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="true">)</mo> </mrow> <mo stretchy="false">+</mo> <msub> <mi>i</mi> <mi>i</mi> </msub> </mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">=</mo> <msub> <mi>o</mi> <mi>i</mi> </msub> </mrow> <mi>tanh</mi> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <msub> <mi>s</mi> <mi>i</mi> </msub> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </semantics> </math> |
+/// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>i</mi> <mo stretchy="false">≝</mo> <mtext>Index of output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>j</mi> <mo stretchy="false">≝</mo> <mtext>Index of input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>k</mi> <mo stretchy="false">≝</mo> <mtext>Index of state.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mtext>dim</mtext> <mspace width="0.5em"/> <mrow> <mi>k</mi> <mo stretchy="false">=</mo> <mtext>dim</mtext> </mrow> <mspace width="0.5em"/> <mi>i</mi> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>δ</mi> <mi mathvariant="italic">ik</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Kronecker&apos;s delta</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">≝</mo> <mtext>Hyperbolic tangent.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>tanh</mi> <mo stretchy="false">→</mo> <mtext>soft sign</mtext> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">≝</mo> <mtext>Sigmoid function.</mtext> </mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mi>&sigma;</mi> <mo stretchy="false">→</mo> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mrow> <mrow> <mo fence="true" form="prefix" stretchy="false">(</mo> <mrow> <mtext>soft sign</mtext> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">+</mo> <mn>1</mn> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> <mo stretchy="false">÷</mo> <mn>2</mn> </mrow> </mrow> </mrow> <mo fence="true" form="postfix" stretchy="false">)</mo> </mrow> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>x</mi> <mi>j</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mover accent="true"> <msub> <mi>s</mi> <mi>k</mi> </msub> <mo>¯ </mo> </mover> <mo stretchy="false">≝</mo> <mtext>Previous state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>m</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of main layer for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>m</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of main layer.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>f</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of forget gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>f</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of forget gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>i</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of input gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>i</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of input gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msub> <mi>o</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>W</mi> <mi mathvariant="italic">ij</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for input.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>U</mi> <mi mathvariant="italic">ik</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Weights of output gate for state.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <msubsup> <mi>b</mi> <mi>i</mi> <mi>o</mi> </msubsup> <mo stretchy="false">≝</mo> <mtext>Bias of output gate.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mrow> <msub> <mi>y</mi> <mi>i</mi> </msub> <mo stretchy="false">≝</mo> <mtext>Output</mtext> </mrow> <mi>.</mi> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
 ///
 /// - `OUT` : Dimension of output.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct LSTM<const OUT: usize, const IN: usize> {
+pub struct Lstm<const OUT: usize, const IN: usize> {
     main_layer: Layer<OUT, IN>,
 
     f_gate: Layer<OUT, IN>,
@@ -2554,10 +2554,10 @@ pub struct LSTM<const OUT: usize, const IN: usize> {
     tanh: Activation
 }
 
-impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
-    /// Creates LSTM.
+impl<const OUT: usize, const IN: usize> Lstm<OUT, IN> {
+    /// Creates Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -2698,36 +2698,36 @@ impl<const OUT: usize, const IN: usize> LSTM<OUT, IN> {
     }
 }
 
-/// Cache for state error of [`MLLSTM`].
+/// Cache for state error of [`MlLstm`].
 ///
-/// - `OUT` : Output of [`MLLSTM`].
-/// - `IN` : Input of [`MLLSTM`].
+/// - `OUT` : Output of [`MlLstm`].
+/// - `IN` : Input of [`MlLstm`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLLSTMStateCache<const OUT: usize, const IN: usize> {
+pub struct MlLstmStateCache<const OUT: usize, const IN: usize> {
     input: MathVec<IN>,
     prev_state: MathVec<OUT>,
 
-    main_layer_cache: MLCache<OUT, IN>,
+    main_layer_cache: MlCache<OUT, IN>,
 
-    f_gate_cache: MLCache<OUT, IN>,
-    i_gate_cache: MLCache<OUT, IN>,
+    f_gate_cache: MlCache<OUT, IN>,
+    i_gate_cache: MlCache<OUT, IN>,
 
     state: MathVec<OUT>
 }
 
-impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
-    /// Creates MLLSTMStateCache.
+impl<const OUT: usize, const IN: usize> MlLstmStateCache<OUT, IN> {
+    /// Creates MlLstmStateCache.
     ///
-    /// - _Return_ : MLLSTMStateCache.
+    /// - _Return_ : MlLstmStateCache.
     #[inline]
     pub fn new() -> Self {
         Self {
             input: MathVec::<IN>::new(),
             prev_state: MathVec::<OUT>::new(),
 
-            main_layer_cache: MLCache::<OUT, IN>::new(),
-            f_gate_cache: MLCache::<OUT, IN>::new(),
-            i_gate_cache: MLCache::<OUT, IN>::new(),
+            main_layer_cache: MlCache::<OUT, IN>::new(),
+            f_gate_cache: MlCache::<OUT, IN>::new(),
+            i_gate_cache: MlCache::<OUT, IN>::new(),
 
             state: MathVec::<OUT>::new()
         }
@@ -2749,7 +2749,7 @@ impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
     ///
     /// - _Return_ : Cache of main layer.
     #[inline]
-    pub fn main_layer_cache(&self) -> &MLCache<OUT, IN> {
+    pub fn main_layer_cache(&self) -> &MlCache<OUT, IN> {
         &self.main_layer_cache
     }
 
@@ -2757,13 +2757,13 @@ impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
     ///
     /// - _Return_ : Cache of forget gate.
     #[inline]
-    pub fn f_gate_cache(&self) -> &MLCache<OUT, IN> {&self.f_gate_cache}
+    pub fn f_gate_cache(&self) -> &MlCache<OUT, IN> {&self.f_gate_cache}
 
     /// Gets cache of input gate.
     ///
     /// - _Return_ : Cache of input gate.
     #[inline]
-    pub fn i_gate_cache(&self) -> &MLCache<OUT, IN> {&self.i_gate_cache}
+    pub fn i_gate_cache(&self) -> &MlCache<OUT, IN> {&self.i_gate_cache}
 
     /// Gets state.
     ///
@@ -2772,13 +2772,13 @@ impl<const OUT: usize, const IN: usize> MLLSTMStateCache<OUT, IN> {
     pub fn state(&self) -> &MathVec<OUT> {&self.state}
 }
 
-/// Cache for output error of [`MLLSTM`].
+/// Cache for output error of [`MlLstm`].
 ///
-/// - `OUT` : Output of [`MLLSTM`].
-/// - `IN` : Input of [`MLLSTM`].
+/// - `OUT` : Output of [`MlLstm`].
+/// - `IN` : Input of [`MlLstm`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
-    o_gate_cache: MLCache<OUT, IN>,
+pub struct MlLstmOutputCache<const OUT: usize, const IN: usize> {
+    o_gate_cache: MlCache<OUT, IN>,
 
     tanh_s: MathVec<OUT>,
     d_tanh_s: MathVec<OUT>,
@@ -2786,14 +2786,14 @@ pub struct MLLSTMOutputCache<const OUT: usize, const IN: usize> {
     output: MathVec<OUT>
 }
 
-impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
-    /// Creates MLLSTMOutputCache.
+impl<const OUT: usize, const IN: usize> MlLstmOutputCache<OUT, IN> {
+    /// Creates MlLstmOutputCache.
     ///
-    /// - _Return_ : MLLSTMOutputCache.
+    /// - _Return_ : MlLstmOutputCache.
     #[inline]
     pub fn new() -> Self {
         Self {
-            o_gate_cache: MLCache::<OUT, IN>::new(),
+            o_gate_cache: MlCache::<OUT, IN>::new(),
 
             tanh_s: MathVec::<OUT>::new(),
             d_tanh_s: MathVec::<OUT>::new(),
@@ -2806,8 +2806,8 @@ impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `train_out` : Correct output.
     /// - `output_error` : Buffer for output error.
@@ -2825,7 +2825,7 @@ impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
     ///
     /// - _Return_ : Cache of output gate.
     #[inline]
-    pub fn o_gate_cache(&self) -> &MLCache<OUT, IN> {&self.o_gate_cache}
+    pub fn o_gate_cache(&self) -> &MlCache<OUT, IN> {&self.o_gate_cache}
 
     /// Gets output of tanh(state).
     ///
@@ -2846,18 +2846,18 @@ impl<const OUT: usize, const IN: usize> MLLSTMOutputCache<OUT, IN> {
     pub fn output(&self) -> &MathVec<OUT> {&self.output}
 }
 
-/// LSTM for machine learning.
+/// Lstm for machine learning.
 ///
-/// See [`LSTM`] for details.
+/// See [`Lstm`] for details.
 ///
 /// - `OUT` : Dimension of output.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLLSTM<const OUT: usize, const IN: usize> {
-    main_layer: MLLayer<OUT, IN>,
-    f_gate: MLLayer<OUT, IN>,
-    i_gate: MLLayer<OUT, IN>,
-    o_gate: MLLayer<OUT, IN>,
+pub struct MlLstm<const OUT: usize, const IN: usize> {
+    main_layer: MlLayer<OUT, IN>,
+    f_gate: MlLayer<OUT, IN>,
+    i_gate: MlLayer<OUT, IN>,
+    o_gate: MlLayer<OUT, IN>,
     tanh: Activation,
 
     input_error_main_by_output_error: MathVec<IN>,
@@ -2881,20 +2881,20 @@ pub struct MLLSTM<const OUT: usize, const IN: usize> {
     tmp_error: MathVec<OUT>
 }
 
-impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
-    /// Creates MLLSTM.
+impl<const OUT: usize, const IN: usize> MlLstm<OUT, IN> {
+    /// Creates MlLstm.
     ///
-    /// - `lstm` : Base [`LSTM`].
-    /// - _Return_ : MLLSTM.
+    /// - `lstm` : Base [`Lstm`].
+    /// - _Return_ : MlLstm.
     #[inline]
-    pub fn new(lstm: LSTM<OUT, IN>) -> Self {
-        let LSTM::<OUT, IN> {main_layer, f_gate, i_gate, o_gate, tanh} = lstm;
+    pub fn new(lstm: Lstm<OUT, IN>) -> Self {
+        let Lstm::<OUT, IN> {main_layer, f_gate, i_gate, o_gate, tanh} = lstm;
 
         Self {
-            main_layer: MLLayer::<OUT, IN>::new(main_layer),
-            f_gate: MLLayer::<OUT, IN>::new(f_gate),
-            i_gate: MLLayer::<OUT, IN>::new(i_gate),
-            o_gate: MLLayer::<OUT, IN>::new(o_gate),
+            main_layer: MlLayer::<OUT, IN>::new(main_layer),
+            f_gate: MlLayer::<OUT, IN>::new(f_gate),
+            i_gate: MlLayer::<OUT, IN>::new(i_gate),
+            o_gate: MlLayer::<OUT, IN>::new(o_gate),
             tanh: tanh,
 
             input_error_main_by_output_error: MathVec::<IN>::new(),
@@ -2919,14 +2919,14 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         }
     }
 
-    /// Drops base [`LSTM`].
+    /// Drops base [`Lstm`].
     ///
-    /// - _Return_ : [`LSTM`].
+    /// - _Return_ : [`Lstm`].
     #[inline]
-    pub fn drop(self) -> LSTM<OUT, IN> {
+    pub fn drop(self) -> Lstm<OUT, IN> {
         let Self {main_layer, f_gate, i_gate, o_gate, tanh, ..} = self;
 
-        LSTM::<OUT, IN> {
+        Lstm::<OUT, IN> {
             main_layer: main_layer.drop(),
 
             f_gate: f_gate.drop(),
@@ -2946,7 +2946,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         self.o_gate.clear_study_data();
     }
 
-    /// Writes information on [`MLLSTMStateCache`] for [`study_state()`](Self::study_state()) or [`MLLSTM::study()`].
+    /// Writes information on [`MlLstmStateCache`] for [`study_state()`](Self::study_state()) or [`MlLstm::study()`].
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.
@@ -2955,7 +2955,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         &self,
         input: &MathVec<IN>,
         prev_state: &MathVec<OUT>,
-        cache: &mut MLLSTMStateCache<OUT, IN>
+        cache: &mut MlLstmStateCache<OUT, IN>
     ) {
         cache.input.copy_from(input);
         cache.prev_state.copy_from(prev_state);
@@ -2981,14 +2981,14 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         });
     }
 
-    /// Writes information on [`MLLSTMOutputCache`] for [`study()`](Self::study()).
+    /// Writes information on [`MlLstmOutputCache`] for [`study()`](Self::study()).
     ///
     /// - `last_state_cache` : Cache written at [`ready_state_cache()`](Self::ready_state_cache()) just before.
     /// - `cache` : Cache.
     pub fn ready_output_cache(
         &self,
-        last_state_cache: &MLLSTMStateCache<OUT, IN>,
-        output_cache: &mut MLLSTMOutputCache<OUT, IN>
+        last_state_cache: &MlLstmStateCache<OUT, IN>,
+        output_cache: &mut MlLstmOutputCache<OUT, IN>
     ) {
         self.o_gate.ready(
             &last_state_cache.input,
@@ -3022,7 +3022,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     pub fn study_state(
         &mut self,
         state_error: &MathVec<OUT>,
-        cache: &MLLSTMStateCache<OUT, IN>,
+        cache: &MlLstmStateCache<OUT, IN>,
         input_error: &mut MathVec<IN>,
         prev_state_error: &mut MathVec<OUT>
     ) {
@@ -3050,7 +3050,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     fn study_main_layer_with_state_error(
         &mut self,
         state_error: &MathVec<OUT>,
-        cache: &MLLSTMStateCache<OUT, IN>
+        cache: &MlLstmStateCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             state_error.as_array().iter()
@@ -3072,7 +3072,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     fn study_f_gate_with_state_error(
         &mut self,
         state_error: &MathVec<OUT>,
-        cache: &MLLSTMStateCache<OUT, IN>
+        cache: &MlLstmStateCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             state_error.as_array().iter()
@@ -3094,7 +3094,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     fn study_i_gate_with_state_error(
         &mut self,
         state_error: &MathVec<OUT>,
-        cache: &MLLSTMStateCache<OUT, IN>
+        cache: &MlLstmStateCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             state_error.as_array().iter()
@@ -3125,8 +3125,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         &mut self,
         output_error: &MathVec<OUT>,
         state_error: &MathVec<OUT>,
-        state_cache: &MLLSTMStateCache<OUT, IN>,
-        output_cache: &MLLSTMOutputCache<OUT, IN>,
+        state_cache: &MlLstmStateCache<OUT, IN>,
+        output_cache: &MlLstmOutputCache<OUT, IN>,
         input_error: &mut MathVec<IN>,
         prev_state_error: &mut MathVec<OUT>
     ) {
@@ -3182,8 +3182,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         &mut self,
         output_error: &MathVec<OUT>,
         state_error: &MathVec<OUT>,
-        state_cache: &MLLSTMStateCache<OUT, IN>,
-        output_cache: &MLLSTMOutputCache<OUT, IN>
+        state_cache: &MlLstmStateCache<OUT, IN>,
+        output_cache: &MlLstmOutputCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             output_error.as_array().iter()
@@ -3215,8 +3215,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         &mut self,
         output_error: &MathVec<OUT>,
         state_error: &MathVec<OUT>,
-        state_cache: &MLLSTMStateCache<OUT, IN>,
-        output_cache: &MLLSTMOutputCache<OUT, IN>
+        state_cache: &MlLstmStateCache<OUT, IN>,
+        output_cache: &MlLstmOutputCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             output_error.as_array().iter()
@@ -3248,8 +3248,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
         &mut self,
         output_error: &MathVec<OUT>,
         state_error: &MathVec<OUT>,
-        state_cache: &MLLSTMStateCache<OUT, IN>,
-        output_cache: &MLLSTMOutputCache<OUT, IN>
+        state_cache: &MlLstmStateCache<OUT, IN>,
+        output_cache: &MlLstmOutputCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             output_error.as_array().iter()
@@ -3280,7 +3280,7 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
     fn study_o_gate(
         &mut self,
         output_error: &MathVec<OUT>,
-        cache: &MLLSTMOutputCache<OUT, IN>
+        cache: &MlLstmOutputCache<OUT, IN>
     ) {
         self.tmp_error.as_mut_array().iter_mut().zip(
             output_error.as_array().iter()
@@ -3360,8 +3360,8 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 ///     MathVec,
 ///     Activation,
 ///     ChobitEncoder,
-///     ChobitMLEncoder,
-///     MLEncoderCache
+///     ChobitMlEncoder,
+///     MlEncoderCache
 /// };
 /// 
 /// use chobitlibs::chobit_rand::ChobitRand;
@@ -3436,11 +3436,11 @@ impl<const OUT: usize, const IN: usize> MLLSTM<OUT, IN> {
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (3) Wraps AI with [`ChobitMLEncoder`] for machine learning.
+/// (3) Wraps Ai with [`ChobitMlEncoder`] for machine learning.
 ///
 /// ```ignore
-/// let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
-/// let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(MAX_WORD_LEN);
+/// let mut encoder = ChobitMlEncoder::<OUT, MIDDLE, IN>::new(encoder);
+/// let mut cache = MlEncoderCache::<OUT, MIDDLE, IN>::new(MAX_WORD_LEN);
 ///
 /// let mut input_error = vec![MathVec::<IN>::new(); MAX_WORD_LEN];
 /// let mut output_error = MathVec::<OUT>::new();
@@ -3564,7 +3564,7 @@ pub struct ChobitEncoder<
     const MIDDLE: usize,
     const IN: usize
 > {
-    lstm: LSTM<MIDDLE, IN>,
+    lstm: Lstm<MIDDLE, IN>,
     output_layer: Layer<OUT, MIDDLE>,
 
     prev_state: MathVec<MIDDLE>,
@@ -3587,7 +3587,7 @@ impl<
     #[inline]
     pub fn new(activation: Activation) -> Self {
         Self {
-            lstm: LSTM::<MIDDLE, IN>::new(),
+            lstm: Lstm::<MIDDLE, IN>::new(),
             output_layer: Layer::<OUT, MIDDLE>::new(activation, false),
 
             prev_state: MathVec::<MIDDLE>::new(),
@@ -3599,17 +3599,17 @@ impl<
         }
     }
 
-    /// Gets immutable LSTM.
+    /// Gets immutable Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn lstm(&self) -> &LSTM<MIDDLE, IN> {&self.lstm}
+    pub fn lstm(&self) -> &Lstm<MIDDLE, IN> {&self.lstm}
 
-    /// Gets mutable LSTM.
+    /// Gets mutable Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn lstm_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {&mut self.lstm}
+    pub fn lstm_mut(&mut self) -> &mut Lstm<MIDDLE, IN> {&mut self.lstm}
 
     /// Gets immutable output layer.
     ///
@@ -3703,44 +3703,44 @@ impl<
     }
 }
 
-/// Cache for [`ChobitMLEncoder`].
+/// Cache for [`ChobitMlEncoder`].
 ///
-/// - `OUT` : `OUT` of [`ChobitMLEncoder`].
-/// - `MIDDLE` : `MIDDLE` of [`ChobitMLEncoder`].
-/// - `IN` : `IN` of [`ChobitMLEncoder`].
+/// - `OUT` : `OUT` of [`ChobitMlEncoder`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMlEncoder`].
+/// - `IN` : `IN` of [`ChobitMlEncoder`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLEncoderCache<
+pub struct MlEncoderCache<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
-    lstm_state_caches: Vec<MLLSTMStateCache<MIDDLE, IN>>,
+    lstm_state_caches: Vec<MlLstmStateCache<MIDDLE, IN>>,
     lstm_state_caches_len: usize,
 
-    lstm_output_cache: MLLSTMOutputCache<MIDDLE, IN>,
+    lstm_output_cache: MlLstmOutputCache<MIDDLE, IN>,
 
-    output_layer_cache: MLCache<OUT, MIDDLE>
+    output_layer_cache: MlCache<OUT, MIDDLE>
 }
 
 impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> MLEncoderCache<OUT, MIDDLE, IN> {
-    /// Creates MLEncoderCache.
+> MlEncoderCache<OUT, MIDDLE, IN> {
+    /// Creates MlEncoderCache.
     ///
-    /// - _Return_ : MLEncoderCache.
+    /// - _Return_ : MlEncoderCache.
     #[inline]
     pub fn new(capacity: usize) -> Self {
         Self {
             lstm_state_caches: vec![
-                MLLSTMStateCache::<MIDDLE, IN>::new(); capacity
+                MlLstmStateCache::<MIDDLE, IN>::new(); capacity
             ],
             lstm_state_caches_len: 0,
 
-            lstm_output_cache: MLLSTMOutputCache::<MIDDLE, IN>::new(),
+            lstm_output_cache: MlLstmOutputCache::<MIDDLE, IN>::new(),
 
-            output_layer_cache: MLCache::<OUT, MIDDLE>::new()
+            output_layer_cache: MlCache::<OUT, MIDDLE>::new()
         }
     }
 
@@ -3748,8 +3748,8 @@ impl<
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `train_out` : Correct output.
     /// - `output_error` : Buffer for output error.
@@ -3763,27 +3763,27 @@ impl<
         *output_error -= train_out;
     }
 
-    /// Gets slice of ['MLLSTMStateCache'] of lstm layer.
+    /// Gets slice of ['MlLstmStateCache'] of lstm layer.
     ///
-    /// - _Return_ : Slice of ['MLLSTMStateCache'].
+    /// - _Return_ : Slice of ['MlLstmStateCache'].
     #[inline]
-    pub fn lstm_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
+    pub fn lstm_state_caches(&self) -> &[MlLstmStateCache<MIDDLE, IN>] {
         &self.lstm_state_caches[..self.lstm_state_caches_len]
     }
 
-    /// Gets ['MLLSTMOutputCache'] of lstm layer.
+    /// Gets ['MlLstmOutputCache'] of lstm layer.
     ///
-    /// - _Return_ : ['MLLSTMOutputCache'].
+    /// - _Return_ : ['MlLstmOutputCache'].
     #[inline]
-    pub fn lstm_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
+    pub fn lstm_output_cache(&self) -> &MlLstmOutputCache<MIDDLE, IN> {
         &self.lstm_output_cache
     }
 
-    /// Gets ['MLCache'] of output layer.
+    /// Gets ['MlCache'] of output layer.
     ///
-    /// - _Return_ : [`MLCache`].
+    /// - _Return_ : [`MlCache`].
     #[inline]
-    pub fn output_layer_cache(&self) -> &MLCache<OUT, MIDDLE> {
+    pub fn output_layer_cache(&self) -> &MlCache<OUT, MIDDLE> {
         &self.output_layer_cache
     }
 
@@ -3804,13 +3804,13 @@ impl<
 /// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChobitMLEncoder<
+pub struct ChobitMlEncoder<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
-    lstm: MLLSTM<MIDDLE, IN>,
-    output_layer: MLLayer<OUT, MIDDLE>,
+    lstm: MlLstm<MIDDLE, IN>,
+    output_layer: MlLayer<OUT, MIDDLE>,
 
     prev_state: MathVec<MIDDLE>,
 
@@ -3829,11 +3829,11 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> ChobitMLEncoder<OUT, MIDDLE, IN> {
-    /// Creates ChobitMLEncoder.
+> ChobitMlEncoder<OUT, MIDDLE, IN> {
+    /// Creates ChobitMlEncoder.
     ///
     /// - `encoder` : Base [`ChobitEncoder`].
-    /// - _Return_ : ChobitMLEncoder.
+    /// - _Return_ : ChobitMlEncoder.
     #[inline]
     pub fn new(encoder: ChobitEncoder<OUT, MIDDLE, IN>) -> Self {
         let ChobitEncoder::<OUT, MIDDLE, IN> {
@@ -3847,8 +3847,8 @@ impl<
         } = encoder;
 
         Self {
-            lstm: MLLSTM::<MIDDLE, IN>::new(lstm),
-            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+            lstm: MlLstm::<MIDDLE, IN>::new(lstm),
+            output_layer: MlLayer::<OUT, MIDDLE>::new(output_layer),
 
             prev_state: MathVec::<MIDDLE>::new(),
 
@@ -3897,7 +3897,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLEncoderCache`] for [`study()`](Self::study()).
+    /// Writes information on [`MlEncoderCache`] for [`study()`](Self::study()).
     ///
     /// - `train_in` : Input data sequence.
     /// - `prev_state` : Previous state.
@@ -3907,7 +3907,7 @@ impl<
         &mut self,
         train_in: &[MathVec<IN>],
         prev_state: &MathVec<MIDDLE>,
-        cache: &mut MLEncoderCache<OUT, MIDDLE, IN>
+        cache: &mut MlEncoderCache<OUT, MIDDLE, IN>
     ) {
         self.ready_state_cache(train_in, prev_state, cache);
         self.ready_output_cache(cache);
@@ -3917,13 +3917,13 @@ impl<
         &mut self,
         train_in: &[MathVec<IN>],
         prev_state: &MathVec<MIDDLE>,
-        cache: &mut MLEncoderCache<OUT, MIDDLE, IN>
+        cache: &mut MlEncoderCache<OUT, MIDDLE, IN>
     ) {
         cache.lstm_state_caches_len = train_in.len();
         if cache.lstm_state_caches.len() < train_in.len() {
             cache.lstm_state_caches.resize(
                 train_in.len(),
-                MLLSTMStateCache::<MIDDLE, IN>::new()
+                MlLstmStateCache::<MIDDLE, IN>::new()
             );
         }
 
@@ -3944,7 +3944,7 @@ impl<
 
     fn ready_output_cache(
         &self,
-        cache: &mut MLEncoderCache<OUT, MIDDLE, IN>
+        cache: &mut MlEncoderCache<OUT, MIDDLE, IN>
     ) {
         if let Some(last_state_cache) = cache.lstm_state_caches.get(
             cache.lstm_state_caches_len.wrapping_sub(1)
@@ -3971,7 +3971,7 @@ impl<
     pub fn study(
         &mut self,
         output_error: &MathVec<OUT>,
-        cache: &MLEncoderCache<OUT, MIDDLE, IN>,
+        cache: &MlEncoderCache<OUT, MIDDLE, IN>,
         input_error: &mut [MathVec<IN>],
         prev_state_error: &mut MathVec<MIDDLE>
     ) {
@@ -4069,8 +4069,8 @@ impl<
 ///     MathVec,
 ///     Activation,
 ///     ChobitDecoder,
-///     ChobitMLDecoder,
-///     MLDecoderCache
+///     ChobitMlDecoder,
+///     MlDecoderCache
 /// };
 /// 
 /// use chobitlibs::chobit_rand::ChobitRand;
@@ -4112,11 +4112,11 @@ impl<
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (3) Wraps AI with [`ChobitMLDecoder`] for machine learning.
+/// (3) Wraps Ai with [`ChobitMlDecoder`] for machine learning.
 ///
 /// ```ignore
-/// let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-/// let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(max_message_len);
+/// let mut decoder = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(decoder);
+/// let mut cache = MlDecoderCache::<OUT, MIDDLE, IN>::new(max_message_len);
 ///
 /// let mut input_error = MathVec::<IN>::new();
 /// let mut output_error = vec![MathVec::<OUT>::new(); max_message_len];
@@ -4195,7 +4195,7 @@ impl<
 /// }
 /// ```
 ///
-/// (5) Tests AI.
+/// (5) Tests Ai.
 ///
 /// ```ignore
 /// // Unwrap Decoder.
@@ -4237,7 +4237,7 @@ pub struct ChobitDecoder<
     const MIDDLE: usize,
     const IN: usize
 > {
-    lstm: LSTM<MIDDLE, IN>,
+    lstm: Lstm<MIDDLE, IN>,
     output_layer: Layer<OUT, MIDDLE>,
 
     input: MathVec<IN>,
@@ -4259,7 +4259,7 @@ impl<
     /// - _Return_ : ChobitDecoder.
     pub fn new(activation: Activation) -> Self {
         Self {
-            lstm: LSTM::<MIDDLE, IN>::new(),
+            lstm: Lstm::<MIDDLE, IN>::new(),
             output_layer: Layer::<OUT, MIDDLE>::new(activation, false),
 
             input: MathVec::<IN>::new(),
@@ -4271,17 +4271,17 @@ impl<
         }
     }
 
-    /// Gets immutable LSTM.
+    /// Gets immutable Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn lstm(&self) -> &LSTM<MIDDLE, IN> {&self.lstm}
+    pub fn lstm(&self) -> &Lstm<MIDDLE, IN> {&self.lstm}
 
-    /// Gets mutable LSTM.
+    /// Gets mutable Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn lstm_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {&mut self.lstm}
+    pub fn lstm_mut(&mut self) -> &mut Lstm<MIDDLE, IN> {&mut self.lstm}
 
     /// Gets immutable output layer.
     ///
@@ -4368,21 +4368,21 @@ impl<
     }
 }
 
-/// Cache for [`ChobitMLDecoder`].
+/// Cache for [`ChobitMlDecoder`].
 ///
-/// - `OUT` : `OUT` of [`ChobitMLDecoder`].
-/// - `MIDDLE` : `MIDDLE` of [`ChobitMLDecoder`].
-/// - `IN` : `IN` of [`ChobitMLDecoder`].
+/// - `OUT` : `OUT` of [`ChobitMlDecoder`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMlDecoder`].
+/// - `IN` : `IN` of [`ChobitMlDecoder`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLDecoderCache<
+pub struct MlDecoderCache<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
     caches: Vec<(
-        MLLSTMStateCache<MIDDLE, IN>,
-        MLLSTMOutputCache<MIDDLE, IN>,
-        MLCache<OUT, MIDDLE>
+        MlLstmStateCache<MIDDLE, IN>,
+        MlLstmOutputCache<MIDDLE, IN>,
+        MlCache<OUT, MIDDLE>
     )>,
 
     caches_len: usize
@@ -4392,18 +4392,18 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> MLDecoderCache<OUT, MIDDLE, IN> {
-    /// Creates MLDecoderCache.
+> MlDecoderCache<OUT, MIDDLE, IN> {
+    /// Creates MlDecoderCache.
     ///
-    /// - _Return_ : MLDecoderCache.
+    /// - _Return_ : MlDecoderCache.
     #[inline]
     pub fn new(capacity: usize) -> Self {
         Self {
             caches: vec![
                 (
-                    MLLSTMStateCache::<MIDDLE, IN>::new(),
-                    MLLSTMOutputCache::<MIDDLE, IN>::new(),
-                    MLCache::<OUT, MIDDLE>::new(),
+                    MlLstmStateCache::<MIDDLE, IN>::new(),
+                    MlLstmOutputCache::<MIDDLE, IN>::new(),
+                    MlCache::<OUT, MIDDLE>::new(),
                 ); capacity
             ],
             caches_len: 0
@@ -4414,8 +4414,8 @@ impl<
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `train_out` : Correct output.
     /// - `output_error` : Buffer for output error.
@@ -4446,9 +4446,9 @@ impl<
     /// - _Return_ : Slice of caches.
     #[inline]
     pub fn caches(&self) -> &[(
-        MLLSTMStateCache<MIDDLE, IN>,
-        MLLSTMOutputCache<MIDDLE, IN>,
-        MLCache<OUT, MIDDLE>
+        MlLstmStateCache<MIDDLE, IN>,
+        MlLstmOutputCache<MIDDLE, IN>,
+        MlCache<OUT, MIDDLE>
     )] {
         &self.caches[..self.caches_len]
     }
@@ -4458,9 +4458,9 @@ impl<
     /// - _Return_ : Slice of caches.
     #[inline]
     pub(self) fn caches_mut(&mut self) -> &mut [(
-        MLLSTMStateCache<MIDDLE, IN>,
-        MLLSTMOutputCache<MIDDLE, IN>,
-        MLCache<OUT, MIDDLE>
+        MlLstmStateCache<MIDDLE, IN>,
+        MlLstmOutputCache<MIDDLE, IN>,
+        MlCache<OUT, MIDDLE>
     )] {
         &mut self.caches[..self.caches_len]
     }
@@ -4484,13 +4484,13 @@ impl<
 /// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChobitMLDecoder<
+pub struct ChobitMlDecoder<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
-    lstm: MLLSTM<MIDDLE, IN>,
-    output_layer: MLLayer<OUT, MIDDLE>,
+    lstm: MlLstm<MIDDLE, IN>,
+    output_layer: MlLayer<OUT, MIDDLE>,
 
     prev_state: MathVec<MIDDLE>,
 
@@ -4510,11 +4510,11 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> ChobitMLDecoder<OUT, MIDDLE, IN> {
-    /// Creates ChobitMLDecoder.
+> ChobitMlDecoder<OUT, MIDDLE, IN> {
+    /// Creates ChobitMlDecoder.
     ///
     /// - `decoder` : Base [`ChobitDecoder`].
-    /// - _Return_ : ChobitMLDecoder.
+    /// - _Return_ : ChobitMlDecoder.
     #[inline]
     pub fn new(decoder: ChobitDecoder<OUT, MIDDLE, IN>) -> Self {
         let ChobitDecoder::<OUT, MIDDLE, IN> {
@@ -4528,8 +4528,8 @@ impl<
         } = decoder;
 
         Self {
-            lstm: MLLSTM::<MIDDLE, IN>::new(lstm),
-            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+            lstm: MlLstm::<MIDDLE, IN>::new(lstm),
+            output_layer: MlLayer::<OUT, MIDDLE>::new(output_layer),
 
             prev_state: MathVec::<MIDDLE>::new(),
 
@@ -4579,7 +4579,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLDecoderCache`] for [`study()`](Self::study()).
+    /// Writes information on [`MlDecoderCache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.
@@ -4590,16 +4590,16 @@ impl<
         input: &MathVec<IN>,
         prev_state: &MathVec<MIDDLE>,
         output_len: usize,
-        cache: &mut MLDecoderCache<OUT, MIDDLE, IN>
+        cache: &mut MlDecoderCache<OUT, MIDDLE, IN>
     ) {
         cache.caches_len = output_len;
         if cache.caches.len() < output_len {
             cache.caches.resize(
                 output_len,
                 (
-                    MLLSTMStateCache::<MIDDLE, IN>::new(),
-                    MLLSTMOutputCache::<MIDDLE, IN>::new(),
-                    MLCache::<OUT, MIDDLE>::new()
+                    MlLstmStateCache::<MIDDLE, IN>::new(),
+                    MlLstmOutputCache::<MIDDLE, IN>::new(),
+                    MlCache::<OUT, MIDDLE>::new()
                 )
             );
         }
@@ -4640,7 +4640,7 @@ impl<
     pub fn study(
         &mut self,
         output_error: &[MathVec<OUT>],
-        cache: &MLDecoderCache<OUT, MIDDLE, IN>,
+        cache: &MlDecoderCache<OUT, MIDDLE, IN>,
         input_error: &mut MathVec<IN>,
         prev_state_error: &mut MathVec<MIDDLE>
     ) {
@@ -4712,7 +4712,7 @@ impl<
     }
 }
 
-/// Seq2Seq AI.
+/// Seq2Seq Ai.
 ///
 /// - `OUT` : Dimension of output.
 /// - `MIDDLE` : Dimension of hidden layer.
@@ -4732,9 +4732,9 @@ impl<
 /// use chobitlibs::chobit_ai::{
 ///     MathVec,
 ///     Activation,
-///     ChobitSeqAI,
-///     ChobitMLSeqAI,
-///     MLSeqAICache
+///     ChobitSeqAi,
+///     ChobitMlSeqAi,
+///     MlSeqAiCache
 /// };
 /// 
 /// use chobitlibs::chobit_rand::ChobitRand;
@@ -4785,7 +4785,7 @@ impl<
 /// const ENGLISH_MESSAGE: &str = "This is English.";
 /// ```
 ///
-/// (2) Creates [`ChobitSeqAI`] and randomises weights.
+/// (2) Creates [`ChobitSeqAi`] and randomises weights.
 ///
 /// ```ignore
 /// const OUT: usize = 32;
@@ -4795,9 +4795,9 @@ impl<
 /// const MAX_WORD_LEN: usize = 10;
 /// let max_message_len = JAPANESE_MESSAGE.len().max(ENGLISH_MESSAGE.len());
 ///
-/// let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
+/// let mut rng = ChobitRand::new(b"ChobitSeqAi Example");
 ///
-/// let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+/// let mut ai = ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 ///
 /// // Randomises weights.
 /// ai.for_each_weight_mut(|weight| {
@@ -4809,11 +4809,11 @@ impl<
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (3) Wraps AI with [`ChobitMLSeqAI`] for machine learning.
+/// (3) Wraps Ai with [`ChobitMlSeqAi`] for machine learning.
 ///
 /// ```ignore
-/// let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-/// let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(
+/// let mut ai = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(ai);
+/// let mut cache = MlSeqAiCache::<OUT, MIDDLE, IN>::new(
 ///     MAX_WORD_LEN,
 ///     max_message_len
 /// );
@@ -4897,10 +4897,10 @@ impl<
 /// }
 /// ```
 ///
-/// (5) Tests AI.
+/// (5) Tests Ai.
 ///
 /// ```ignore
-/// // Unwrap AI.
+/// // Unwrap Ai.
 /// let mut ai = ai.drop();
 ///
 /// let mut output = MathVec::<OUT>::new();
@@ -4950,13 +4950,13 @@ impl<
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChobitSeqAI<
+pub struct ChobitSeqAi<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
-    enc_layer: LSTM<MIDDLE, IN>,
-    dec_layer: LSTM<MIDDLE, MIDDLE>,
+    enc_layer: Lstm<MIDDLE, IN>,
+    dec_layer: Lstm<MIDDLE, MIDDLE>,
     output_layer: Layer<OUT, MIDDLE>,
 
     prev_state: MathVec<MIDDLE>,
@@ -4971,16 +4971,16 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> ChobitSeqAI<OUT, MIDDLE, IN> {
-    /// Creates ChobitSeqAI.
+> ChobitSeqAi<OUT, MIDDLE, IN> {
+    /// Creates ChobitSeqAi.
     ///
     /// - `activation` : Activation function for output layer.
-    /// - _Return_ : ChobitSeqAI.
+    /// - _Return_ : ChobitSeqAi.
     #[inline]
     pub fn new(activation: Activation) -> Self {
         Self {
-            enc_layer: LSTM::<MIDDLE, IN>::new(),
-            dec_layer: LSTM::<MIDDLE, MIDDLE>::new(),
+            enc_layer: Lstm::<MIDDLE, IN>::new(),
+            dec_layer: Lstm::<MIDDLE, MIDDLE>::new(),
             output_layer: Layer::<OUT, MIDDLE>::new(activation, false),
 
             prev_state: MathVec::<MIDDLE>::new(),
@@ -4992,31 +4992,31 @@ impl<
         }
     }
 
-    /// Gets immutable encoding layer of LSTM.
+    /// Gets immutable encoding layer of Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn enc_layer(&self) -> &LSTM<MIDDLE, IN> {&self.enc_layer}
+    pub fn enc_layer(&self) -> &Lstm<MIDDLE, IN> {&self.enc_layer}
 
-    /// Gets mutable encoding layer of LSTM.
+    /// Gets mutable encoding layer of Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn enc_layer_mut(&mut self) -> &mut LSTM<MIDDLE, IN> {
+    pub fn enc_layer_mut(&mut self) -> &mut Lstm<MIDDLE, IN> {
         &mut self.enc_layer
     }
 
-    /// Gets immutable decoding layer of LSTM.
+    /// Gets immutable decoding layer of Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn dec_layer(&self) -> &LSTM<MIDDLE, MIDDLE> {&self.dec_layer}
+    pub fn dec_layer(&self) -> &Lstm<MIDDLE, MIDDLE> {&self.dec_layer}
 
-    /// Gets mutable decoding layer of LSTM.
+    /// Gets mutable decoding layer of Lstm.
     ///
-    /// - _Return_ : LSTM.
+    /// - _Return_ : Lstm.
     #[inline]
-    pub fn dec_layer_mut(&mut self) -> &mut LSTM<MIDDLE, MIDDLE> {
+    pub fn dec_layer_mut(&mut self) -> &mut Lstm<MIDDLE, MIDDLE> {
         &mut self.dec_layer
     }
 
@@ -5110,25 +5110,25 @@ impl<
     }
 }
 
-/// Cache for [`ChobitMLSeqAI`].
+/// Cache for [`ChobitMlSeqAi`].
 ///
-/// - `OUT` : `OUT` of [`ChobitMLSeqAI`].
-/// - `MIDDLE` : `MIDDLE` of [`ChobitMLSeqAI`].
-/// - `IN` : `IN` of [`ChobitMLSeqAI`].
+/// - `OUT` : `OUT` of [`ChobitMlSeqAi`].
+/// - `MIDDLE` : `MIDDLE` of [`ChobitMlSeqAi`].
+/// - `IN` : `IN` of [`ChobitMlSeqAi`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct MLSeqAICache<
+pub struct MlSeqAiCache<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
-    enc_state_caches: Vec<MLLSTMStateCache<MIDDLE, IN>>,
+    enc_state_caches: Vec<MlLstmStateCache<MIDDLE, IN>>,
     enc_state_caches_len: usize,
-    enc_output_cache: Option<MLLSTMOutputCache<MIDDLE, IN>>,
+    enc_output_cache: Option<MlLstmOutputCache<MIDDLE, IN>>,
 
     dec_caches: Vec<(
-        MLLSTMStateCache<MIDDLE, MIDDLE>,
-        MLLSTMOutputCache<MIDDLE, MIDDLE>,
-        MLCache<OUT, MIDDLE>
+        MlLstmStateCache<MIDDLE, MIDDLE>,
+        MlLstmOutputCache<MIDDLE, MIDDLE>,
+        MlCache<OUT, MIDDLE>
     )>,
     dec_caches_len: usize
 }
@@ -5137,27 +5137,27 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> MLSeqAICache<OUT, MIDDLE, IN> {
-    /// Creates MLSeqAICache.
+> MlSeqAiCache<OUT, MIDDLE, IN> {
+    /// Creates MlSeqAiCache.
     ///
     /// - `input_capacity` : Capacity of input caches.
     /// - `output_capacity` : Capacity of output caches.
-    /// - _Return_ : MLSeqAICache.
+    /// - _Return_ : MlSeqAiCache.
     #[inline]
     pub fn new(input_capacity: usize, output_capacity: usize) -> Self {
         Self {
             enc_state_caches: vec![
-                MLLSTMStateCache::<MIDDLE, IN>::new(); input_capacity
+                MlLstmStateCache::<MIDDLE, IN>::new(); input_capacity
             ],
             enc_state_caches_len: 0,
 
-            enc_output_cache: Some(MLLSTMOutputCache::<MIDDLE, IN>::new()),
+            enc_output_cache: Some(MlLstmOutputCache::<MIDDLE, IN>::new()),
 
             dec_caches: vec![
                 (
-                    MLLSTMStateCache::<MIDDLE, MIDDLE>::new(),
-                    MLLSTMOutputCache::<MIDDLE, MIDDLE>::new(),
-                    MLCache::<OUT, MIDDLE>::new(),
+                    MlLstmStateCache::<MIDDLE, MIDDLE>::new(),
+                    MlLstmOutputCache::<MIDDLE, MIDDLE>::new(),
+                    MlCache::<OUT, MIDDLE>::new(),
                 ); output_capacity
             ],
             dec_caches_len: 0,
@@ -5168,8 +5168,8 @@ impl<
     ///
     /// | Formula |
     /// |:-:|
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
-    /// | <math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mrow> <mi>e</mi> <mo stretchy="false">=</mo> <mrow> <mi>o</mi> <mo stretchy="false">−</mo> <mi>t</mi> </mrow> </mrow> </semantics> </math> |
+    /// | <math xmlns="http://www.w3.org/1998/Math/MathMl" display="block"> <semantics> <mtable columnalign="left"> <mtr> <mtd> <mrow> <mi>e</mi> <mo stretchy="false">≝</mo> <mtext>Error.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>o</mi> <mo stretchy="false">≝</mo> <mtext>Actual output.</mtext> </mrow> </mtd> </mtr> <mtr> <mtd> <mrow> <mi>t</mi> <mo stretchy="false">≝</mo> <mtext>Correct output.</mtext> </mrow> </mtd> </mtr> </mtable> </semantics> </math> |
     ///
     /// - `train_out` : Correct output.
     /// - `output_error` : Buffer for output error.
@@ -5191,34 +5191,34 @@ impl<
         );
     }
 
-    /// Gets slice of ['MLLSTMStateCache'] for encoding layer.
+    /// Gets slice of ['MlLstmStateCache'] for encoding layer.
     ///
-    /// - _Return_ : slice of [`MLLSTMStateCache`].
+    /// - _Return_ : slice of [`MlLstmStateCache`].
     #[inline]
-    pub fn enc_state_caches(&self) -> &[MLLSTMStateCache<MIDDLE, IN>] {
+    pub fn enc_state_caches(&self) -> &[MlLstmStateCache<MIDDLE, IN>] {
         &self.enc_state_caches[..self.enc_state_caches_len]
     }
 
 
-    /// Gets ['MLLSTMOutputCache'] for encoding layer.
+    /// Gets ['MlLstmOutputCache'] for encoding layer.
     ///
-    /// - _Return_ : [`MLLSTMOutputCache`].
+    /// - _Return_ : [`MlLstmOutputCache`].
     #[inline]
-    pub fn enc_output_cache(&self) -> &MLLSTMOutputCache<MIDDLE, IN> {
+    pub fn enc_output_cache(&self) -> &MlLstmOutputCache<MIDDLE, IN> {
         self.enc_output_cache.as_ref().unwrap()
     }
 
     #[inline]
     pub(self) fn take_enc_output_cache(
         &mut self
-    ) -> Option<MLLSTMOutputCache<MIDDLE, IN>> {
+    ) -> Option<MlLstmOutputCache<MIDDLE, IN>> {
         self.enc_output_cache.take()
     }
 
     #[inline]
     pub(self) fn set_enc_output_cache(
         &mut self,
-        output_cache: MLLSTMOutputCache<MIDDLE, IN>
+        output_cache: MlLstmOutputCache<MIDDLE, IN>
     ) {
         self.enc_output_cache = Some(output_cache);
     }
@@ -5228,18 +5228,18 @@ impl<
     /// - _Return_ : slice of caches.
     #[inline]
     pub fn dec_caches(&self) -> &[(
-        MLLSTMStateCache<MIDDLE, MIDDLE>,
-        MLLSTMOutputCache<MIDDLE, MIDDLE>,
-        MLCache<OUT, MIDDLE>
+        MlLstmStateCache<MIDDLE, MIDDLE>,
+        MlLstmOutputCache<MIDDLE, MIDDLE>,
+        MlCache<OUT, MIDDLE>
     )] {
         &self.dec_caches[..self.dec_caches_len]
     }
 
     #[inline]
     pub(self) fn dec_caches_mut(&mut self) -> &mut [(
-        MLLSTMStateCache<MIDDLE, MIDDLE>,
-        MLLSTMOutputCache<MIDDLE, MIDDLE>,
-        MLCache<OUT, MIDDLE>
+        MlLstmStateCache<MIDDLE, MIDDLE>,
+        MlLstmOutputCache<MIDDLE, MIDDLE>,
+        MlCache<OUT, MIDDLE>
     )] {
         &mut self.dec_caches[..self.dec_caches_len]
     }
@@ -5247,7 +5247,7 @@ impl<
     #[inline]
     pub(self) fn enc_last_state_cache(
         &self
-    ) -> Option<&MLLSTMStateCache<MIDDLE, IN>> {
+    ) -> Option<&MlLstmStateCache<MIDDLE, IN>> {
         self.enc_state_caches.get(self.enc_state_caches_len.wrapping_sub(1))
     }
 
@@ -5261,22 +5261,22 @@ impl<
     }
 }
 
-/// Wrapper of [`ChobitSeqAI`] for machine learning.
+/// Wrapper of [`ChobitSeqAi`] for machine learning.
 ///
-/// See [`ChobitSeqAI`] for details.
+/// See [`ChobitSeqAi`] for details.
 ///
 /// - `OUT` : Dimension of output.
 /// - `MIDDLE` : Dimension of hidden layer.
 /// - `IN` : Dimension of input.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChobitMLSeqAI<
+pub struct ChobitMlSeqAi<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
 > {
-    enc_layer: MLLSTM<MIDDLE, IN>,
-    dec_layer: MLLSTM<MIDDLE, MIDDLE>,
-    output_layer: MLLayer<OUT, MIDDLE>,
+    enc_layer: MlLstm<MIDDLE, IN>,
+    dec_layer: MlLstm<MIDDLE, MIDDLE>,
+    output_layer: MlLayer<OUT, MIDDLE>,
 
     tmp_prev_state: MathVec<MIDDLE>,
     tmp_state_error: MathVec<MIDDLE>,
@@ -5298,14 +5298,14 @@ impl<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
-> ChobitMLSeqAI<OUT, MIDDLE, IN> {
-    /// Creates ChobitMLSeqAI.
+> ChobitMlSeqAi<OUT, MIDDLE, IN> {
+    /// Creates ChobitMlSeqAi.
     ///
-    /// - `ai` : Base [`ChobitSeqAI`].
-    /// - _Return_ : ChobitMLSeqAI.
+    /// - `ai` : Base [`ChobitSeqAi`].
+    /// - _Return_ : ChobitMlSeqAi.
     #[inline]
-    pub fn new(ai: ChobitSeqAI<OUT, MIDDLE, IN>) -> Self {
-        let ChobitSeqAI::<OUT, MIDDLE, IN> {
+    pub fn new(ai: ChobitSeqAi<OUT, MIDDLE, IN>) -> Self {
+        let ChobitSeqAi::<OUT, MIDDLE, IN> {
             enc_layer,
             dec_layer,
             output_layer,
@@ -5317,9 +5317,9 @@ impl<
         } = ai;
 
         Self {
-            enc_layer: MLLSTM::<MIDDLE, IN>::new(enc_layer),
-            dec_layer: MLLSTM::<MIDDLE, MIDDLE>::new(dec_layer),
-            output_layer: MLLayer::<OUT, MIDDLE>::new(output_layer),
+            enc_layer: MlLstm::<MIDDLE, IN>::new(enc_layer),
+            dec_layer: MlLstm::<MIDDLE, MIDDLE>::new(dec_layer),
+            output_layer: MlLayer::<OUT, MIDDLE>::new(output_layer),
 
             tmp_prev_state: MathVec::<MIDDLE>::new(),
             tmp_state_error: MathVec::<MIDDLE>::new(),
@@ -5337,12 +5337,12 @@ impl<
         }
     }
 
-    /// Drops base [`ChobitSeqAI`].
+    /// Drops base [`ChobitSeqAi`].
     ///
-    /// - _Return_ : [`ChobitSeqAI`].
+    /// - _Return_ : [`ChobitSeqAi`].
     #[inline]
-    pub fn drop(self) -> ChobitSeqAI<OUT, MIDDLE, IN> {
-        let ChobitMLSeqAI::<OUT, MIDDLE, IN> {
+    pub fn drop(self) -> ChobitSeqAi<OUT, MIDDLE, IN> {
+        let ChobitMlSeqAi::<OUT, MIDDLE, IN> {
             enc_layer,
             dec_layer,
             output_layer,
@@ -5354,7 +5354,7 @@ impl<
             ..
         } = self;
 
-        ChobitSeqAI::<OUT, MIDDLE, IN> {
+        ChobitSeqAi::<OUT, MIDDLE, IN> {
             enc_layer: enc_layer.drop(),
             dec_layer: dec_layer.drop(),
             output_layer: output_layer.drop(),
@@ -5376,7 +5376,7 @@ impl<
         self.output_layer.clear_study_data();
     }
 
-    /// Writes information on [`MLSeqAICache`] for [`study()`](Self::study()).
+    /// Writes information on [`MlSeqAiCache`] for [`study()`](Self::study()).
     ///
     /// - `input` : Input.
     /// - `prev_state` : Previous state.
@@ -5388,7 +5388,7 @@ impl<
         input: &[MathVec<IN>],
         prev_state: &MathVec<MIDDLE>,
         output_len: usize,
-        cache: &mut MLSeqAICache<OUT, MIDDLE, IN>
+        cache: &mut MlSeqAiCache<OUT, MIDDLE, IN>
     ) {
         self.ready_enc_layer(input, prev_state, cache);
         self.ready_dec_layer(output_len, cache);
@@ -5398,13 +5398,13 @@ impl<
         &mut self,
         input: &[MathVec<IN>],
         prev_state: &MathVec<MIDDLE>,
-        cache: &mut MLSeqAICache<OUT, MIDDLE, IN>
+        cache: &mut MlSeqAiCache<OUT, MIDDLE, IN>
     ) {
         cache.enc_state_caches_len = input.len();
         if cache.enc_state_caches.len() < input.len() {
             cache.enc_state_caches.resize(
                 input.len(),
-                MLLSTMStateCache::<MIDDLE, IN>::new(),
+                MlLstmStateCache::<MIDDLE, IN>::new(),
             );
         }
 
@@ -5437,16 +5437,16 @@ impl<
     fn ready_dec_layer(
         &mut self,
         output_len: usize,
-        cache: &mut MLSeqAICache<OUT, MIDDLE, IN>
+        cache: &mut MlSeqAiCache<OUT, MIDDLE, IN>
     ) {
         cache.dec_caches_len = output_len;
         if cache.dec_caches.len() < output_len {
             cache.dec_caches.resize(
                 output_len,
                 (
-                    MLLSTMStateCache::<MIDDLE, MIDDLE>::new(),
-                    MLLSTMOutputCache::<MIDDLE, MIDDLE>::new(),
-                    MLCache::<OUT, MIDDLE>::new()
+                    MlLstmStateCache::<MIDDLE, MIDDLE>::new(),
+                    MlLstmOutputCache::<MIDDLE, MIDDLE>::new(),
+                    MlCache::<OUT, MIDDLE>::new()
                 )
             );
         }
@@ -5496,7 +5496,7 @@ impl<
     pub fn study(
         &mut self,
         output_error: &[MathVec<OUT>],
-        cache: &MLSeqAICache<OUT, MIDDLE, IN>,
+        cache: &MlSeqAiCache<OUT, MIDDLE, IN>,
         input_error: &mut [MathVec<IN>],
         prev_state_error: &mut MathVec<MIDDLE>,
     ) {

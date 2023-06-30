@@ -12,9 +12,9 @@ use std::{
 use chobitlibs::chobit_ai::{
     MathVec,
     Activation,
-    ChobitAI,
-    ChobitMLAI,
-    MLAICache
+    ChobitAi,
+    ChobitMlAi,
+    MlAiCache
 };
 
 use chobitlibs::chobit_rand::ChobitRand;
@@ -63,7 +63,7 @@ const ENGLISH_ID: char = 'E';
 
 // Initializes shared gradient.
 fn init_grad(
-    ai: &ChobitMLAI<OUT, MIDDLE, IN>,
+    ai: &ChobitMlAi<OUT, MIDDLE, IN>,
     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 ) {
     let mut lock = grads.lock().unwrap();
@@ -76,7 +76,7 @@ fn init_grad(
 
 // Loads from shared gradient to AI's gradient.
 fn load_grad(
-    ai: &mut ChobitMLAI<OUT, MIDDLE, IN>,
+    ai: &mut ChobitMlAi<OUT, MIDDLE, IN>,
     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 ) {
     let lock = grads.lock().unwrap();
@@ -92,7 +92,7 @@ fn load_grad(
 
 // Adds AI's gradient to shared gradient.
 fn save_grad(
-    ai: &ChobitMLAI<OUT, MIDDLE, IN>,
+    ai: &ChobitMlAi<OUT, MIDDLE, IN>,
     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 ) {
     let mut lock = grads.lock().unwrap();
@@ -127,18 +127,18 @@ fn run_thread(
     rng_seed: &[u8],
     p2c_rx: mpsc::Receiver<P2C>,
     c2p_tx: mpsc::Sender<C2P>,
-    ai: ChobitAI<OUT, MIDDLE, IN>,
+    ai: ChobitAi<OUT, MIDDLE, IN>,
     grads: Arc<Mutex<(Vec<f32>, Vec<f32>)>>
 ) -> thread::JoinHandle<()> {
     let rng_seed = rng_seed.to_vec();
 
     thread::spawn(move || {
         // Wraps AI for machine learning.
-        let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+        let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
 
         let mut rng = ChobitRand::new(&rng_seed);
 
-        let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+        let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
         let mut input = MathVec::<IN>::new();
         let mut output = MathVec::<OUT>::new();
 
@@ -197,7 +197,7 @@ fn run_thread(
     })
 }
 
-fn test_ai(ai: &ChobitAI<OUT, MIDDLE, IN>, rng: &mut ChobitRand) {
+fn test_ai(ai: &ChobitAi<OUT, MIDDLE, IN>, rng: &mut ChobitRand) {
     let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
     let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -222,9 +222,9 @@ fn test_ai(ai: &ChobitAI<OUT, MIDDLE, IN>, rng: &mut ChobitRand) {
 }
 
 fn main() {
-    let mut rng = ChobitRand::new(b"ChobitAI Example");
+    let mut rng = ChobitRand::new(b"ChobitAi Example");
 
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 
     // Randomises weights.
     ai.for_each_weight_mut(|weight| {
@@ -253,7 +253,7 @@ fn main() {
         run_thread(b"child_2", p2c_2_rx, c2p_2_tx, ai.clone(), grads.clone());
 
     // Wraps AI for machine learning.
-    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
+    let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
     let mut tmpbuf = Vec::<f32>::new();
 
     // Initialize shared gradient.

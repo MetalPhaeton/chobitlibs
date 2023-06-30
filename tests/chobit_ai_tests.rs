@@ -915,8 +915,8 @@ fn layer_test_1() {
     const BATCH_SIZE: usize = 10;
     const RATE: f32 = 0.1;
 
-    let mut ml_layer = MLLayer::new(layer_2);
-    let mut cache = MLCache::new();
+    let mut ml_layer = MlLayer::new(layer_2);
+    let mut cache = MlCache::new();
     let mut output_error = MathVec::<OUT>::new();
     let mut prev_state_error = MathVec::<OUT>::new();
     let mut input_error = MathVec::<IN>::new();
@@ -992,8 +992,8 @@ fn layer_test_2() {
     const BATCH_SIZE: usize = 10;
     const RATE: f32 = 0.1;
 
-    let mut ml_layer = MLLayer::new(layer_2);
-    let mut cache = MLCache::new();
+    let mut ml_layer = MlLayer::new(layer_2);
+    let mut cache = MlCache::new();
     let mut output_error = MathVec::<OUT>::new();
     let mut input_error = MathVec::<IN>::new();
 
@@ -1037,7 +1037,7 @@ fn chobit_ai_test_1() {
 
     let mut rng = ChobitRand::new("chobit_ai_test_1".as_bytes());
 
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
     let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -1056,8 +1056,8 @@ fn chobit_ai_test_1() {
     const BATCH_SIZE: usize = 10;
     const RATE: f32 = 0.01;
 
-    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+    let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
+    let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
     let mut output_error = MathVec::<OUT>::new();
     let mut input_error = MathVec::<IN>::new();
 
@@ -1096,7 +1096,7 @@ fn chobit_ai_test_2() {
 
     let mut rng = ChobitRand::new("chobit_ai_test_2".as_bytes());
 
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
     let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -1121,8 +1121,8 @@ fn chobit_ai_test_2() {
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
-    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+    let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
+    let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
     let mut output_error = MathVec::<OUT>::new();
     let mut input_error = MathVec::<IN>::new();
 
@@ -1163,8 +1163,8 @@ fn chobit_ai_test_3() {
 
     let mut rng = ChobitRand::new("chobit_ai_test_3".as_bytes());
 
-    let mut ai_1 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
-    let mut ai_2 = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai_1 = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai_2 = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 
     ai_1.for_each_weight_mut(|val| {
         *val = rand_num(&mut rng);
@@ -1199,13 +1199,13 @@ fn chobit_ai_test_4() {
 
     let mut rng = ChobitRand::new("chobit_ai_test_4".as_bytes());
 
-    let mut ai_1 = ChobitMLAI::<OUT, MIDDLE, IN>::new(
-        ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    let mut ai_1 = ChobitMlAi::<OUT, MIDDLE, IN>::new(
+        ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     ai_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
-    let mut ai_2 = ChobitMLAI::<OUT, MIDDLE, IN>::new(
-        ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    let mut ai_2 = ChobitMlAi::<OUT, MIDDLE, IN>::new(
+        ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     ai_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
@@ -1289,8 +1289,8 @@ fn data_to_string(data: &[MathVec<32>]) -> String {
 
 fn gen_lstm<const OUT: usize, const IN: usize>(
     rng: &mut ChobitRand
-) -> LSTM<OUT, IN> {
-    let mut ret = LSTM::<OUT, IN>::new();
+) -> Lstm<OUT, IN> {
+    let mut ret = Lstm::<OUT, IN>::new();
 
     rand_weights(rng, ret.main_layer_mut().mut_weights());
     rand_weights(rng, ret.f_gate_mut().mut_weights());
@@ -1364,12 +1364,12 @@ fn lstm_test_1() {
     const BATCH_SIZE: usize = 10;
     const RATE: f32 = 0.01;
 
-    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
-    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
+    let mut lstm = MlLstm::<OUT, IN>::new(lstm);
+    let mut output_layer = MlLayer::<OUT, OUT>::new(output_layer);
 
-    let mut lstm_state_caches = vec![MLLSTMStateCache::<OUT, IN>::new(); 30];
-    let mut lstm_output_cache = MLLSTMOutputCache::<OUT, IN>::new();
-    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
+    let mut lstm_state_caches = vec![MlLstmStateCache::<OUT, IN>::new(); 30];
+    let mut lstm_output_cache = MlLstmOutputCache::<OUT, IN>::new();
+    let mut output_layer_cache = MlCache::<OUT, OUT>::new();
     let mut output_error = MathVec::<OUT>::new();
     let mut state_error = MathVec::<OUT>::new();
     let mut input_error = MathVec::<IN>::new();
@@ -1537,12 +1537,12 @@ fn lstm_test_2() {
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
-    let mut lstm = MLLSTM::<OUT, IN>::new(lstm);
-    let mut output_layer = MLLayer::<OUT, OUT>::new(output_layer);
+    let mut lstm = MlLstm::<OUT, IN>::new(lstm);
+    let mut output_layer = MlLayer::<OUT, OUT>::new(output_layer);
 
-    let mut lstm_state_caches = vec![MLLSTMStateCache::<OUT, IN>::new(); 30];
-    let mut lstm_output_cache = MLLSTMOutputCache::<OUT, IN>::new();
-    let mut output_layer_cache = MLCache::<OUT, OUT>::new();
+    let mut lstm_state_caches = vec![MlLstmStateCache::<OUT, IN>::new(); 30];
+    let mut lstm_output_cache = MlLstmOutputCache::<OUT, IN>::new();
+    let mut output_layer_cache = MlCache::<OUT, OUT>::new();
     let mut output_error = MathVec::<OUT>::new();
     let mut state_error = MathVec::<OUT>::new();
     let mut input_error = MathVec::<IN>::new();
@@ -1754,8 +1754,8 @@ fn lstm_test_3() {
 
     let mut rng = ChobitRand::new("lstm_test_3".as_bytes());
 
-    let mut lstm_1 = LSTM::<OUT, IN>::new();
-    let mut lstm_2 = LSTM::<OUT, IN>::new();
+    let mut lstm_1 = Lstm::<OUT, IN>::new();
+    let mut lstm_2 = Lstm::<OUT, IN>::new();
 
     lstm_1.for_each_weight_mut(|val| {
         *val = rand_num(&mut rng);
@@ -1789,13 +1789,13 @@ fn lstm_test_4() {
 
     let mut rng = ChobitRand::new("lstm_test_4".as_bytes());
 
-    let mut lstm_1 = MLLSTM::<OUT, IN>::new(
-        LSTM::<OUT, IN>::new()
+    let mut lstm_1 = MlLstm::<OUT, IN>::new(
+        Lstm::<OUT, IN>::new()
     );
     lstm_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
-    let mut lstm_2 = MLLSTM::<OUT, IN>::new(
-        LSTM::<OUT, IN>::new()
+    let mut lstm_2 = MlLstm::<OUT, IN>::new(
+        Lstm::<OUT, IN>::new()
     );
     lstm_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
@@ -1865,9 +1865,9 @@ fn chobit_encoder_test_1() {
     const BATCH_SIZE: usize = 10;
     const RATE: f32 = 0.01;
 
-    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+    let mut encoder = ChobitMlEncoder::<OUT, MIDDLE, IN>::new(encoder);
     let prev_state = MathVec::<MIDDLE>::new();
-    let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(0);
+    let mut cache = MlEncoderCache::<OUT, MIDDLE, IN>::new(0);
     let mut output_error = MathVec::<OUT>::new();
     let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut prev_state_error = MathVec::<MIDDLE>::new();
@@ -1958,9 +1958,9 @@ fn chobit_encoder_test_2() {
     const BATCH_SIZE: usize = 100;
     const RATE: f32 = 0.01;
 
-    let mut encoder = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(encoder);
+    let mut encoder = ChobitMlEncoder::<OUT, MIDDLE, IN>::new(encoder);
     let prev_state = MathVec::<MIDDLE>::new();
-    let mut cache = MLEncoderCache::<OUT, MIDDLE, IN>::new(0);
+    let mut cache = MlEncoderCache::<OUT, MIDDLE, IN>::new(0);
     let mut output_error = MathVec::<OUT>::new();
     let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut prev_state_error = MathVec::<MIDDLE>::new();
@@ -2085,12 +2085,12 @@ fn chobit_encoder_test_4() {
 
     let mut rng = ChobitRand::new("chobit_encoder_test_4".as_bytes());
 
-    let mut encoder_1 = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(
+    let mut encoder_1 = ChobitMlEncoder::<OUT, MIDDLE, IN>::new(
         ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     encoder_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
-    let mut encoder_2 = ChobitMLEncoder::<OUT, MIDDLE, IN>::new(
+    let mut encoder_2 = ChobitMlEncoder::<OUT, MIDDLE, IN>::new(
         ChobitEncoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     encoder_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
@@ -2164,8 +2164,8 @@ fn chobit_decoder_test_1() {
     const BATCH_SIZE: usize = 3;
     const RATE: f32 = 0.01;
 
-    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-    let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(japanese_out.len());
+    let mut decoder = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(decoder);
+    let mut cache = MlDecoderCache::<OUT, MIDDLE, IN>::new(japanese_out.len());
     let prev_state = MathVec::<MIDDLE>::new();
     let mut output_error = vec![MathVec::<IN>::new(); 30];
     let mut input_error = MathVec::<IN>::new();
@@ -2259,8 +2259,8 @@ fn chobit_decoder_test_2() {
     const BATCH_SIZE: usize = 1;
     const RATE: f32 = 0.01;
 
-    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-    let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(japanese_out.len());
+    let mut decoder = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(decoder);
+    let mut cache = MlDecoderCache::<OUT, MIDDLE, IN>::new(japanese_out.len());
     let prev_state_j = MathVec::<MIDDLE>::new();
     let prev_state_e = MathVec::<MIDDLE>::new();
     let mut output_error = vec![MathVec::<IN>::new(); 30];
@@ -2394,12 +2394,12 @@ fn chobit_decoder_test_4() {
 
     let mut rng = ChobitRand::new("chobit_decoder_test_4".as_bytes());
 
-    let mut decoder_1 = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(
+    let mut decoder_1 = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(
         ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     decoder_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
-    let mut decoder_2 = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(
+    let mut decoder_2 = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(
         ChobitDecoder::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     decoder_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
@@ -2425,8 +2425,8 @@ fn gen_seq_ai<
     const OUT: usize,
     const MIDDLE: usize,
     const IN: usize
->(rng: &mut ChobitRand) -> ChobitSeqAI<OUT, MIDDLE, IN> {
-    let mut ret = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+>(rng: &mut ChobitRand) -> ChobitSeqAi<OUT, MIDDLE, IN> {
+    let mut ret = ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 
     rand_weights(rng, ret.enc_layer_mut().main_layer_mut().mut_weights());
     rand_weights(rng, ret.enc_layer_mut().f_gate_mut().mut_weights());
@@ -2485,8 +2485,8 @@ fn chobit_seq_ai_test_1() {
     const BATCH_SIZE: usize = 3;
     const RATE: f32 = 0.01;
 
-    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(0, 0);
+    let mut ai = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(ai);
+    let mut cache = MlSeqAiCache::<OUT, MIDDLE, IN>::new(0, 0);
     let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut output_error = vec![MathVec::<OUT>::new(); 30];
     let mut prev_state_error = MathVec::<MIDDLE>::new();
@@ -2604,8 +2604,8 @@ fn chobit_seq_ai_test_2() {
     const BATCH_SIZE: usize = 20;
     const RATE: f32 = 0.01;
 
-    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(0, 0);
+    let mut ai = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(ai);
+    let mut cache = MlSeqAiCache::<OUT, MIDDLE, IN>::new(0, 0);
     let mut input_error = vec![MathVec::<IN>::new(); 30];
     let mut output_error = vec![MathVec::<OUT>::new(); 30];
     let mut prev_state_error = MathVec::<MIDDLE>::new();
@@ -2721,13 +2721,13 @@ fn chobit_seq_ai_test_3() {
     let mut rng = ChobitRand::new("chobit_seq_ai_test_3".as_bytes());
 
     let mut ai_1 =
-        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+        ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     ai_1.for_each_weight_mut(|val| {
         *val = rand_num(&mut rng);
     });
 
     let mut ai_2 =
-        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+        ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
     ai_2.for_each_weight_mut(|val| {
         *val = rand_num(&mut rng);
     });
@@ -2755,13 +2755,13 @@ fn chobit_seq_ai_test_4() {
 
     let mut rng = ChobitRand::new("chobit_seq_ai_test_4".as_bytes());
 
-    let mut ai_1 = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(
-        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    let mut ai_1 = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(
+        ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     ai_1.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 
-    let mut ai_2 = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(
-        ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
+    let mut ai_2 = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(
+        ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign)
     );
     ai_2.for_each_total_grad_mut(|val| {*val = rand_num(&mut rng)});
 

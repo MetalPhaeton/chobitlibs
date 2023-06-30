@@ -3,9 +3,9 @@ extern crate chobitlibs;
 use chobitlibs::chobit_ai::{
     MathVec,
     Activation,
-    ChobitAI,
-    ChobitMLAI,
-    MLAICache
+    ChobitAi,
+    ChobitMlAi,
+    MlAiCache
 };
 
 use chobitlibs::chobit_rand::ChobitRand;
@@ -38,9 +38,9 @@ fn main() {
     const MIDDLE: usize = 64;
     const IN: usize = 32;
 
-    let mut rng = ChobitRand::new(b"ChobitAI Example");
+    let mut rng = ChobitRand::new(b"ChobitAi Example");
 
-    let mut ai = ChobitAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai = ChobitAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 
     // Randomises weights.
     ai.for_each_weight_mut(|weight| {
@@ -50,8 +50,8 @@ fn main() {
     let mut input = MathVec::<IN>::new();
     let mut output = MathVec::<OUT>::new();
 
-    let mut ai = ChobitMLAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLAICache::<OUT, MIDDLE, IN>::new();
+    let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
+    let mut cache = MlAiCache::<OUT, MIDDLE, IN>::new();
 
     let mut input_error = MathVec::<IN>::new();
     let mut output_error = MathVec::<OUT>::new();

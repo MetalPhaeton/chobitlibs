@@ -3,9 +3,9 @@ extern crate chobitlibs;
 use chobitlibs::chobit_ai::{
     MathVec,
     Activation,
-    ChobitSeqAI,
-    ChobitMLSeqAI,
-    MLSeqAICache
+    ChobitSeqAi,
+    ChobitMlSeqAi,
+    MlSeqAiCache
 };
 
 use chobitlibs::chobit_rand::ChobitRand;
@@ -63,9 +63,9 @@ fn main() {
     const MAX_WORD_LEN: usize = 10;
     let max_message_len = JAPANESE_MESSAGE.len().max(ENGLISH_MESSAGE.len());
 
-    let mut rng = ChobitRand::new(b"ChobitSeqAI Example");
+    let mut rng = ChobitRand::new(b"ChobitSeqAi Example");
 
-    let mut ai = ChobitSeqAI::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
+    let mut ai = ChobitSeqAi::<OUT, MIDDLE, IN>::new(Activation::SoftSign);
 
     // Randomises weights.
     ai.for_each_weight_mut(|weight| {
@@ -76,8 +76,8 @@ fn main() {
     let mut output = vec![MathVec::<OUT>::new(); max_message_len];
     let initial_state = MathVec::<MIDDLE>::new();
 
-    let mut ai = ChobitMLSeqAI::<OUT, MIDDLE, IN>::new(ai);
-    let mut cache = MLSeqAICache::<OUT, MIDDLE, IN>::new(
+    let mut ai = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(ai);
+    let mut cache = MlSeqAiCache::<OUT, MIDDLE, IN>::new(
         MAX_WORD_LEN,
         max_message_len
     );

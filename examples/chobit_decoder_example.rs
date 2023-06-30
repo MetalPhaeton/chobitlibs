@@ -4,8 +4,8 @@ use chobitlibs::chobit_ai::{
     MathVec,
     Activation,
     ChobitDecoder,
-    ChobitMLDecoder,
-    MLDecoderCache
+    ChobitMlDecoder,
+    MlDecoderCache
 };
 
 use chobitlibs::chobit_rand::ChobitRand;
@@ -43,8 +43,8 @@ fn main() {
     let mut output = vec![MathVec::<OUT>::new(); max_message_len];
     let initial_state = MathVec::<MIDDLE>::new();
 
-    let mut decoder = ChobitMLDecoder::<OUT, MIDDLE, IN>::new(decoder);
-    let mut cache = MLDecoderCache::<OUT, MIDDLE, IN>::new(max_message_len);
+    let mut decoder = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(decoder);
+    let mut cache = MlDecoderCache::<OUT, MIDDLE, IN>::new(max_message_len);
 
     let mut input_error = MathVec::<IN>::new();
     let mut output_error = vec![MathVec::<OUT>::new(); max_message_len];
