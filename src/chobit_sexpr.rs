@@ -60,6 +60,44 @@ use core::{
     fmt
 };
 
+/// Value type for [ChobitSexprError].
+#[derive(Debug, Clone, PartialEq)]
+pub enum ValueType {
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    I32,
+    U64,
+    I64,
+    U128,
+    I128,
+    F32,
+    F64,
+    Str
+}
+
+impl ValueType {
+    fn as_str(&self) -> &str {
+        match self {
+            Self::U8 => "U8",
+            Self::I8 => "I8",
+            Self::U16 => "U16",
+            Self::I16 => "I16",
+            Self::U32 => "U32",
+            Self::I32 => "I32",
+            Self::U64 => "U64",
+            Self::I64 => "I64",
+            Self::U128 => "U64",
+            Self::I128 => "I64",
+            Self::F32 => "F32",
+            Self::F64 => "F64",
+            Self::Str => "Str"
+        }
+    }
+}
+
 /// Error for [ChobitSexpr].
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChobitSexprError {
@@ -82,6 +120,48 @@ pub enum ChobitSexprError {
     NotCons
 }
 
+impl fmt::Display for ChobitSexprError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, r#"{{"error": "ChobitSexprError", "kind": "#)?;
+
+        match self {
+            Self::HeaderError(error) => {
+                <SexprHeaderError as fmt::Display>::fmt(error, formatter)?;
+            },
+
+            Self::CouldNotRead(value_type) => {
+                write!(
+                    formatter,
+                    r#""CouldNotRead", "value_type": "{}""#,
+                    value_type.as_str()
+                )?;
+            },
+
+            Self::CouldNotWrite(value_type) => {
+                write!(
+                    formatter,
+                    r#""CouldNotWrite", "value_type": "{}""#,
+                    value_type.as_str()
+                )?;
+            },
+
+            Self::NotSexpr => {
+                write!(formatter, r#""NotSexpr""#)?;
+            },
+
+            Self::NotAtom => {
+                write!(formatter, r#""NotAtom""#)?;
+            },
+
+            Self::NotCons => {
+                write!(formatter, r#""NotCons""#)?;
+            },
+        }
+
+        write!(formatter, "}}")
+    }
+}
+
 /// Error for [SexprHeader].
 #[derive(Debug, Clone, PartialEq)]
 pub enum SexprHeaderError {
@@ -89,22 +169,18 @@ pub enum SexprHeaderError {
     CouldNotConvertFromSlice
 }
 
-/// Value type for [ChobitSexprError].
-#[derive(Debug, Clone, PartialEq)]
-pub enum ValueType {
-    U8,
-    I8,
-    U16,
-    I16,
-    U32,
-    I32,
-    U64,
-    I64,
-    U128,
-    I128,
-    F32,
-    F64,
-    Str
+impl fmt::Display for SexprHeaderError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, r#"{{"error": "SexprHeaderError", "kind": "#)?;
+
+        match self {
+            Self::CouldNotConvertFromSlice => {
+                write!(formatter, r#""CouldNotConvertFromSlice""#)?;
+            }
+        }
+
+        write!(formatter, "}}")
+    }
 }
 
 /// Header size on byte string.

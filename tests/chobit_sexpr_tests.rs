@@ -5,6 +5,41 @@ use std::prelude::rust_2021::*;
 use chobitlibs::chobit_sexpr::*;
 use core::mem::size_of;
 
+#[test]
+fn display_error_test() {
+    println!(
+        "{}",
+        ChobitSexprError::HeaderError(
+            SexprHeaderError::CouldNotConvertFromSlice
+        ),
+    );
+
+    println!(
+        "{}",
+        ChobitSexprError::CouldNotRead(ValueType::I32),
+    );
+
+    println!(
+        "{}",
+        ChobitSexprError::CouldNotWrite(ValueType::U64),
+    );
+
+    println!(
+        "{}",
+        ChobitSexprError::NotSexpr,
+    );
+
+    println!(
+        "{}",
+        ChobitSexprError::NotAtom,
+    );
+
+    println!(
+        "{}",
+        ChobitSexprError::NotCons,
+    );
+}
+
 fn gen_test_data() -> Vec<u8> {
     const SIZE: usize = 1024;
 

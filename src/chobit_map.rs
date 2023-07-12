@@ -24,7 +24,7 @@
 
 use alloc::vec::Vec;
 
-use core::{iter::Iterator, slice::Iter as SIter};
+use core::{fmt, iter::Iterator, slice::Iter as SIter};
 
 /// Error for [ChobitMap]
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +38,32 @@ pub enum ChobitMapError {
     ///
     /// - `key` : Key.
     NotFound {key: u64}
+}
+
+impl fmt::Display for ChobitMapError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, r#"{{"error": "ChobitMapError", "#)?;
+
+        match self {
+            Self::AlreadyExists {key} => {
+                write!(
+                    formatter,
+                    r#""kind": "AlreadyExists", "key": {}"#,
+                    key
+                )?;
+            },
+
+            Self::NotFound {key} => {
+                write!(
+                    formatter,
+                    r#""kind": "NotFound", "key": {}"#,
+                    key
+                )?;
+            }
+        }
+
+        write!(formatter, "}}")
+    }
 }
 
 /// This is a so-called `HashMap`, but key is specialized by `u64`.

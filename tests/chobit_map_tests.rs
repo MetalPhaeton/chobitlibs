@@ -2,6 +2,19 @@ extern crate chobitlibs;
 use chobitlibs::chobit_map::*;
 
 #[test]
+fn display_error_test() {
+    println!(
+        "{}",
+        ChobitMapError::AlreadyExists {key: 100},
+    );
+
+    println!(
+        "{}",
+        ChobitMapError::NotFound {key: 200},
+    );
+}
+
+#[test]
 fn chobit_map_test() {
     const SIZE: usize = 512;
 

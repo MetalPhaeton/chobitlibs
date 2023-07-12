@@ -4,6 +4,37 @@ use std::prelude::rust_2021::*;
 
 use chobitlibs::chobit_ani_value::*;
 
+#[test]
+fn display_error_test() {
+    println!(
+        "{}",
+        ChobitAniValueError::GenerationError(
+            GenerationError::InvalidColumns
+        ),
+    );
+
+    println!(
+        "{}",
+        ChobitAniValueError::GenerationError(
+            GenerationError::InvalidFramesOfEachRow
+        ),
+    );
+
+    println!(
+        "{}",
+        ChobitAniValueError::GenerationError(
+            GenerationError::InvalidRows
+        ),
+    );
+
+    println!(
+        "{}",
+        ChobitAniValueError::GenerationError(
+            GenerationError::InvalidFramesPerSecond
+        ),
+    );
+}
+
 fn gen_chobit_ani_value() -> ChobitAniValue {
     assert_eq!(
         ChobitAniValue::new(0, &[3usize, 4, 5], 10.0),
