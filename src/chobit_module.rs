@@ -206,7 +206,7 @@ impl<T> ChobitModule<T> {
     }
 }
 
-/// Defines WASM module.
+/// Defines WASM module. Defined in _chobit_module.rs_ .
 ///
 /// ```ignore
 /// use chobitlibs::chobit_module::{ChobitModule, chobit_module};
