@@ -17,7 +17,7 @@
 //! Neural network library.
 //!
 //! This library needs `alloc` crate.  
-//! This Ai works on single thread, but is able to work on `no_std`.  
+//! This AI works on single thread, but is able to work on `no_std`.  
 //! (But you can devise to do machine learning in multithread. See the following list.)
 //!
 //! - [Example of Single Thread Machine Learning](#example-of-single-thread-machine-learning)
@@ -89,7 +89,7 @@
 //! let mut output = MathVec::<OUT>::new();
 //! ```
 //!
-//! (3) Wraps Ai with [`ChobitMlAi`] for machine learning.
+//! (3) Wraps AI with [`ChobitMlAi`] for machine learning.
 //!
 //! ```ignore
 //! let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
@@ -140,7 +140,7 @@
 //! }
 //! ```
 //!
-//! (5) Tests Ai.
+//! (5) Tests AI.
 //!
 //! ```ignore
 //! // Unwrap Ai.
@@ -269,7 +269,7 @@
 //!     });
 //! }
 //! 
-//! // Loads from shared gradient to Ai's gradient.
+//! // Loads from shared gradient to AI's gradient.
 //! fn load_grad(
 //!     ai: &mut ChobitMlAi<OUT, MIDDLE, IN>,
 //!     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
@@ -285,7 +285,7 @@
 //!     });
 //! }
 //! 
-//! // Adds Ai's gradient to shared gradient.
+//! // Adds AI's gradient to shared gradient.
 //! fn save_grad(
 //!     ai: &ChobitMlAi<OUT, MIDDLE, IN>,
 //!     grads: &Arc<Mutex<(Vec<f32>, Vec<f32>)>>
@@ -332,7 +332,7 @@
 //!     let rng_seed = rng_seed.to_vec();
 //! 
 //!     thread::spawn(move || {
-//!         // Wraps Ai for machine learning.
+//!         // Wraps AI for machine learning.
 //!         let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
 //! 
 //!         let mut rng = ChobitRand::new(&rng_seed);
@@ -397,7 +397,7 @@
 //! }
 //! ```
 //! 
-//! (6) Defines Ai test.
+//! (6) Defines AI test.
 //! 
 //! ```ignore
 //! fn test_ai(ai: &ChobitAi<OUT, MIDDLE, IN>, rng: &mut ChobitRand) {
@@ -425,7 +425,7 @@
 //! }
 //! ```
 //! 
-//! (7) Starts main thread and Creates Ai and randomise weights.
+//! (7) Starts main thread and Creates AI and randomise weights.
 //! 
 //! ```ignore
 //! fn main() {
@@ -475,7 +475,7 @@
 //! (11) Process on parent thread.
 //! 
 //! ```ignore
-//!     // Wraps Ai for machine learning.
+//!     // Wraps AI for machine learning.
 //!     let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
 //!     let mut tmpbuf = Vec::<f32>::new();
 //! 
@@ -2090,7 +2090,7 @@ impl<const OUT: usize, const IN: usize> MlLayer<OUT, IN> {
     }
 }
 
-/// Ai for fixed length data.
+/// AI for fixed length data.
 ///
 /// - `OUT` : Dimension of output.
 /// - `MIDDLE` : Dimension of hidden layer.
@@ -2161,7 +2161,7 @@ impl<const OUT: usize, const IN: usize> MlLayer<OUT, IN> {
 /// let mut output = MathVec::<OUT>::new();
 /// ```
 ///
-/// (3) Wraps Ai with [`ChobitMlAi`] for machine learning.
+/// (3) Wraps AI with [`ChobitMlAi`] for machine learning.
 ///
 /// ```ignore
 /// let mut ai = ChobitMlAi::<OUT, MIDDLE, IN>::new(ai);
@@ -2212,10 +2212,10 @@ impl<const OUT: usize, const IN: usize> MlLayer<OUT, IN> {
 /// }
 /// ```
 ///
-/// (5) Tests Ai.
+/// (5) Tests AI.
 ///
 /// ```ignore
-/// // Unwrap Ai.
+/// // Unwrap AI.
 /// let ai = ai.drop();
 ///
 /// let mut tmpbuf = MathVec::<MIDDLE>::new();
@@ -2529,7 +2529,7 @@ impl<
     }
 }
 
-/// [Peephole Lstm](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_Lstm)
+/// [Peephole LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory#Peephole_Lstm)
 ///
 /// | Formula |
 /// |:-:|
@@ -2846,7 +2846,7 @@ impl<const OUT: usize, const IN: usize> MlLstmOutputCache<OUT, IN> {
     pub fn output(&self) -> &MathVec<OUT> {&self.output}
 }
 
-/// Lstm for machine learning.
+/// LSTM for machine learning.
 ///
 /// See [`Lstm`] for details.
 ///
@@ -3436,7 +3436,7 @@ impl<const OUT: usize, const IN: usize> MlLstm<OUT, IN> {
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (3) Wraps Ai with [`ChobitMlEncoder`] for machine learning.
+/// (3) Wraps AI with [`ChobitMlEncoder`] for machine learning.
 ///
 /// ```ignore
 /// let mut encoder = ChobitMlEncoder::<OUT, MIDDLE, IN>::new(encoder);
@@ -4112,7 +4112,7 @@ impl<
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (3) Wraps Ai with [`ChobitMlDecoder`] for machine learning.
+/// (3) Wraps AI with [`ChobitMlDecoder`] for machine learning.
 ///
 /// ```ignore
 /// let mut decoder = ChobitMlDecoder::<OUT, MIDDLE, IN>::new(decoder);
@@ -4195,7 +4195,7 @@ impl<
 /// }
 /// ```
 ///
-/// (5) Tests Ai.
+/// (5) Tests AI.
 ///
 /// ```ignore
 /// // Unwrap Decoder.
@@ -4712,7 +4712,7 @@ impl<
     }
 }
 
-/// Seq2Seq Ai.
+/// Seq2Seq AI.
 ///
 /// - `OUT` : Dimension of output.
 /// - `MIDDLE` : Dimension of hidden layer.
@@ -4809,7 +4809,7 @@ impl<
 /// let initial_state = MathVec::<MIDDLE>::new();
 /// ```
 ///
-/// (3) Wraps Ai with [`ChobitMlSeqAi`] for machine learning.
+/// (3) Wraps AI with [`ChobitMlSeqAi`] for machine learning.
 ///
 /// ```ignore
 /// let mut ai = ChobitMlSeqAi::<OUT, MIDDLE, IN>::new(ai);
@@ -4897,10 +4897,10 @@ impl<
 /// }
 /// ```
 ///
-/// (5) Tests Ai.
+/// (5) Tests AI.
 ///
 /// ```ignore
-/// // Unwrap Ai.
+/// // Unwrap AI.
 /// let mut ai = ai.drop();
 ///
 /// let mut output = MathVec::<OUT>::new();
