@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-//#![allow(dead_code)]
+#![allow(dead_code)]
 
 //! Utility for UV animation.
 //!
@@ -422,6 +422,43 @@ impl ChobitAniValue {
     /// - `frames_of_each_row` : Frames of each row of UV frame. (lenght must be 1 or more and each element must be 1 or more)
     /// - `frames_per_second` : Frames per seconds. (must be `f32::EPSILON` or more)
     /// - _Return_ : ChobitAniValue.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // Columns are 4, because the 1st argument is 4.
+    /// assert_eq!(ani_value.columns(), 4);
+    ///
+    /// // Rows are 2, because the length of the 2nd argument is 2.
+    /// assert_eq!(ani_value.rows(), 2);
+    ///
+    /// // This equals the 3rd argument.
+    /// assert_eq!(ani_value.frames_per_second(), 4.0);
+    ///
+    /// // This is reciprocal of the 3rd argument.
+    /// assert_eq!(ani_value.seconds_per_frame(), 0.25);
+    ///
+    /// // The last frame of the 1st row is 3,
+    /// // because the 1st element of the 2nd argument is 4.
+    /// // (the 1st frame is 0)
+    /// ani_value.set_row(0);  // the 1st row is 0.
+    /// assert_eq!(ani_value.last_frame(), 3);
+    ///
+    /// // The last frame of the 2nd row is 1,
+    /// // because the 2nd element of the 2nd argument is 2.
+    /// // (the 1st frame is 0)
+    /// ani_value.set_row(1);  // the 2nd row is 1.
+    /// assert_eq!(ani_value.last_frame(), 1);
+    /// ```
     pub fn new(
         columns: usize,
         frames_of_each_row: &[usize],
@@ -581,24 +618,139 @@ impl ChobitAniValue {
         unsafe {*self.last_frame.get_unchecked(self.current_row)}
     }
 
+    /// Gets saved time for changing frame.
+    ///
+    /// - _Return_ : Saved time.
     #[inline]
     pub fn saved_time(&self) -> f32 {self.saved_time}
 
+    /// Gets mutable saved time for changing frame.
+    ///
+    /// - _Return_ : Mutable saved time.
     #[inline]
     pub fn saved_time_mut(&mut self) -> &mut f32 {&mut self.saved_time}
 
+    /// Gets seconds per frame.
+    ///
+    /// - _Return_ : Seconds per frame.
     #[inline]
     pub fn seconds_per_frame(&self) -> f32 {self.seconds_per_frame}
 
+    /// Gets frames per second.
+    ///
+    /// - _Return_ : Frames per second.
     #[inline]
     pub fn frames_per_second(&self) -> f32 {self.seconds_per_frame.recip()}
 
+    /// Gets width of UV frame. [0.0, 1.0]
+    ///
+    /// - _Return_ : Width of UV frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // 0.25 because columns are 4.
+    /// assert_eq!(ani_value.uv_frame_width(), 0.25);
+    /// ```
     #[inline]
     pub fn uv_frame_width(&self) -> f32 {self.uv_frame_width}
 
+    /// Gets height of UV frame. [0.0, 1.0]
+    ///
+    /// - _Return_ : height of UV frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // 0.5 because rows are 2.
+    /// assert_eq!(ani_value.uv_frame_height(), 0.5);
+    /// ```
     #[inline]
     pub fn uv_frame_height(&self) -> f32 {self.uv_frame_height}
 
+    /// Gets (left, top, right, bottom) of UV frame at current frame.
+    ///
+    /// - _Return_ : (left, top, right, bottom) of UV frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // ----- The 1st row ----- //
+    /// ani_value.set_row(0);
+    ///
+    /// // The 1st frame.
+    /// ani_value.set_frame(0);
+    /// assert_eq!(
+    ///     ani_value.uv_frame_left_top_right_bottom(),
+    ///     &(0.0, 0.0, 0.25, 0.5)
+    /// );
+    ///
+    /// // The 2nd frame.
+    /// ani_value.set_frame(1);
+    /// assert_eq!(
+    ///     ani_value.uv_frame_left_top_right_bottom(),
+    ///     &(0.25, 0.0, 0.5, 0.5)
+    /// );
+    ///
+    /// // The 3rd frame.
+    /// ani_value.set_frame(2);
+    /// assert_eq!(
+    ///     ani_value.uv_frame_left_top_right_bottom(),
+    ///     &(0.5, 0.0, 0.75, 0.5)
+    /// );
+    ///
+    /// // The 4th frame.
+    /// ani_value.set_frame(3);
+    /// assert_eq!(
+    ///     ani_value.uv_frame_left_top_right_bottom(),
+    ///     &(0.75, 0.0, 1.0, 0.5)
+    /// );
+    ///
+    /// // ----- The 2nd row ----- //
+    /// ani_value.set_row(1);
+    ///
+    /// // The 1st frame.
+    /// ani_value.set_frame(0);
+    /// assert_eq!(
+    ///     ani_value.uv_frame_left_top_right_bottom(),
+    ///     &(0.0, 0.5, 0.25, 1.0)
+    /// );
+    ///
+    /// // The 2nd frame.
+    /// ani_value.set_frame(1);
+    /// assert_eq!(
+    ///     ani_value.uv_frame_left_top_right_bottom(),
+    ///     &(0.25, 0.5, 0.5, 1.0)
+    /// );
+    /// ```
+    ///
     #[inline]
     pub fn uv_frame_left_top_right_bottom(
         &self
@@ -620,17 +772,26 @@ impl ChobitAniValue {
         }
     }
 
+    /// Sets frames per second.
+    ///
+    /// - `frames_per_second` : Frames per second.
     #[inline]
     pub fn set_frames_per_second(&mut self, frames_per_second: f32) {
         self.seconds_per_frame = frames_per_second.recip();
     }
 
+    /// Sets current frame of current row.
+    ///
+    /// - `frame` : Current frame.
     #[inline]
     pub fn set_frame(&mut self, frame: usize) {
         self.saved_time = 0.0;
         self.current_frame = self.last_frame().min(frame);
     }
 
+    /// Sets current row.
+    ///
+    /// - `row` : Current row.
     #[inline]
     pub fn set_row(&mut self, row: usize) {
         self.saved_time = 0.0;
@@ -659,6 +820,52 @@ impl ChobitAniValue {
         self.current_frame
     }
 
+    /// Changes current frame into next frame.
+    ///
+    /// If current frame is the last frame, changes it into the first frame.
+    ///
+    /// - _Return_ : Changed current frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // ----- The 1st row ----- //
+    /// ani_value.set_row(0);
+    ///
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.next_frame(), 1);
+    /// assert_eq!(ani_value.current_frame(), 1);
+    ///
+    /// assert_eq!(ani_value.next_frame(), 2);
+    /// assert_eq!(ani_value.current_frame(), 2);
+    ///
+    /// assert_eq!(ani_value.next_frame(), 3);
+    /// assert_eq!(ani_value.current_frame(), 3);
+    ///
+    /// assert_eq!(ani_value.next_frame(), 0);
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// // ----- The 2nd row ----- //
+    /// ani_value.set_row(1);
+    ///
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.next_frame(), 1);
+    /// assert_eq!(ani_value.current_frame(), 1);
+    ///
+    /// assert_eq!(ani_value.next_frame(), 0);
+    /// assert_eq!(ani_value.current_frame(), 0);
+    /// ```
     #[inline]
     pub fn next_frame(&mut self) -> usize {
         self.saved_time = 0.0;
@@ -686,12 +893,95 @@ impl ChobitAniValue {
         self.current_frame
     }
 
+    /// Changes current frame into previous frame.
+    ///
+    /// If current frame is the first frame, changes it into the last frame.
+    ///
+    /// - _Return_ : Changed current frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // ----- The 1st row ----- //
+    /// ani_value.set_row(0);
+    ///
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.prev_frame(), 3);
+    /// assert_eq!(ani_value.current_frame(), 3);
+    ///
+    /// assert_eq!(ani_value.prev_frame(), 2);
+    /// assert_eq!(ani_value.current_frame(), 2);
+    ///
+    /// assert_eq!(ani_value.prev_frame(), 1);
+    /// assert_eq!(ani_value.current_frame(), 1);
+    ///
+    /// assert_eq!(ani_value.prev_frame(), 0);
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// // ----- The 2nd row ----- //
+    /// ani_value.set_row(1);
+    ///
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.prev_frame(), 1);
+    /// assert_eq!(ani_value.current_frame(), 1);
+    ///
+    /// assert_eq!(ani_value.prev_frame(), 0);
+    /// assert_eq!(ani_value.current_frame(), 0);
+    /// ```
     #[inline]
     pub fn prev_frame(&mut self) -> usize {
         self.saved_time = 0.0;
         self.prev_frame_core()
     }
 
+    /// Saves `dt` and changes current frame into next frame by seconds per frame.
+    ///
+    /// - `dt` : Delta time. (seconds)
+    /// - _Return_ : Current frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // FPS is 4.0, so after 0.25 seconds, frame goes next.
+    /// ani_value.set_frame(0);  // total 0.0 seconds.
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.elapse(0.2), 0);  // total 0.2 seconds.
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.elapse(0.2), 1);  // total 0.4 seconds.
+    /// assert_eq!(ani_value.current_frame(), 1);
+    ///
+    /// assert_eq!(ani_value.elapse(0.2), 2);  // total 0.6 seconds.
+    /// assert_eq!(ani_value.current_frame(), 2);
+    ///
+    /// // Reset.
+    /// ani_value.set_frame(0);  // total 0.0 seconds.
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.elapse(0.6), 2);  // total 0.6 seconds.
+    /// assert_eq!(ani_value.current_frame(), 2);
+    /// ```
     #[inline]
     pub fn elapse(&mut self, dt: f32) -> usize {
         self.saved_time += dt;
@@ -707,6 +997,43 @@ impl ChobitAniValue {
         ret
     }
 
+    /// Saves `dt` and changes current frame into previous frame by seconds per frame.
+    ///
+    /// - `dt` : Delta time. (seconds)
+    /// - _Return_ : Current frame.
+    ///
+    /// ```ignore
+    /// use chobitlibs::chobit_ani_value::ChobitAniValue;
+    ///
+    /// // Columns are 4, rows are 2.
+    /// // The 1st row has 4 frames.
+    /// // The 2nd row has 2 frames.
+    /// // | * | * | * | * |
+    /// // | * | * |   |   |
+    /// //
+    /// // FPS is 4.0.
+    /// let mut ani_value = ChobitAniValue::new(4, &[4, 2], 4.0).unwrap();
+    ///
+    /// // FPS is 4.0, so after 0.25 seconds, frame goes previous.
+    /// ani_value.set_frame(0);  // total 0.0 seconds.
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.elapse_inv(0.2), 0);  // total 0.2 seconds.
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.elapse_inv(0.2), 3);  // total 0.4 seconds.
+    /// assert_eq!(ani_value.current_frame(), 3);
+    ///
+    /// assert_eq!(ani_value.elapse_inv(0.2), 2);  // total 0.6 seconds.
+    /// assert_eq!(ani_value.current_frame(), 2);
+    ///
+    /// // Reset.
+    /// ani_value.set_frame(0);  // total 0.0 seconds.
+    /// assert_eq!(ani_value.current_frame(), 0);
+    ///
+    /// assert_eq!(ani_value.elapse_inv(0.6), 2);  // total 0.6 seconds.
+    /// assert_eq!(ani_value.current_frame(), 2);
+    /// ```
     #[inline]
     pub fn elapse_inv(&mut self, dt: f32) -> usize {
         self.saved_time += dt;
