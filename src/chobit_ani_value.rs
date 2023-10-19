@@ -230,6 +230,8 @@
 //!
 //! [ChobitAniValue] helps to calculate left, top, right, bottom coordinates.
 //!
+//! # Example
+//!
 //! ```ignore
 //! use chobitlibs::chobit_ani_value::ChobitAniValue;
 //!
@@ -238,7 +240,7 @@
 //! assert_eq!(ani_value.uv_frame_width(), 0.25);
 //! assert_eq!(ani_value.uv_frame_height(), 0.5);
 //!
-//! // 1st frame of 1st row.
+//! // The 1st frame of the 1st row.
 //! ani_value.set_frame(0);
 //! ani_value.set_row(0);
 //! assert_eq!(
@@ -246,7 +248,7 @@
 //!     &(0.0, 0.0, 0.25, 0.5)
 //! );
 //!
-//! // 2nd frame of 1st row.
+//! // The 2nd frame of the 1st row.
 //! let frame_number = ani_value.next_frame();
 //! assert_eq!(frame_number, 1);
 //! assert_eq!(
@@ -254,7 +256,7 @@
 //!     &(0.25, 0.0, 0.5, 0.5)
 //! );
 //!
-//! // 3rd frame of 1st row.
+//! // The 3rd frame of the 1st row.
 //! let frame_number = ani_value.next_frame();
 //! assert_eq!(frame_number, 2);
 //! assert_eq!(
@@ -262,7 +264,7 @@
 //!     &(0.5, 0.0, 0.75, 0.5)
 //! );
 //!
-//! // 4th frame of 1st row.
+//! // The 4th frame of the 1st row.
 //! let frame_number = ani_value.next_frame();
 //! assert_eq!(frame_number, 3);
 //! assert_eq!(
@@ -270,7 +272,7 @@
 //!     &(0.75, 0.0, 1.0, 0.5)
 //! );
 //!
-//! // 1st frame of 1st row.
+//! // The 1st frame of the 1st row.
 //! let frame_number = ani_value.next_frame();
 //! assert_eq!(frame_number, 0);
 //! assert_eq!(
@@ -278,7 +280,7 @@
 //!     &(0.0, 0.0, 0.25, 0.5)
 //! );
 //!
-//! // 1st frame of 2nd row.
+//! // The 1st frame of the 2nd row.
 //! ani_value.set_frame(0);
 //! ani_value.set_row(1);
 //! assert_eq!(
@@ -286,7 +288,7 @@
 //!     &(0.0, 0.5, 0.25, 1.0)
 //! );
 //!
-//! // 2nd frame of 2nd row.
+//! // The 2nd frame of the 2nd row.
 //! let frame_number = ani_value.next_frame();
 //! assert_eq!(frame_number, 1);
 //! assert_eq!(
@@ -294,7 +296,7 @@
 //!     &(0.25, 0.5, 0.5, 1.0)
 //! );
 //!
-//! // 1st frame of 2nd row.
+//! // The 1st frame of the 2nd row.
 //! let frame_number = ani_value.next_frame();
 //! assert_eq!(frame_number, 0);
 //! assert_eq!(
@@ -302,8 +304,6 @@
 //!     &(0.0, 0.5, 0.25, 1.0)
 //! );
 //! ```
-//!
-//!
 
 use alloc::{vec::Vec, boxed::Box};
 use core::fmt;
@@ -311,27 +311,6 @@ use core::fmt;
 /// Error for [ChobitAniValue]
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChobitAniValueError {
-    /// Error at [ChobitAniValue::new()]
-    GenerationError(GenerationError),
-}
-
-impl fmt::Display for ChobitAniValueError {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, r#"{{"error": "ChobitAniValueError", "kind": "#)?;
-
-        match self {
-            Self::GenerationError(error) => {
-                <GenerationError as fmt::Display>::fmt(error, formatter)?;
-            }
-        }
-
-        write!(formatter, "}}")
-    }
-}
-
-/// Generation error of [ChobitAniValue::new()]
-#[derive(Debug, Clone, PartialEq)]
-pub enum GenerationError {
     /// 1st argument of [ChobitAniValue::new()] is wrong.  
     /// It must be [MIN_COLUMNS] or more.
     InvalidColumns,
@@ -349,9 +328,9 @@ pub enum GenerationError {
     InvalidFramesPerSecond
 }
 
-impl fmt::Display for GenerationError {
+impl fmt::Display for ChobitAniValueError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, r#"{{"error": "GenerationError", "kind": "#)?;
+        write!(formatter, r#"{{"error": "ChobitAniValueError", "kind": "#)?;
 
         match self {
             Self::InvalidColumns => {
@@ -372,13 +351,6 @@ impl fmt::Display for GenerationError {
         }
 
         write!(formatter, "}}")
-    }
-}
-
-impl From<GenerationError> for ChobitAniValueError {
-    #[inline]
-    fn from(error: GenerationError) -> Self {
-        ChobitAniValueError::GenerationError(error)
     }
 }
 
@@ -465,23 +437,17 @@ impl ChobitAniValue {
         frames_per_second: f32,
     ) -> Result<Self, ChobitAniValueError> {
         if columns < MIN_COLUMNS {
-            return Err(ChobitAniValueError::from(
-                GenerationError::InvalidColumns
-            ));
+            return Err(ChobitAniValueError::InvalidColumns);
         }
 
         if frames_per_second < MIN_FRAMES_PER_SECOND {
-            return Err(ChobitAniValueError::from(
-                GenerationError::InvalidFramesPerSecond
-            ));
+            return Err(ChobitAniValueError::InvalidFramesPerSecond);
         }
 
         let rows = frames_of_each_row.len();
 
         if rows < MIN_ROWS {
-            return Err(ChobitAniValueError::from(
-                GenerationError::InvalidRows
-            ));
+            return Err(ChobitAniValueError::InvalidRows);
         }
 
         let mut last_frame = Vec::<usize>::with_capacity(rows);
@@ -490,9 +456,7 @@ impl ChobitAniValue {
             if (frames >= MIN_FRAMES) && (frames <= columns) {
                 last_frame.push(frames - 1);
             } else {
-                return Err(ChobitAniValueError::from(
-                    GenerationError::InvalidFramesOfEachRow
-                ));
+                return Err(ChobitAniValueError::InvalidFramesOfEachRow);
             }
         }
 

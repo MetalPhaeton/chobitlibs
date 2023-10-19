@@ -8,67 +8,49 @@ use chobitlibs::chobit_ani_value::*;
 fn display_error_test() {
     println!(
         "{}",
-        ChobitAniValueError::GenerationError(
-            GenerationError::InvalidColumns
-        ),
+        ChobitAniValueError::InvalidColumns,
     );
 
     println!(
         "{}",
-        ChobitAniValueError::GenerationError(
-            GenerationError::InvalidFramesOfEachRow
-        ),
+        ChobitAniValueError::InvalidFramesOfEachRow,
     );
 
     println!(
         "{}",
-        ChobitAniValueError::GenerationError(
-            GenerationError::InvalidRows
-        ),
+        ChobitAniValueError::InvalidRows,
     );
 
     println!(
         "{}",
-        ChobitAniValueError::GenerationError(
-            GenerationError::InvalidFramesPerSecond
-        ),
+        ChobitAniValueError::InvalidFramesPerSecond,
     );
 }
 
 fn gen_chobit_ani_value() -> ChobitAniValue {
     assert_eq!(
         ChobitAniValue::new(0, &[3usize, 4, 5], 10.0),
-        Err(ChobitAniValueError::GenerationError(
-            GenerationError::InvalidColumns
-        ))
+        Err(ChobitAniValueError::InvalidColumns)
     );
 
     assert_eq!(
         ChobitAniValue::new(5, &[], 10.0),
-        Err(ChobitAniValueError::GenerationError(
-            GenerationError::InvalidRows
-        ))
+        Err(ChobitAniValueError::InvalidRows)
     );
 
     assert_eq!(
         ChobitAniValue::new(5, &[0usize, 4, 5], 10.0),
-        Err(ChobitAniValueError::GenerationError(
-            GenerationError::InvalidFramesOfEachRow
-        ))
+        Err(ChobitAniValueError::InvalidFramesOfEachRow)
     );
 
     assert_eq!(
         ChobitAniValue::new(5, &[7usize, 4, 5], 10.0),
-        Err(ChobitAniValueError::GenerationError(
-            GenerationError::InvalidFramesOfEachRow
-        ))
+        Err(ChobitAniValueError::InvalidFramesOfEachRow)
     );
 
     assert_eq!(
         ChobitAniValue::new(5, &[3usize, 4, 5], 0.0),
-        Err(ChobitAniValueError::GenerationError(
-            GenerationError::InvalidFramesPerSecond
-        ))
+        Err(ChobitAniValueError::InvalidFramesPerSecond)
     );
 
     ChobitAniValue::new(5, &[3usize, 4, 5], 10.0).unwrap()
