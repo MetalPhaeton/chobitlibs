@@ -298,6 +298,14 @@ impl SexprHeader {
         self.body
     }
 
+    /// Convert into bytes.
+    ///
+    /// - _Return_ : Header as bytes.
+    #[inline]
+    pub const fn to_bytes(&self) -> [u8; HEADER_SIZE] {
+        self.body.to_le_bytes()
+    }
+
     /// Judge if atom or not.
     ///
     /// - _Return_ : If atom, true.
@@ -358,7 +366,7 @@ impl From<[u8; HEADER_SIZE]> for SexprHeader {
 impl From<SexprHeader> for [u8; HEADER_SIZE] {
     #[inline]
     fn from(header: SexprHeader) -> Self {
-        header.body.to_le_bytes()
+        header.to_bytes()
     }
 }
 
@@ -378,7 +386,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///
 /// let mut body = Vec::<u8>::new();
 ///
-/// body.extend_from_slice(&header.to_u32().to_le_bytes());
+/// body.extend_from_slice(&header.to_bytes());
 /// body.extend_from_slice(&payload);
 ///
 /// let sexpr = ChobitSexpr::new(&body);
@@ -402,7 +410,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///
 ///     let mut body = Vec::<u8>::new();
 ///
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&car_payload);
 ///
 ///     body
@@ -417,7 +425,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///
 ///     let mut body = Vec::<u8>::new();
 ///
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&cdr_payload);
 ///
 ///     body
@@ -428,7 +436,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 /// let mut body = Vec::<u8>::new();
 /// let header = SexprHeader::new_cons(car.as_bytes().len());
 ///
-/// body.extend_from_slice(&header.to_u32().to_le_bytes());
+/// body.extend_from_slice(&header.to_bytes());
 /// body.extend_from_slice(car.as_bytes());
 /// body.extend_from_slice(cdr.as_bytes());
 ///
@@ -454,7 +462,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<i8>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -467,7 +475,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<u8>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -480,7 +488,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<i16>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -493,7 +501,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<u16>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -506,7 +514,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<i32>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -519,7 +527,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<u32>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -532,7 +540,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<i64>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -545,7 +553,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<u64>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -558,7 +566,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<i128>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -571,7 +579,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<u128>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -584,7 +592,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<f32>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_bits().to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -597,7 +605,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(std::mem::size_of::<f64>());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.to_bits().to_le_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -610,7 +618,7 @@ impl From<SexprHeader> for [u8; HEADER_SIZE] {
 ///     let header = SexprHeader::new_atom(value.as_bytes().len());
 ///
 ///     let mut body = Vec::<u8>::new();
-///     body.extend_from_slice(&header.to_u32().to_le_bytes());
+///     body.extend_from_slice(&header.to_bytes());
 ///     body.extend_from_slice(&value.as_bytes());
 ///
 ///     let sexpr = ChobitSexpr::new(&body);
@@ -1393,7 +1401,7 @@ impl ChobitSexprBuf<Empty> {
         let Self {mut buffer, ..} = self;
 
         buffer.extend_from_slice(
-            &SexprHeader::new_atom(value.len()).to_le_bytes()
+            &SexprHeader::new_atom(value.len()).to_bytes()
         );
 
         buffer.extend_from_slice(value);
@@ -1411,7 +1419,7 @@ impl ChobitSexprBuf<Empty> {
     pub fn push_nil(self) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
 
-        buffer.extend_from_slice(&SexprHeader::new_nil().to_le_bytes());
+        buffer.extend_from_slice(&SexprHeader::new_nil().to_bytes());
 
         ChobitSexprBuf::<Completed> {
             buffer: buffer,
@@ -1481,7 +1489,7 @@ impl ChobitSexprBuf<Car> {
         let bytes = sexpr.as_bytes();
 
         buffer.extend_from_slice(
-            &SexprHeader::new_cons(bytes.len()).to_le_bytes()
+            &SexprHeader::new_cons(bytes.len()).to_bytes()
         );
 
         buffer.extend_from_slice(bytes);
@@ -1523,7 +1531,7 @@ impl ChobitSexprBuf<List> {
         let bytes = sexpr.as_bytes();
 
         buffer.extend_from_slice(
-            &SexprHeader::new_cons(bytes.len()).to_le_bytes()
+            &SexprHeader::new_cons(bytes.len()).to_bytes()
         );
 
         buffer.extend_from_slice(bytes);
@@ -1541,7 +1549,7 @@ impl ChobitSexprBuf<List> {
     pub fn finish(self) -> ChobitSexprBuf<Completed> {
         let Self {mut buffer, ..} = self;
 
-        buffer.extend_from_slice(&SexprHeader::new_nil().to_le_bytes());
+        buffer.extend_from_slice(&SexprHeader::new_nil().to_bytes());
 
         ChobitSexprBuf::<Completed> {
             buffer: buffer,
