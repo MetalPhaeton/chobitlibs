@@ -534,3 +534,8 @@ fn sexpr_fmt_test() {
 
     println!("{}", sexpr.as_sexpr());
 }
+
+#[test]
+fn nil_test() {
+    assert_eq!(ChobitSexpr::nil().atom().unwrap(), &[]);
+}

@@ -715,6 +715,14 @@ macro_rules! def_read_write {
 }
 
 impl ChobitSexpr {
+    #[inline]
+    pub fn nil() -> &'static ChobitSexpr {
+        static BYTES: [u8; HEADER_SIZE] =
+            SexprHeader::new_nil().to_bytes();
+
+        ChobitSexpr::new(&BYTES)
+    }
+
     /// Creates immutable ChobitSexpr.
     ///
     /// - `value` : Body of the instance.
