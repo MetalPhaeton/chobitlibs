@@ -35,3 +35,5 @@ pub mod chobit_complex;
 pub mod chobit_playbook;
 
 pub mod chobit_ani_value;
+
+pub mod chobit_flow;
