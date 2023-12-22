@@ -12,7 +12,7 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use alloc::{rc::Rc, vec::Vec, boxed::Box};
+use alloc::{rc::Rc, vec, vec::Vec, boxed::Box};
 use core::{cell::RefCell, fmt};
 
 pub trait OperatorError : fmt::Debug {
@@ -45,39 +45,27 @@ pub enum Data {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum OperatorCommand<'a> {
-    Go(&'a [Option<Data>]),
+pub enum OperatorCommand {
+    Go,
     Stop(Option<Data>),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Inlet {
-    sender: Option<u64>,
-    data: Option<Data>
-}
-
-impl Inlet {
-    #[inline]
-    pub fn data(&self) -> Option<&Data> {
-        self.data.as_ref()
-    }
 }
 
 pub trait Operator {
     fn receive(
         &mut self,
-        inlets: &[Inlet]
+        inlets: &[Option<Data>],
+        outlets: &mut [Option<Data>]
     ) -> Result<OperatorCommand, Box<dyn OperatorError>>;
 
     fn resume(
         &mut self,
-        data: Option<Data>
+        data: Option<Data>,
+        outlets: &mut [Option<Data>]
     ) -> Result<OperatorCommand, Box<dyn OperatorError>>;
 }
 
 pub enum GraphError {
     Operator(Box<dyn OperatorError>),
-    NumberOfOutletsIsWrong {wrong: usize, correct: usize},
     NodeNotFound {id: u64},
     OutletNotFound {id: u64, outlet_pos: usize},
     InletNotFound {id: u64, inlet_pos: usize},
@@ -99,20 +87,19 @@ pub enum ChobitFlowResult {
     Stopped(u64)
 }
 
-#[derive(Debug, Clone, PartialEq)]
-struct Outlet {
-    receivers: Vec<(u64, usize)>,  // (id, inlet position)
-    data: Option<Data>
-}
-
 struct Node {
     operator: Box<dyn Operator>,
 
     id: u64,
-    inlets: Box<[Inlet]>,
-    outlets: Box<[Outlet]>,
+
+    senders: Box<[Option<u64>]>,
+    inlets: Box<[Option<Data>]>,
+
+    receivers: Box<[Vec<(u64, usize)>]>,
+    outlets: Box<[Option<Data>]>,
 
     standby_data: Option<Data>,
+
     current_outlet: usize,
     current_receiver: usize
 }
@@ -120,20 +107,7 @@ struct Node {
 macro_rules! handle_operator_result {
     ($self:expr, $result:expr) => {
         match $result {
-            Ok(OperatorCommand::Go(outputs)) => {
-                if outputs.len() == (*$self.outlets).len() {
-                    outputs.iter().zip((*$self.outlets).iter_mut()).for_each(
-                        |(output, outlet)| {outlet.data = output.clone();}
-                    );
-
-                    $self.continue_output()
-                } else {
-                    Err(GraphError::NumberOfOutletsIsWrong {
-                        wrong: outputs.len(),
-                        correct: (*$self.outlets).len()
-                    })
-                }
-            },
+            Ok(OperatorCommand::Go) => $self.continue_output(),
 
             Ok(OperatorCommand::Stop(data)) => {
                 $self.standby_data = data;
@@ -146,11 +120,42 @@ macro_rules! handle_operator_result {
 }
 
 impl Node {
+    #[inline]
+    fn new(
+        operator: Box<dyn Operator>,
+        id: u64,
+        inlet_size: usize,
+        outlet_size: usize
+    ) -> Self {
+        Node {
+            operator: operator,
+            id: id,
+
+            senders: vec![None; inlet_size].into_boxed_slice(),
+            inlets: vec![None; inlet_size].into_boxed_slice(),
+
+            receivers: vec![
+                Vec::<(u64, usize)>::new(); outlet_size
+            ].into_boxed_slice(),
+            outlets: vec![None; outlet_size].into_boxed_slice(),
+
+            standby_data: None,
+            current_outlet: 0,
+            current_receiver: 0
+        }
+    }
+
     fn receive_hot_inlet(&mut self) -> Result<GraphCommand, GraphError> {
         self.current_outlet = 0;
         self.current_receiver = 0;
 
-        handle_operator_result!(self, self.operator.receive(&*self.inlets))
+        // init outlets.
+        (*self.outlets).iter_mut().for_each(|outlet| {*outlet = None;});
+
+        handle_operator_result!(
+            self,
+            self.operator.receive(&*self.inlets, &mut *self.outlets)
+        )
     }
 
     fn resume(&mut self) -> Result<GraphCommand, GraphError> {
@@ -159,43 +164,46 @@ impl Node {
 
         handle_operator_result!(
             self,
-            self.operator.resume(self.standby_data.take())
+            self.operator.resume(self.standby_data.take(), &mut *self.outlets)
         )
     }
 
     fn continue_output(&mut self) -> Result<GraphCommand, GraphError> {
-        match (*self.outlets).get(self.current_outlet) {
-            Some(outlet) => match outlet.receivers.get(self.current_receiver) {
-                Some((receiver_id, inlet_pos)) => {
-                    self.current_receiver += 1;
+        match (
+            (*self.receivers).get(self.current_outlet),
+            (*self.outlets).get(self.current_outlet)
+        ) {
+            (Some(receivers), Some(outlet)) =>
+                match receivers.get(self.current_receiver) {
+                    Some((receiver_id, inlet_pos)) => {
+                        self.current_receiver += 1;  // set next receiver.
 
-                    match &outlet.data {
-                        Some(data) => Ok(GraphCommand::Send(
-                            *receiver_id,
-                            *inlet_pos,
-                            data.clone()
-                        )),
+                        match outlet {
+                            Some(data) => Ok(GraphCommand::Send(
+                                *receiver_id,
+                                *inlet_pos,
+                                data.clone()
+                            )),
 
-                        None => self.continue_output()
+                            // ignore the receiver.
+                            None => self.continue_output()
+                        }
+                    },
+
+                    // go to next outlet.
+                    None => {
+                        self.current_outlet += 1;
+                        self.current_receiver = 0;
+
+                        self.continue_output()
                     }
                 },
 
-                None => {
-                    self.current_outlet += 1;
-                    self.current_receiver = 0;
+            // all outlet has been sent, so return to sender of hot inlet.
+            _ => match (*self.senders).get(0) {
+                Some(Some(sender)) => Ok(GraphCommand::Continue(*sender)),
 
-                    self.continue_output()
-                }
-            },
-
-            None => match (*self.inlets).get(0) {
-                Some(inlet) => match inlet.sender {
-                    Some(sender) => Ok(GraphCommand::Continue(sender)),
-
-                    None => Ok(GraphCommand::Ended)
-                },
-
-                None => Ok(GraphCommand::Ended)
+                _ => Ok(GraphCommand::Ended)  // no sender or no hot inlet.
             }
         }
     }
@@ -212,12 +220,12 @@ pub struct ChobitFlow {
 }
 
 macro_rules! handle_graph_command {
-    ($self:expr, $command:expr) => {
+    ($self:expr, $command:expr, $node_id:expr) => {
         match $command {
             GraphCommand::Continue(next_id) => $self.continue_output(next_id),
 
             GraphCommand::Send(next_id, next_inlet_pos, data) =>
-                $self.send(next_id, next_inlet_pos, data),
+                $self.send(Some($node_id), next_id, next_inlet_pos, data),
 
             GraphCommand::Ended => Ok(ChobitFlowResult::Ended),
 
@@ -321,40 +329,7 @@ impl ChobitFlow {
                 id_vec.insert(record_index, id);
                 self.node_table[table_index].insert(
                     record_index,
-                    Node {
-                        operator: operator,
-                        id: id,
-                        inlets: {
-                            let mut ret =
-                                Vec::<Inlet>::with_capacity(inlet_size);
-
-                            for _ in 0..inlet_size {
-                                ret.push(Inlet {
-                                    sender: None,
-                                    data: None
-                                })
-                            }
-
-                            ret.into_boxed_slice()
-                        },
-                        outlets: {
-                            let mut ret =
-                                Vec::<Outlet>::with_capacity(outlet_size);
-
-                            for _ in 0..outlet_size {
-                                ret.push(Outlet {
-                                    receivers: Vec::<(u64, usize)>::new(),
-                                    data: None
-                                })
-                            }
-
-                            ret.into_boxed_slice()
-                        },
-
-                        standby_data: None,
-                        current_outlet: 0,
-                        current_receiver: 0
-                    }
+                    Node::new(operator, id, inlet_size, outlet_size)
                 );
 
                 Ok(id)
@@ -409,9 +384,10 @@ impl ChobitFlow {
             &mut self.node_table[table_index][record_index]
         };
 
-        match (*sender.outlets).get_mut(sender_outlet_pos) {
-            Some(outlet) => {
-                outlet.receivers.push((receiver_id, receiver_inlet_pos));
+
+        match (*sender.receivers).get_mut(sender_outlet_pos) {
+            Some(receivers_vec) => {
+                receivers_vec.push((receiver_id, receiver_inlet_pos));
                 Ok(())
             },
 
@@ -438,15 +414,15 @@ impl ChobitFlow {
             &mut self.node_table[table_index][record_index]
         };
 
-        match (*sender.outlets).get_mut(sender_outlet_pos) {
-            Some(outlet) => {
-                match outlet.receivers.iter().position(
+        match (*sender.receivers).get_mut(sender_outlet_pos) {
+            Some(receivers_vec) => {
+                match receivers_vec.iter().position(
                     |(receiver_id_2, receiver_inlet_pos_2)|
                         (receiver_id == *receiver_id_2)
                             && (receiver_inlet_pos == *receiver_inlet_pos_2)
                 ) {
                     Some(position) => {
-                        outlet.receivers.remove(position);
+                        receivers_vec.remove(position);
                         Ok(())
                     },
 
@@ -466,32 +442,41 @@ impl ChobitFlow {
 
     pub fn send(
         &mut self,
-        id: u64,
+        sender_id: Option<u64>,
+        receiver_id: u64,
         inlet_pos: usize,
         data: Data
     ) -> Result<ChobitFlowResult, GraphError> {
-        let node = {
-            let (table_index, record_index) = self.get_index(id).ok_or_else(
-                || GraphError::NodeNotFound {id: id}
-            )?;
+        let receiver = {
+            let (table_index, record_index) =
+                self.get_index(receiver_id).ok_or_else(
+                    || GraphError::NodeNotFound {id: receiver_id}
+                )?;
 
             &mut self.node_table[table_index][record_index]
         };
 
-        match node.inlets.get_mut(inlet_pos) {
-            Some(inlet) => {
-                inlet.sender = None;
-                inlet.data = Some(data);
+        match (
+            receiver.senders.get_mut(inlet_pos),
+            receiver.inlets.get_mut(inlet_pos)
+        ) {
+            (Some(sender), Some(inlet)) => {
+                *sender = sender_id;
+                *inlet = Some(data);
 
                 if inlet_pos == 0 {
-                    handle_graph_command!(self, node.receive_hot_inlet()?)
+                    handle_graph_command!(
+                        self,
+                        receiver.receive_hot_inlet()?,
+                        receiver_id
+                    )
                 } else {
                     Ok(ChobitFlowResult::Ended)
                 }
             },
 
-            None => Err(GraphError::InletNotFound {
-                id: node.id,
+            _ => Err(GraphError::InletNotFound {
+                id: receiver.id,
                 inlet_pos: inlet_pos
             })
         }
@@ -510,7 +495,7 @@ impl ChobitFlow {
             &mut self.node_table[table_index][record_index]
         };
 
-        handle_graph_command!(self, node.resume()?)
+        handle_graph_command!(self, node.resume()?, id)
     }
 
     fn continue_output(
@@ -525,6 +510,6 @@ impl ChobitFlow {
             &mut self.node_table[table_index][record_index]
         };
 
-        handle_graph_command!(self, node.continue_output()?)
+        handle_graph_command!(self, node.continue_output()?, id)
     }
 }
