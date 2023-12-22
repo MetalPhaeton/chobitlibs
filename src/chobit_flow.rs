@@ -88,7 +88,7 @@ pub enum GraphError {
 #[derive(Debug, Clone, PartialEq)]
 enum GraphCommand {
     Continue(u64),
-    Send(u64, usize, Option<Data>),  // (id, inlet position, data)
+    Send(u64, usize, Data),  // (id, inlet position, data)
     Ended,
     Stopped(u64)
 }
@@ -126,7 +126,7 @@ macro_rules! handle_operator_result {
                         |(output, outlet)| {outlet.data = output.clone();}
                     );
 
-                    Ok(GraphCommand::Continue($self.id))  // continue myself.
+                    $self.continue_output()
                 } else {
                     Err(GraphError::NumberOfOutletsIsWrong {
                         wrong: outputs.len(),
@@ -169,18 +169,22 @@ impl Node {
                 Some((receiver_id, inlet_pos)) => {
                     self.current_receiver += 1;
 
-                    Ok(GraphCommand::Send(
-                        *receiver_id,
-                        *inlet_pos,
-                        outlet.data.clone()
-                    ))
+                    match &outlet.data {
+                        Some(data) => Ok(GraphCommand::Send(
+                            *receiver_id,
+                            *inlet_pos,
+                            data.clone()
+                        )),
+
+                        None => self.continue_output()
+                    }
                 },
 
                 None => {
                     self.current_outlet += 1;
                     self.current_receiver = 0;
 
-                    Ok(GraphCommand::Continue(self.id))  // continue myself.
+                    self.continue_output()
                 }
             },
 
@@ -464,7 +468,7 @@ impl ChobitFlow {
         &mut self,
         id: u64,
         inlet_pos: usize,
-        data: Option<Data>
+        data: Data
     ) -> Result<ChobitFlowResult, GraphError> {
         let node = {
             let (table_index, record_index) = self.get_index(id).ok_or_else(
@@ -477,7 +481,7 @@ impl ChobitFlow {
         match node.inlets.get_mut(inlet_pos) {
             Some(inlet) => {
                 inlet.sender = None;
-                inlet.data = data;
+                inlet.data = Some(data);
 
                 if inlet_pos == 0 {
                     handle_graph_command!(self, node.receive_hot_inlet()?)
