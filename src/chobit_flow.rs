@@ -12,8 +12,8 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use alloc::{rc::Rc, vec, vec::Vec, boxed::Box};
-use core::{cell::RefCell, fmt};
+use alloc::{vec, vec::Vec, string::String, boxed::Box};
+use core::fmt;
 
 pub trait OperatorError : fmt::Debug {
     fn write_one_line_json(
@@ -37,10 +37,14 @@ pub enum Data {
     U128(u128),
     ISize(isize),
     USize(usize),
+    F32(f32),
+    F64(f64),
     Bool(bool),
     Char(char),
-    Bytes(Rc<RefCell<Vec<u8>>>),
-    String(Rc<RefCell<Vec<u8>>>),
+    Bytes(Vec<u8>),
+    String(String),
+
+    Nil,
     Cons(Box<Data>, Box<Data>)
 }
 
@@ -64,6 +68,7 @@ pub trait Operator {
     ) -> Result<OperatorCommand, Box<dyn OperatorError>>;
 }
 
+#[derive(Debug)]
 pub enum GraphError {
     Operator(Box<dyn OperatorError>),
     NodeNotFound {id: u64},
@@ -229,7 +234,11 @@ macro_rules! handle_graph_command {
 
             GraphCommand::Ended => Ok(ChobitFlowResult::Ended),
 
-            GraphCommand::Stopped(id) => Ok(ChobitFlowResult::Stopped(id))
+            GraphCommand::Stopped(id) => {
+                $self.standby_node_id = Some(id);
+
+                Ok(ChobitFlowResult::Stopped(id))
+            }
         }
     };
 }
@@ -325,10 +334,10 @@ impl ChobitFlow {
             // try again
             Ok(..) => self.add_node(operator, inlet_size, outlet_size),
 
-            Err(record_index) => {
-                id_vec.insert(record_index, id);
+            Err(node_index) => {
+                id_vec.insert(node_index, id);
                 self.node_table[table_index].insert(
-                    record_index,
+                    node_index,
                     Node::new(operator, id, inlet_size, outlet_size)
                 );
 
@@ -338,18 +347,40 @@ impl ChobitFlow {
     }
 
     pub fn remove_node(&mut self, id: u64) -> Result<(), GraphError> {
-        let table_index = (id & self.id_mask) as usize;
+        {
+            let table_index = (id & self.id_mask) as usize;
 
-        let id_vec = &mut self.id_table[table_index];
+            let id_vec = &mut self.id_table[table_index];
 
-        match id_vec.binary_search(&id) {
-            Ok(record_index) => {
-                id_vec.remove(record_index);
-                Ok(())
-            },
+            match id_vec.binary_search(&id) {
+                Ok(node_index) => {
+                    id_vec.remove(node_index);
+                },
 
-            Err(..) => Err(GraphError::NodeNotFound {id: id})
+                Err(..) => {return Err(GraphError::NodeNotFound {id: id});}
+            }
         }
+
+        // remove id from all outlets.
+        self.node_table.iter_mut().for_each(|node_vec| {
+            node_vec.iter_mut().for_each(|node| {
+                node.receivers.iter_mut().for_each(|receiver_vec| {
+                    loop {
+                        match receiver_vec.iter().position(
+                            |(receiver_id, _)| *receiver_id == id
+                        ) {
+                            Some(position) => {
+                                receiver_vec.remove(position);
+                            },
+
+                            None => {break;}
+                        }
+                    }
+                })
+            })
+        });
+
+        Ok(())
     }
 
     #[inline]
@@ -357,7 +388,7 @@ impl ChobitFlow {
         let table_index = (id & self.id_mask) as usize;
 
         match self.id_table[table_index].binary_search(&id) {
-            Ok(record_index) => Some((table_index, record_index)),
+            Ok(node_index) => Some((table_index, node_index)),
 
             Err(..) => None
         }
@@ -376,12 +407,12 @@ impl ChobitFlow {
         )?;
 
         let sender = {
-            let (table_index, record_index) =
+            let (table_index, node_index) =
                 self.get_index(sender_id).ok_or_else(
                     || GraphError::NodeNotFound {id: sender_id}
                 )?;
 
-            &mut self.node_table[table_index][record_index]
+            &mut self.node_table[table_index][node_index]
         };
 
 
@@ -406,12 +437,12 @@ impl ChobitFlow {
         receiver_inlet_pos: usize
     ) -> Result<(), GraphError> {
         let sender = {
-            let (table_index, record_index) =
+            let (table_index, node_index) =
                 self.get_index(sender_id).ok_or_else(
                     || GraphError::NodeNotFound {id: sender_id}
                 )?;
 
-            &mut self.node_table[table_index][record_index]
+            &mut self.node_table[table_index][node_index]
         };
 
         match (*sender.receivers).get_mut(sender_outlet_pos) {
@@ -440,6 +471,22 @@ impl ChobitFlow {
         }
     }
 
+    pub fn clear_inlet(&mut self, id: u64) -> Result<(), GraphError> {
+        let node = {
+            let (table_index, node_index) =
+                self.get_index(id).ok_or_else(
+                    || GraphError::NodeNotFound {id: id}
+                )?;
+
+            &mut self.node_table[table_index][node_index]
+        };
+
+        node.senders.iter_mut().for_each(|sender| {*sender = None;});
+        node.inlets.iter_mut().for_each(|inlet| {*inlet = None;});
+
+        Ok(())
+    }
+
     pub fn send(
         &mut self,
         sender_id: Option<u64>,
@@ -448,12 +495,12 @@ impl ChobitFlow {
         data: Data
     ) -> Result<ChobitFlowResult, GraphError> {
         let receiver = {
-            let (table_index, record_index) =
+            let (table_index, node_index) =
                 self.get_index(receiver_id).ok_or_else(
                     || GraphError::NodeNotFound {id: receiver_id}
                 )?;
 
-            &mut self.node_table[table_index][record_index]
+            &mut self.node_table[table_index][node_index]
         };
 
         match (
@@ -488,11 +535,11 @@ impl ChobitFlow {
         )?;
 
         let node = {
-            let (table_index, record_index) = self.get_index(id).ok_or_else(
+            let (table_index, node_index) = self.get_index(id).ok_or_else(
                 || GraphError::NodeNotFound {id: id}
             )?;
 
-            &mut self.node_table[table_index][record_index]
+            &mut self.node_table[table_index][node_index]
         };
 
         handle_graph_command!(self, node.resume()?, id)
@@ -503,11 +550,11 @@ impl ChobitFlow {
         id: u64
     ) -> Result<ChobitFlowResult, GraphError> {
         let node = {
-            let (table_index, record_index) = self.get_index(id).ok_or_else(
+            let (table_index, node_index) = self.get_index(id).ok_or_else(
                 || GraphError::NodeNotFound {id: id}
             )?;
 
-            &mut self.node_table[table_index][record_index]
+            &mut self.node_table[table_index][node_index]
         };
 
         handle_graph_command!(self, node.continue_output()?, id)
