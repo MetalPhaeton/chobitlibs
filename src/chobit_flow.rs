@@ -74,7 +74,6 @@ pub enum GraphError {
     NodeNotFound {id: u64},
     OutletNotFound {id: u64, outlet_pos: usize},
     InletNotFound {id: u64, inlet_pos: usize},
-    ReceiverNotFound {id: u64, inlet_pos: usize},
     NoStandbyNode
 }
 
@@ -317,6 +316,18 @@ impl ChobitFlow {
         (table_size as u64) - 1
     }
 
+    #[inline]
+    fn for_each<F>(&mut self, mut proc: F) -> Result<(), GraphError>
+    where F: FnMut(&mut Node) -> Result<(), GraphError> {
+        for node_vec in &mut self.node_table {
+            for node in node_vec {
+                proc(node)?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn add_node(
         &mut self,
         operator: Box<dyn Operator>,
@@ -328,7 +339,12 @@ impl ChobitFlow {
 
         let table_index = (id & self.id_mask) as usize;
 
-        let id_vec = &mut self.id_table[table_index];
+        let node_vec = self.node_table.get_mut(table_index).expect(
+            "Error at chobit_flow::ChobitFlow::add_node() - 1"
+        );
+        let id_vec = self.id_table.get_mut(table_index).expect(
+            "Error at chobit_flow::ChobitFlow::add_node() - 2"
+        );
 
         match id_vec.binary_search(&id) {
             // try again
@@ -336,7 +352,7 @@ impl ChobitFlow {
 
             Err(node_index) => {
                 id_vec.insert(node_index, id);
-                self.node_table[table_index].insert(
+                node_vec.insert(
                     node_index,
                     Node::new(operator, id, inlet_size, outlet_size)
                 );
@@ -350,10 +366,12 @@ impl ChobitFlow {
         {
             let table_index = (id & self.id_mask) as usize;
 
+            let node_vec = &mut self.node_table[table_index];
             let id_vec = &mut self.id_table[table_index];
 
             match id_vec.binary_search(&id) {
                 Ok(node_index) => {
+                    node_vec.remove(node_index);
                     id_vec.remove(node_index);
                 },
 
@@ -362,36 +380,69 @@ impl ChobitFlow {
         }
 
         // remove id from all outlets.
-        self.node_table.iter_mut().for_each(|node_vec| {
-            node_vec.iter_mut().for_each(|node| {
-                node.receivers.iter_mut().for_each(|receiver_vec| {
-                    loop {
-                        match receiver_vec.iter().position(
-                            |(receiver_id, _)| *receiver_id == id
-                        ) {
-                            Some(position) => {
-                                receiver_vec.remove(position);
-                            },
+        self.for_each(|node| {
+            node.receivers.iter_mut().for_each(|receiver_vec| {
+                loop {
+                    match receiver_vec.iter().position(
+                        |(receiver_id, _)| *receiver_id == id
+                    ) {
+                        Some(position) => {
+                            receiver_vec.remove(position);
+                        },
 
-                            None => {break;}
-                        }
+                        None => {break;}
                     }
-                })
-            })
+                }
+            });
+
+            Ok(())
+        })
+    }
+
+    #[inline]
+    pub fn remove_all(&mut self) -> Result<(), GraphError> {
+        self.node_table.iter_mut().for_each(|node_vec| {
+            node_vec.clear();
+        });
+
+        self.id_table.iter_mut().for_each(|id_vec| {
+            id_vec.clear();
         });
 
         Ok(())
     }
 
     #[inline]
-    fn get_index(&self, id: u64) -> Option<(usize, usize)> {
+    fn get_index(
+        &self,
+        id: u64
+    ) -> Result<(usize, usize), GraphError> {
         let table_index = (id & self.id_mask) as usize;
 
-        match self.id_table[table_index].binary_search(&id) {
-            Ok(node_index) => Some((table_index, node_index)),
+        debug_assert!(self.id_table.get(table_index).is_some());
+        let id_vec = unsafe {self.id_table.get_unchecked(table_index)};
 
-            Err(..) => None
+        match id_vec.binary_search(&id) {
+            Ok(node_index) => Ok((table_index, node_index)),
+
+            Err(..) => Err(GraphError::NodeNotFound {id: id})
         }
+    }
+
+    fn get_node(&mut self, id: u64) -> Result<&mut Node, GraphError> {
+        let (table_index, node_index) = self.get_index(id)?;
+
+        debug_assert!(self.node_table.get(table_index).and_then(
+            |node_vec| node_vec.get(node_index)
+        ).is_some());
+
+        Ok(unsafe {
+            self.node_table.get_unchecked_mut(
+                table_index
+            ).get_unchecked_mut(
+                node_index
+            )
+        })
     }
 
     pub fn connect_nodes(
@@ -402,19 +453,18 @@ impl ChobitFlow {
         receiver_inlet_pos: usize
     ) -> Result<(), GraphError> {
         // check receiver.
-        let _ = self.get_index(receiver_id).ok_or_else(
-            || GraphError::NodeNotFound {id: receiver_id}
-        )?;
+        {
+            let receiver = self.get_node(receiver_id)?;
 
-        let sender = {
-            let (table_index, node_index) =
-                self.get_index(sender_id).ok_or_else(
-                    || GraphError::NodeNotFound {id: sender_id}
-                )?;
+            if receiver_inlet_pos >= receiver.inlets.len() {
+                return Err(GraphError::InletNotFound {
+                    id: receiver_id,
+                    inlet_pos: receiver_inlet_pos
+                });
+            }
+        }
 
-            &mut self.node_table[table_index][node_index]
-        };
-
+        let sender = self.get_node(sender_id)?;
 
         match (*sender.receivers).get_mut(sender_outlet_pos) {
             Some(receivers_vec) => {
@@ -436,14 +486,7 @@ impl ChobitFlow {
         receiver_id: u64,
         receiver_inlet_pos: usize
     ) -> Result<(), GraphError> {
-        let sender = {
-            let (table_index, node_index) =
-                self.get_index(sender_id).ok_or_else(
-                    || GraphError::NodeNotFound {id: sender_id}
-                )?;
-
-            &mut self.node_table[table_index][node_index]
-        };
+        let sender = self.get_node(sender_id)?;
 
         match (*sender.receivers).get_mut(sender_outlet_pos) {
             Some(receivers_vec) => {
@@ -457,10 +500,7 @@ impl ChobitFlow {
                         Ok(())
                     },
 
-                    None =>  Err(GraphError::ReceiverNotFound {
-                        id: receiver_id,
-                        inlet_pos: receiver_inlet_pos
-                    })
+                    None =>  Ok(())
                 }
             },
 
@@ -471,20 +511,35 @@ impl ChobitFlow {
         }
     }
 
-    pub fn clear_inlet(&mut self, id: u64) -> Result<(), GraphError> {
-        let node = {
-            let (table_index, node_index) =
-                self.get_index(id).ok_or_else(
-                    || GraphError::NodeNotFound {id: id}
-                )?;
+    pub fn disconnect_all(&mut self) -> Result<(), GraphError> {
+        self.for_each(|node| {
+            node.senders.iter_mut().for_each(|sender| {*sender = None;});
+            node.inlets.iter_mut().for_each(|inlet| {*inlet = None;});
 
-            &mut self.node_table[table_index][node_index]
-        };
+            node.receivers.iter_mut().for_each(
+                |receiver_vec| {receiver_vec.clear();}
+            );
+            node.outlets.iter_mut().for_each(|outlet| {*outlet = None;});
+
+            Ok(())
+        })
+    }
+
+    pub fn clear_inlet(&mut self, id: u64) -> Result<(), GraphError> {
+        let node = self.get_node(id)?;
 
         node.senders.iter_mut().for_each(|sender| {*sender = None;});
         node.inlets.iter_mut().for_each(|inlet| {*inlet = None;});
 
         Ok(())
+    }
+
+    pub fn clear_all_inlets(&mut self) -> Result<(), GraphError> {
+        self.for_each(|node| {
+            node.senders.iter_mut().for_each(|sender| {*sender = None;});
+            node.inlets.iter_mut().for_each(|inlet| {*inlet = None;});
+            Ok(())
+        })
     }
 
     pub fn send(
@@ -494,14 +549,7 @@ impl ChobitFlow {
         inlet_pos: usize,
         data: Data
     ) -> Result<ChobitFlowResult, GraphError> {
-        let receiver = {
-            let (table_index, node_index) =
-                self.get_index(receiver_id).ok_or_else(
-                    || GraphError::NodeNotFound {id: receiver_id}
-                )?;
-
-            &mut self.node_table[table_index][node_index]
-        };
+        let receiver = self.get_node(receiver_id)?;
 
         match (
             receiver.senders.get_mut(inlet_pos),
@@ -534,13 +582,7 @@ impl ChobitFlow {
             || GraphError::NoStandbyNode
         )?;
 
-        let node = {
-            let (table_index, node_index) = self.get_index(id).ok_or_else(
-                || GraphError::NodeNotFound {id: id}
-            )?;
-
-            &mut self.node_table[table_index][node_index]
-        };
+        let node = self.get_node(id)?;
 
         handle_graph_command!(self, node.resume()?, id)
     }
@@ -549,13 +591,7 @@ impl ChobitFlow {
         &mut self,
         id: u64
     ) -> Result<ChobitFlowResult, GraphError> {
-        let node = {
-            let (table_index, node_index) = self.get_index(id).ok_or_else(
-                || GraphError::NodeNotFound {id: id}
-            )?;
-
-            &mut self.node_table[table_index][node_index]
-        };
+        let node = self.get_node(id)?;
 
         handle_graph_command!(self, node.continue_output()?, id)
     }
