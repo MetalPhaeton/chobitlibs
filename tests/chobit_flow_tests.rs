@@ -37,12 +37,12 @@ impl OperatorError for TestError {
 }
 
 struct Print;
-impl Operator for Print {
+impl Operator<i32> for Print {
     fn receive(
         &mut self,
-        inlets: &[Option<Data>],
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        inlets: &[Option<i32>],
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         println!("Print: {:?}", inlets.get(0).unwrap().as_ref().unwrap());
 
         if let (Some(inlet), Some(outlet)) = (
@@ -59,9 +59,9 @@ impl Operator for Print {
 
     fn resume(
         &mut self,
-        _data: Option<Data>,
-        _outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        _data: Option<i32>,
+        _outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         Ok(OperatorCommand::Go)
     }
 }
@@ -70,16 +70,16 @@ struct Const {
     data: i32
 }
 
-impl Operator for Const {
+impl Operator<i32> for Const {
     fn receive(
         &mut self,
-        _inlets: &[Option<Data>],
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        _inlets: &[Option<i32>],
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         println!("Const {}", self.data);
 
         if let Some(outlet) = outlets.get_mut(0) {
-            *outlet = Some(Data::I32(self.data));
+            *outlet = Some(self.data);
 
             Ok(OperatorCommand::Go)
         } else {
@@ -89,21 +89,21 @@ impl Operator for Const {
 
     fn resume(
         &mut self,
-        _data: Option<Data>,
-        _outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        _data: Option<i32>,
+        _outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         Ok(OperatorCommand::Go)
     }
 }
 
 struct Hub;
 
-impl Operator for Hub {
+impl Operator<i32> for Hub {
     fn receive(
         &mut self,
-        inlets: &[Option<Data>],
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        inlets: &[Option<i32>],
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         println!("Hub!");
 
         if let Some(inlet) = inlets.get(0) {
@@ -117,25 +117,25 @@ impl Operator for Hub {
 
     fn resume(
         &mut self,
-        _data: Option<Data>,
-        _outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        _data: Option<i32>,
+        _outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         Ok(OperatorCommand::Go)
     }
 }
 
 struct Add;
 
-impl Operator for Add {
+impl Operator<i32> for Add {
     fn receive(
         &mut self,
-        inlets: &[Option<Data>],
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        inlets: &[Option<i32>],
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         println!("Add!");
 
         if let (
-            Some(Some(Data::I32(x))),
+            Some(Some(x)),
             Some(inlet_2),
             Some(outlet)
         ) = (
@@ -143,13 +143,13 @@ impl Operator for Add {
             inlets.get(1),
             outlets.get_mut(0)
         ) {
-            let y = if let Some(Data::I32(y)) = inlet_2 {
+            let y = if let Some(y) = inlet_2 {
                 *y
             } else {
                 0
             };
 
-            *outlet = Some(Data::I32(*x + y));
+            *outlet = Some(*x + y);
 
             Ok(OperatorCommand::Go)
         } else {
@@ -159,21 +159,21 @@ impl Operator for Add {
 
     fn resume(
         &mut self,
-        _data: Option<Data>,
-        _outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        _data: Option<i32>,
+        _outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         Ok(OperatorCommand::Go)
     }
 }
 
 struct Stop;
 
-impl Operator for Stop {
+impl Operator<i32> for Stop {
     fn receive(
         &mut self,
-        inlets: &[Option<Data>],
-        _outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        inlets: &[Option<i32>],
+        _outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         println!("Stop!");
 
         if let Some(inlet) = inlets.get(0) {
@@ -185,9 +185,9 @@ impl Operator for Stop {
 
     fn resume(
         &mut self,
-        data: Option<Data>,
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>> {
+        data: Option<i32>,
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
         println!("Resume!");
 
         if let Some(outlet) = outlets.get_mut(0) {
@@ -200,8 +200,49 @@ impl Operator for Stop {
     }
 }
 
+struct Test1;
+
+impl Operator<i32> for Test1 {
+    fn receive(
+        &mut self,
+        inlets: &[Option<i32>],
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
+        println!("Test1::receive()");
+
+        inlets.iter().for_each(|inlet| {
+            match &inlet {
+                Some(data) => {println!("{}", data);},
+                None => {println!("None");},
+            }
+        });
+
+        outlets.iter_mut().for_each(|outlet| {*outlet = Some(0);});
+
+        Ok(OperatorCommand::Go)
+    }
+
+    fn resume(
+        &mut self,
+        data: Option<i32>,
+        outlets: &mut [Option<i32>]
+    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
+        println!("Test1::resume()");
+
+        match data {
+            Some(data) => {println!("{}", data);},
+            None => {println!("None");},
+        }
+
+        outlets.iter_mut().for_each(|outlet| {*outlet = Some(0);});
+
+        Ok(OperatorCommand::Go)
+    }
+}
+
+
 fn gen_const_tree() -> (
-    ChobitFlow,
+    ChobitFlow<i32>,
     u64,
     u64,
     u64,
@@ -213,7 +254,7 @@ fn gen_const_tree() -> (
     u64,
     u64,
 ) {
-    let mut cf = ChobitFlow::new(64);
+    let mut cf = ChobitFlow::<i32>::new(64);
 
     let const_1_id =
         cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
@@ -261,18 +302,18 @@ fn gen_const_tree() -> (
 
 #[test]
 fn print_test() {
-    let mut cf = ChobitFlow::new(64);
+    let mut cf = ChobitFlow::<i32>::new(64);
     let print_id = cf.add_node(Box::new(Print), 1, 1).unwrap();
 
     assert_eq!(
-        cf.send(None, print_id, 0, Data::I32(99)).unwrap(),
+        cf.send(None, print_id, 0, 99).unwrap(),
         ChobitFlowResult::Ended
     );
 }
 
 #[test]
 fn connect_one_test() {
-    let mut cf = ChobitFlow::new(64);
+    let mut cf = ChobitFlow::<i32>::new(64);
     let print_id = cf.add_node(Box::new(Print), 1, 1).unwrap();
     let const_1_id =
         cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
@@ -280,7 +321,7 @@ fn connect_one_test() {
     assert!(cf.connect_nodes(const_1_id, 0, print_id, 0).is_ok());
 
     assert_eq!(
-        cf.send(None, const_1_id, 0, Data::Bang).unwrap(),
+        cf.send(None, const_1_id, 0, 0).unwrap(),
         ChobitFlowResult::Ended
     );
 }
@@ -290,14 +331,14 @@ fn connect_tree_test() {
     let (mut cf, const_1_id, ..) = gen_const_tree();
 
     assert_eq!(
-        cf.send(None, const_1_id, 0, Data::Bang).unwrap(),
+        cf.send(None, const_1_id, 0, 0).unwrap(),
         ChobitFlowResult::Ended
     );
 }
 
 #[test]
 fn add_test() {
-    let mut cf = ChobitFlow::new(64);
+    let mut cf = ChobitFlow::<i32>::new(64);
     let print_id = cf.add_node(Box::new(Print), 1, 1).unwrap();
 
     let const_1_id =
@@ -312,20 +353,20 @@ fn add_test() {
     assert!(cf.connect_nodes(add_id, 0, print_id, 0).is_ok());
 
     assert_eq!(
-        cf.send(None, const_1_id, 0, Data::Bang).unwrap(),
+        cf.send(None, const_1_id, 0, 0).unwrap(),
         ChobitFlowResult::Ended
     );
 
     println!("-----");
 
     assert_eq!(
-        cf.send(None, const_2_id, 0, Data::Bang).unwrap(),
+        cf.send(None, const_2_id, 0, 0).unwrap(),
         ChobitFlowResult::Ended
     );
 
 
     assert_eq!(
-        cf.send(None, const_1_id, 0, Data::Bang).unwrap(),
+        cf.send(None, const_1_id, 0, 0).unwrap(),
         ChobitFlowResult::Ended
     );
 }
@@ -359,7 +400,7 @@ fn stop_test() {
     assert!(cf.connect_nodes(stop_2_id, 0, const_5_id, 0).is_ok());
 
     assert_eq!(
-        cf.send(None, const_1_id, 0, Data::Bang).unwrap(),
+        cf.send(None, const_1_id, 0, 0).unwrap(),
         ChobitFlowResult::Stopped(stop_1_id)
     );
 
@@ -376,4 +417,23 @@ fn stop_test() {
         cf.resume().unwrap(),
         ChobitFlowResult::Ended
     );
+}
+
+#[test]
+fn connect_error_test() {
+    let mut cf = ChobitFlow::new(64);
+
+    let const_1_id =
+        cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
+
+    let test_1_1 = cf.add_node(Box::new(Test1), 1, 1).unwrap();
+
+    match cf.connect_nodes(const_1_id, 0, test_1_1, 1) {
+        Err(ChobitFlowError::InletNotFound {id, inlet_pos}) => {
+            assert_eq!(id, test_1_1);
+            assert_eq!(inlet_pos, 1);
+        },
+
+        other => {panic!("{:?}", other);}
+    }
 }

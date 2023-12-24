@@ -12,91 +12,33 @@
 //
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 
-use alloc::{vec, vec::Vec, string::String, boxed::Box};
+use alloc::{vec, vec::Vec, boxed::Box};
 use core::fmt;
 
-pub trait OperatorError : fmt::Debug {
+pub trait OperatorError: fmt::Debug {
     fn write_one_line_json(
         &self,
         formatter: &mut fmt::Formatter
     ) -> fmt::Result;
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Data {
-    Bang,
-    I8(i8),
-    U8(u8),
-    I16(i16),
-    U16(u16),
-    I32(i32),
-    U32(u32),
-    I64(i64),
-    U64(u64),
-    I128(i128),
-    U128(u128),
-    ISize(isize),
-    USize(usize),
-    F32(f32),
-    F64(f64),
-    Bool(bool),
-    Char(char),
-    Bytes(Vec<u8>),
-    String(String),
-
-    Nil,
-    Cons(Box<Data>, Box<Data>)
-}
-
-impl fmt::Display for Data {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Data::Bang => write!(formatter, "bang"),
-            Data::I8(val) => write!(formatter, "{}", val),
-            Data::U8(val) => write!(formatter, "{}", val),
-            Data::I16(val) => write!(formatter, "{}", val),
-            Data::U16(val) => write!(formatter, "{}", val),
-            Data::I32(val) => write!(formatter, "{}", val),
-            Data::U32(val) => write!(formatter, "{}", val),
-            Data::I64(val) => write!(formatter, "{}", val),
-            Data::U64(val) => write!(formatter, "{}", val),
-            Data::I128(val) => write!(formatter, "{}", val),
-            Data::U128(val) => write!(formatter, "{}", val),
-            Data::ISize(val) => write!(formatter, "{}", val),
-            Data::USize(val) => write!(formatter, "{}", val),
-            Data::F32(val) => write!(formatter, "{}", val),
-            Data::F64(val) => write!(formatter, "{}", val),
-            Data::Bool(val) => write!(formatter, "{}", val),
-            Data::Char(val) => write!(formatter, "{}", val),
-            Data::Bytes(val) => write!(formatter, "{:?}", val),
-            Data::String(val) => write!(formatter, "{:?}", val),
-
-            Data::Nil => write!(formatter, "nil"),
-            Data::Cons(car, cdr) => {
-                write!(formatter, "({} . {})", car, cdr)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum OperatorCommand {
+pub enum OperatorCommand<T: Clone> {
     Go,
-    Stop(Option<Data>),
+    Stop(Option<T>),
 }
 
-pub trait Operator {
+pub trait Operator<T: Clone> {
     fn receive(
         &mut self,
-        inlets: &[Option<Data>],
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>>;
+        inlets: &[Option<T>],
+        outlets: &mut [Option<T>]
+    ) -> Result<OperatorCommand<T>, Box<dyn OperatorError>>;
 
     fn resume(
         &mut self,
-        data: Option<Data>,
-        outlets: &mut [Option<Data>]
-    ) -> Result<OperatorCommand, Box<dyn OperatorError>>;
+        data: Option<T>,
+        outlets: &mut [Option<T>]
+    ) -> Result<OperatorCommand<T>, Box<dyn OperatorError>>;
 }
 
 #[derive(Debug)]
@@ -150,9 +92,9 @@ impl fmt::Display for ChobitFlowError {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum GraphCommand {
+enum GraphCommand<T: Clone> {
     Continue(u64),
-    Send(u64, usize, Data),  // (id, inlet position, data)
+    Send(u64, usize, T),  // (id, inlet position, data)
     Ended,
     Stopped(u64)
 }
@@ -163,18 +105,18 @@ pub enum ChobitFlowResult {
     Stopped(u64)
 }
 
-struct Node {
-    operator: Box<dyn Operator>,
+struct Node<T: Clone> {
+    operator: Box<dyn Operator<T>>,
 
     id: u64,
 
     senders: Box<[Option<u64>]>,
-    inlets: Box<[Option<Data>]>,
+    inlets: Box<[Option<T>]>,
 
     receivers: Box<[Vec<(u64, usize)>]>,
-    outlets: Box<[Option<Data>]>,
+    outlets: Box<[Option<T>]>,
 
-    standby_data: Option<Data>,
+    standby_data: Option<T>,
 
     current_outlet: usize,
     current_receiver: usize
@@ -195,10 +137,10 @@ macro_rules! handle_operator_result {
     };
 }
 
-impl Node {
+impl<T: Clone> Node<T> {
     #[inline]
     fn new(
-        operator: Box<dyn Operator>,
+        operator: Box<dyn Operator<T>>,
         id: u64,
         inlet_size: usize,
         outlet_size: usize
@@ -221,7 +163,9 @@ impl Node {
         }
     }
 
-    fn receive_hot_inlet(&mut self) -> Result<GraphCommand, ChobitFlowError> {
+    fn receive_hot_inlet(
+        &mut self
+    ) -> Result<GraphCommand<T>, ChobitFlowError> {
         self.current_outlet = 0;
         self.current_receiver = 0;
 
@@ -234,7 +178,7 @@ impl Node {
         )
     }
 
-    fn resume(&mut self) -> Result<GraphCommand, ChobitFlowError> {
+    fn resume(&mut self) -> Result<GraphCommand<T>, ChobitFlowError> {
         self.current_outlet = 0;
         self.current_receiver = 0;
 
@@ -244,7 +188,7 @@ impl Node {
         )
     }
 
-    fn continue_output(&mut self) -> Result<GraphCommand, ChobitFlowError> {
+    fn continue_output(&mut self) -> Result<GraphCommand<T>, ChobitFlowError> {
         match (
             (*self.receivers).get(self.current_outlet),
             (*self.outlets).get(self.current_outlet)
@@ -285,9 +229,9 @@ impl Node {
     }
 }
 
-pub struct ChobitFlow {
+pub struct ChobitFlow<T: Clone> {
     id_table: Vec<Vec<u64>>,
-    node_table: Vec<Vec<Node>>,
+    node_table: Vec<Vec<Node<T>>>,
 
     id_mask: u64,
     id_candidate: u64,
@@ -314,7 +258,7 @@ macro_rules! handle_graph_command {
     };
 }
 
-impl ChobitFlow {
+impl<T: Clone> ChobitFlow<T> {
     pub fn new(table_size: usize) -> Self {
         let table_size = Self::check_table_size(table_size);
 
@@ -373,11 +317,11 @@ impl ChobitFlow {
     }
 
     #[inline]
-    fn init_node_table(table_size: usize) -> Vec<Vec<Node>> {
-        let mut ret = Vec::<Vec<Node>>::with_capacity(table_size);
+    fn init_node_table(table_size: usize) -> Vec<Vec<Node<T>>> {
+        let mut ret = Vec::<Vec<Node<T>>>::with_capacity(table_size);
 
         for _ in 0..table_size {
-            ret.push(Vec::<Node>::new());
+            ret.push(Vec::<Node<T>>::new());
         }
 
         ret
@@ -390,7 +334,7 @@ impl ChobitFlow {
 
     #[inline]
     fn for_each<F>(&mut self, mut proc: F) -> Result<(), ChobitFlowError>
-    where F: FnMut(&mut Node) -> Result<(), ChobitFlowError> {
+    where F: FnMut(&mut Node<T>) -> Result<(), ChobitFlowError> {
         for node_vec in &mut self.node_table {
             for node in node_vec {
                 proc(node)?;
@@ -402,7 +346,7 @@ impl ChobitFlow {
 
     pub fn add_node(
         &mut self,
-        operator: Box<dyn Operator>,
+        operator: Box<dyn Operator<T>>,
         inlet_size: usize,
         outlet_size: usize
     ) -> Result<u64, ChobitFlowError> {
@@ -503,7 +447,7 @@ impl ChobitFlow {
         }
     }
 
-    fn get_node(&mut self, id: u64) -> Result<&mut Node, ChobitFlowError> {
+    fn get_node(&mut self, id: u64) -> Result<&mut Node<T>, ChobitFlowError> {
         let (table_index, node_index) = self.get_index(id)?;
 
         debug_assert!(self.node_table.get(table_index).and_then(
@@ -621,7 +565,7 @@ impl ChobitFlow {
         sender_id: Option<u64>,
         receiver_id: u64,
         inlet_pos: usize,
-        data: Data
+        data: T
     ) -> Result<ChobitFlowResult, ChobitFlowError> {
         let receiver = self.get_node(receiver_id)?;
 
