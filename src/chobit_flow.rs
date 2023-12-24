@@ -48,6 +48,37 @@ pub enum Data {
     Cons(Box<Data>, Box<Data>)
 }
 
+impl fmt::Display for Data {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Data::Bang => write!(formatter, "bang"),
+            Data::I8(val) => write!(formatter, "{}", val),
+            Data::U8(val) => write!(formatter, "{}", val),
+            Data::I16(val) => write!(formatter, "{}", val),
+            Data::U16(val) => write!(formatter, "{}", val),
+            Data::I32(val) => write!(formatter, "{}", val),
+            Data::U32(val) => write!(formatter, "{}", val),
+            Data::I64(val) => write!(formatter, "{}", val),
+            Data::U64(val) => write!(formatter, "{}", val),
+            Data::I128(val) => write!(formatter, "{}", val),
+            Data::U128(val) => write!(formatter, "{}", val),
+            Data::ISize(val) => write!(formatter, "{}", val),
+            Data::USize(val) => write!(formatter, "{}", val),
+            Data::F32(val) => write!(formatter, "{}", val),
+            Data::F64(val) => write!(formatter, "{}", val),
+            Data::Bool(val) => write!(formatter, "{}", val),
+            Data::Char(val) => write!(formatter, "{}", val),
+            Data::Bytes(val) => write!(formatter, "{:?}", val),
+            Data::String(val) => write!(formatter, "{:?}", val),
+
+            Data::Nil => write!(formatter, "nil"),
+            Data::Cons(car, cdr) => {
+                write!(formatter, "({} . {})", car, cdr)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum OperatorCommand {
     Go,
@@ -75,6 +106,47 @@ pub enum ChobitFlowError {
     OutletNotFound {id: u64, outlet_pos: usize},
     InletNotFound {id: u64, inlet_pos: usize},
     NoStandbyNode
+}
+
+impl fmt::Display for ChobitFlowError {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, r#"{{"error": "ChobitFlowError", "kind": "#)?;
+
+        match self {
+            ChobitFlowError::Operator(error) => {
+                write!(formatter, r#""OperatorError", "data": "#)?;
+                error.write_one_line_json(formatter)?;
+            },
+
+            ChobitFlowError::NodeNotFound {id} => {
+                write!(formatter, r#""NodeNotFound", "id": {}"#, id)?;
+            },
+
+            ChobitFlowError::OutletNotFound {id, outlet_pos} => {
+                write!(
+                    formatter,
+                    r#""OutletNotFound", "id": {}, "outlet_pos": {}"#,
+                    id,
+                    outlet_pos
+                )?;
+            },
+
+            ChobitFlowError::InletNotFound {id, inlet_pos} => {
+                write!(
+                    formatter,
+                    r#""InletNotFound", "id": {}, "inlet_pos": {}"#,
+                    id,
+                    inlet_pos
+                )?;
+            },
+
+            ChobitFlowError::NoStandbyNode => {
+                write!(formatter, r#""NoStandbyNode""#)?;
+            }
+        }
+
+        write!(formatter, "}}")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
