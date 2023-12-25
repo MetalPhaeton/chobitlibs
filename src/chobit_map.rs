@@ -162,11 +162,16 @@ impl<T> ChobitMap<T> {
     /// - _Return_ : Key-value table size.
     #[inline]
     pub fn table_size(&self) -> usize {self.key_table.len()}
+
     #[inline]
     fn get_index(&self, key: u64) -> Option<(usize, usize)> {
         let table_index = (key & self.key_mask) as usize;
 
-        match self.key_table[table_index].binary_search(&key) {
+        debug_assert!(self.key_table.get(table_index).is_some());
+
+        match (unsafe{
+            self.key_table.get_unchecked(table_index)
+        }).binary_search(&key) {
             Ok(record_index) => Some((table_index, record_index)),
 
             Err(..) => None
@@ -205,7 +210,19 @@ impl<T> ChobitMap<T> {
     pub fn get(&self, key: u64) -> Option<&T> {
         let (table_index, record_index) = self.get_index(key)?;
 
-        Some(&self.value_table[table_index][record_index])
+        debug_assert!(
+            &self.value_table
+                .get(table_index)
+                .unwrap()
+                .get(record_index)
+                .is_some()
+        );
+
+        Some(unsafe {
+            self.value_table
+                .get_unchecked(table_index)
+                .get_unchecked(record_index)
+        })
     }
 
     /// Gets a mutable value by `key`.
@@ -251,7 +268,19 @@ impl<T> ChobitMap<T> {
     pub fn get_mut(&mut self, key: u64) -> Option<&mut T> {
         let (table_index, record_index) = self.get_index(key)?;
 
-        Some(&mut self.value_table[table_index][record_index])
+        debug_assert!(
+            &self.value_table
+                .get(table_index)
+                .unwrap()
+                .get(record_index)
+                .is_some()
+        );
+
+        Some(unsafe {
+            self.value_table
+                .get_unchecked_mut(table_index)
+                .get_unchecked_mut(record_index)
+        })
     }
 
     /// Adds a value.
@@ -289,14 +318,19 @@ impl<T> ChobitMap<T> {
     ) -> Result<(), ChobitMapError> {
         let table_index = (key & self.key_mask) as usize;
 
-        let key_vec = &mut self.key_table[table_index];
+        debug_assert!(self.key_table.get(table_index).is_some());
+        let key_vec = unsafe {self.key_table.get_unchecked_mut(table_index)};
 
         match key_vec.binary_search(&key) {
             Ok(..) => Err(ChobitMapError::AlreadyExists {key: key}),
 
             Err(record_index) => {
                 key_vec.insert(record_index, key);
-                self.value_table[table_index].insert(record_index, value);
+
+                debug_assert!(self.value_table.get(table_index).is_some());
+                (unsafe {
+                    self.value_table.get_unchecked_mut(table_index)
+                }).insert(record_index, value);
 
                 Ok(())
             }
@@ -341,12 +375,17 @@ impl<T> ChobitMap<T> {
     pub fn remove(&mut self, key: u64) -> Result<T, ChobitMapError> {
         let table_index = (key & self.key_mask) as usize;
 
-        let key_vec = &mut self.key_table[table_index];
+        debug_assert!(self.key_table.get(table_index).is_some());
+        let key_vec = unsafe {self.key_table.get_unchecked_mut(table_index)};
 
         match key_vec.binary_search(&key) {
             Ok(record_index) => {
                 key_vec.remove(record_index);
-                Ok(self.value_table[table_index].remove(record_index))
+
+                debug_assert!(self.value_table.get(table_index).is_some());
+                Ok((unsafe {
+                    self.value_table.get_unchecked_mut(table_index)
+                }).remove(record_index))
             },
 
             Err(..) => Err(ChobitMapError::NotFound {key: key})
