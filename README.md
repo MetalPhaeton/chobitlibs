@@ -19,6 +19,7 @@ All libraries can be used in `no_std`.
 * `chobit_complex.rs` : Complex number for high-speed rotation.
 * `chobit_playbook.rs` : Playbook parser for novel games.
 * `chobit_ani_value.rs` : Utility for UV animation.
+* `chobit_flow.rs` : Flowchart framework.
 
 ### TypeScript
 
