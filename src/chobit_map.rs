@@ -42,13 +42,13 @@ pub enum ChobitMapError {
 
 impl fmt::Display for ChobitMapError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, r#"{{"error": "ChobitMapError", "#)?;
+        write!(formatter, r#"{{"error":"ChobitMapError","#)?;
 
         match self {
             Self::AlreadyExists {key} => {
                 write!(
                     formatter,
-                    r#""kind": "AlreadyExists", "key": {}"#,
+                    r#""kind":"AlreadyExists","key":{}"#,
                     key
                 )?;
             },
@@ -56,7 +56,7 @@ impl fmt::Display for ChobitMapError {
             Self::NotFound {key} => {
                 write!(
                     formatter,
-                    r#""kind": "NotFound", "key": {}"#,
+                    r#""kind":"NotFound","key":{}"#,
                     key
                 )?;
             }

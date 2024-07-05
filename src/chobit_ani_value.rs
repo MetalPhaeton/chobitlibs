@@ -330,7 +330,7 @@ pub enum ChobitAniValueError {
 
 impl fmt::Display for ChobitAniValueError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, r#"{{"error": "ChobitAniValueError", "kind": "#)?;
+        write!(formatter, r#"{{"error":"ChobitAniValueError","kind":"#)?;
 
         match self {
             Self::InvalidColumns => {

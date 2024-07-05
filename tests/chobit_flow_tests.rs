@@ -2,438 +2,525 @@ extern crate chobitlibs;
 
 use std::{
     prelude::rust_2021::*,
-    fmt
+    cell::RefCell,
+    rc::Rc
 };
 
-use chobitlibs::chobit_flow::*;
+use chobitlibs::{chobit_flow::*, chobit_map::*};
 
-#[derive(Debug, Clone, PartialEq)]
-enum TestError {
-    PrintError,
-    ConstError,
-    HubError,
-    AddError,
-    StopError
+struct Message {
+    pub direction: Direction,
+    pub route: Vec<u64>,
+    pub senders: Vec<Option<u64>>
 }
 
-impl OperatorError for TestError {
-    fn write_one_line_json(
-        &self,
-        formatter: &mut fmt::Formatter
-    ) -> fmt::Result {
-        match self {
-            TestError::PrintError =>
-                write!(formatter, r#"{{"error": "PrintError"}}"#),
-            TestError::ConstError =>
-                write!(formatter, r#"{{"error": "ConstError"}}"#),
-            TestError::HubError =>
-                write!(formatter, r#"{{"error": "HubError"}}"#),
-            TestError::AddError =>
-                write!(formatter, r#"{{"error": "AddError"}}"#),
-            TestError::StopError =>
-                write!(formatter, r#"{{"error": "StopError"}}"#),
-        }
-    }
+enum Direction {
+    Left,
+    Right
 }
 
-struct Print;
-impl Operator<i32> for Print {
-    fn receive(
+const ID_START: u64 = 1;
+const ID_LEFT_1: u64 = 2;
+const ID_RIGHT_1: u64 = 3;
+const ID_MIDDLE: u64 = 4;
+const ID_LEFT_2: u64 = 5;
+const ID_RIGHT_2: u64 = 6;
+const ID_END: u64 = 7;
+
+struct NodeStart;
+struct NodeLeft1;
+struct NodeRight1;
+struct NodeMiddle;
+struct NodeLeft2;
+struct NodeRight2;
+struct NodeEnd;
+
+impl Node for NodeStart {
+    type Message = Message;
+
+    fn id(&self) -> u64 {ID_START}
+
+    fn execute(
         &mut self,
-        inlets: &[Option<i32>],
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Print: {:?}", inlets.get(0).unwrap().as_ref().unwrap());
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-        if let (Some(inlet), Some(outlet)) = (
-            inlets.get(0),
-            outlets.get_mut(0)
-        ) {
-            *outlet = inlet.clone();
+        let next_id = match message.direction {
+            Direction::Left => ID_LEFT_1,
+            Direction::Right => ID_RIGHT_1
+        };
 
-            Ok(OperatorCommand::Go)
-        } else {
-            Err(Box::new(TestError::PrintError))
-        }
-    }
-
-    fn resume(
-        &mut self,
-        _data: Option<i32>,
-        _outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        Ok(OperatorCommand::Go)
+        (Some(next_id), message)
     }
 }
 
-struct Const {
-    data: i32
-}
+impl Node for NodeLeft1 {
+    type Message = Message;
 
-impl Operator<i32> for Const {
-    fn receive(
+    fn id(&self) -> u64 {ID_LEFT_1}
+
+    fn execute(
         &mut self,
-        _inlets: &[Option<i32>],
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Const {}", self.data);
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-        if let Some(outlet) = outlets.get_mut(0) {
-            *outlet = Some(self.data);
-
-            Ok(OperatorCommand::Go)
-        } else {
-            Err(Box::new(TestError::ConstError))
-        }
-    }
-
-    fn resume(
-        &mut self,
-        _data: Option<i32>,
-        _outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        Ok(OperatorCommand::Go)
+        (Some(ID_MIDDLE), message)
     }
 }
 
-struct Hub;
+impl Node for NodeRight1 {
+    type Message = Message;
 
-impl Operator<i32> for Hub {
-    fn receive(
+    fn id(&self) -> u64 {ID_RIGHT_1}
+
+    fn execute(
         &mut self,
-        inlets: &[Option<i32>],
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Hub!");
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-        if let Some(inlet) = inlets.get(0) {
-            outlets.iter_mut().for_each(|outlet| {*outlet = inlet.clone();});
-
-            Ok(OperatorCommand::Go)
-        } else {
-            Err(Box::new(TestError::HubError))
-        }
-    }
-
-    fn resume(
-        &mut self,
-        _data: Option<i32>,
-        _outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        Ok(OperatorCommand::Go)
+        (Some(ID_MIDDLE), message)
     }
 }
 
-struct Add;
+impl Node for NodeMiddle {
+    type Message = Message;
 
-impl Operator<i32> for Add {
-    fn receive(
+    fn id(&self) -> u64 {ID_MIDDLE}
+
+    fn execute(
         &mut self,
-        inlets: &[Option<i32>],
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Add!");
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-        if let (
-            Some(Some(x)),
-            Some(inlet_2),
-            Some(outlet)
-        ) = (
-            inlets.get(0),
-            inlets.get(1),
-            outlets.get_mut(0)
-        ) {
-            let y = if let Some(y) = inlet_2 {
-                *y
-            } else {
-                0
-            };
+        let next_id = match message.direction {
+            Direction::Left => ID_LEFT_2,
+            Direction::Right => ID_RIGHT_2
+        };
 
-            *outlet = Some(*x + y);
-
-            Ok(OperatorCommand::Go)
-        } else {
-            Err(Box::new(TestError::AddError))
-        }
-    }
-
-    fn resume(
-        &mut self,
-        _data: Option<i32>,
-        _outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        Ok(OperatorCommand::Go)
+        (Some(next_id), message)
     }
 }
 
-struct Stop;
+impl Node for NodeLeft2 {
+    type Message = Message;
 
-impl Operator<i32> for Stop {
-    fn receive(
+    fn id(&self) -> u64 {ID_LEFT_2}
+
+    fn execute(
         &mut self,
-        inlets: &[Option<i32>],
-        _outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Stop!");
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-        if let Some(inlet) = inlets.get(0) {
-            Ok(OperatorCommand::Stop(inlet.clone()))
-        } else {
-            Err(Box::new(TestError::StopError))
-        }
-    }
-
-    fn resume(
-        &mut self,
-        data: Option<i32>,
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Resume!");
-
-        if let Some(outlet) = outlets.get_mut(0) {
-            *outlet = data;
-
-            Ok(OperatorCommand::Go)
-        } else {
-            Err(Box::new(TestError::StopError))
-        }
+        (Some(ID_END), message)
     }
 }
 
-struct Test1;
+impl Node for NodeRight2 {
+    type Message = Message;
 
-impl Operator<i32> for Test1 {
-    fn receive(
+    fn id(&self) -> u64 {ID_RIGHT_2}
+
+    fn execute(
         &mut self,
-        inlets: &[Option<i32>],
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Test1::receive()");
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-        inlets.iter().for_each(|inlet| {
-            match &inlet {
-                Some(data) => {println!("{}", data);},
-                None => {println!("None");},
-            }
-        });
-
-        outlets.iter_mut().for_each(|outlet| {*outlet = Some(0);});
-
-        Ok(OperatorCommand::Go)
-    }
-
-    fn resume(
-        &mut self,
-        data: Option<i32>,
-        outlets: &mut [Option<i32>]
-    ) -> Result<OperatorCommand<i32>, Box<dyn OperatorError>> {
-        println!("Test1::resume()");
-
-        match data {
-            Some(data) => {println!("{}", data);},
-            None => {println!("None");},
-        }
-
-        outlets.iter_mut().for_each(|outlet| {*outlet = Some(0);});
-
-        Ok(OperatorCommand::Go)
+        (Some(ID_END), message)
     }
 }
 
+impl Node for NodeEnd {
+    type Message = Message;
 
-fn gen_const_tree() -> (
-    ChobitFlow<i32>,
-    u64,
-    u64,
-    u64,
-    u64,
-    u64,
-    u64,
-    u64,
-    u64,
-    u64,
-    u64,
-) {
-    let mut cf = ChobitFlow::<i32>::new(64);
+    fn id(&self) -> u64 {ID_END}
 
-    let const_1_id =
-        cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
-    let const_2_id =
-        cf.add_node(Box::new(Const {data: 2}), 1, 1).unwrap();
-    let const_3_id =
-        cf.add_node(Box::new(Const {data: 3}), 1, 1).unwrap();
-    let const_4_id =
-        cf.add_node(Box::new(Const {data: 4}), 1, 1).unwrap();
-    let const_5_id =
-        cf.add_node(Box::new(Const {data: 5}), 1, 1).unwrap();
-    let const_6_id =
-        cf.add_node(Box::new(Const {data: 6}), 1, 1).unwrap();
-    let const_7_id =
-        cf.add_node(Box::new(Const {data: 7}), 1, 1).unwrap();
+    fn execute(
+        &mut self,
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
 
-    let hub_1_id = cf.add_node(Box::new(Hub), 1, 2).unwrap();
-    let hub_2_id = cf.add_node(Box::new(Hub), 1, 2).unwrap();
-    let hub_3_id = cf.add_node(Box::new(Hub), 1, 2).unwrap();
+        (None, message)
+    }
+}
 
-    assert!(cf.connect_nodes(const_1_id, 0, hub_1_id, 0).is_ok());
-    assert!(cf.connect_nodes(hub_1_id, 0, const_2_id, 0).is_ok());
-    assert!(cf.connect_nodes(hub_1_id, 1, const_5_id, 0).is_ok());
-    assert!(cf.connect_nodes(const_2_id, 0, hub_2_id, 0).is_ok());
-    assert!(cf.connect_nodes(hub_2_id, 0, const_3_id, 0).is_ok());
-    assert!(cf.connect_nodes(hub_2_id, 1, const_4_id, 0).is_ok());
-    assert!(cf.connect_nodes(const_5_id, 0, hub_3_id, 0).is_ok());
-    assert!(cf.connect_nodes(hub_3_id, 0, const_6_id, 0).is_ok());
-    assert!(cf.connect_nodes(hub_3_id, 1, const_7_id, 0).is_ok());
+struct TestIdToNode {
+    pub map: ChobitMap::<Rc<RefCell<dyn Node<Message = Message>>>>
+}
 
-    (
-        cf,
-        const_1_id,
-        const_2_id,
-        const_3_id,
-        const_4_id,
-        const_5_id,
-        const_6_id,
-        const_7_id,
-        hub_1_id,
-        hub_2_id,
-        hub_3_id,
+impl IdToNode for TestIdToNode {
+    type Message = Message;
+
+    #[inline]
+    fn id_to_node(
+        &mut self,
+        id: u64
+    ) -> Option<Rc<RefCell<dyn Node<Message = Message>>>> {
+        self.map.get(id).cloned()
+    }
+}
+
+fn gen_map() -> ChobitMap<Rc<RefCell<dyn Node<Message = Message>>>> {
+    let mut ret =
+        ChobitMap::<Rc<RefCell<dyn Node<Message = Message>>>>::new(32);
+
+    assert!(ret.add(ID_START, Rc::new(RefCell::new(NodeStart))).is_ok());
+    assert!(ret.add(ID_LEFT_1, Rc::new(RefCell::new(NodeLeft1))).is_ok());
+    assert!(ret.add(ID_LEFT_2, Rc::new(RefCell::new(NodeLeft2))).is_ok());
+    assert!(ret.add(ID_RIGHT_1, Rc::new(RefCell::new(NodeRight1))).is_ok());
+    assert!(ret.add(ID_RIGHT_2, Rc::new(RefCell::new(NodeRight2))).is_ok());
+    assert!(ret.add(ID_MIDDLE, Rc::new(RefCell::new(NodeMiddle))).is_ok());
+    assert!(ret.add(ID_END, Rc::new(RefCell::new(NodeEnd))).is_ok());
+
+    ret
+}
+
+fn gen_chobit_flow() -> ChobitFlow<Message, TestIdToNode> {
+    let map = gen_map();
+
+    let id_to_node = TestIdToNode {map: map};
+
+    ChobitFlow::<Message, TestIdToNode>::new(
+        ID_START,
+        id_to_node
     )
 }
 
-#[test]
-fn print_test() {
-    let mut cf = ChobitFlow::<i32>::new(64);
-    let print_id = cf.add_node(Box::new(Print), 1, 1).unwrap();
-
-    assert_eq!(
-        cf.send(None, print_id, 0, 99).unwrap(),
-        ChobitFlowResult::Ended
-    );
-}
-
-#[test]
-fn connect_one_test() {
-    let mut cf = ChobitFlow::<i32>::new(64);
-    let print_id = cf.add_node(Box::new(Print), 1, 1).unwrap();
-    let const_1_id =
-        cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
-
-    assert!(cf.connect_nodes(const_1_id, 0, print_id, 0).is_ok());
-
-    assert_eq!(
-        cf.send(None, const_1_id, 0, 0).unwrap(),
-        ChobitFlowResult::Ended
-    );
-}
-
-#[test]
-fn connect_tree_test() {
-    let (mut cf, const_1_id, ..) = gen_const_tree();
-
-    assert_eq!(
-        cf.send(None, const_1_id, 0, 0).unwrap(),
-        ChobitFlowResult::Ended
-    );
-}
-
-#[test]
-fn add_test() {
-    let mut cf = ChobitFlow::<i32>::new(64);
-    let print_id = cf.add_node(Box::new(Print), 1, 1).unwrap();
-
-    let const_1_id =
-        cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
-    let const_2_id =
-        cf.add_node(Box::new(Const {data: 2}), 1, 1).unwrap();
-
-    let add_id = cf.add_node(Box::new(Add), 2, 1).unwrap();
-
-    assert!(cf.connect_nodes(const_1_id, 0, add_id, 0).is_ok());
-    assert!(cf.connect_nodes(const_2_id, 0, add_id, 1).is_ok());
-    assert!(cf.connect_nodes(add_id, 0, print_id, 0).is_ok());
-
-    assert_eq!(
-        cf.send(None, const_1_id, 0, 0).unwrap(),
-        ChobitFlowResult::Ended
-    );
-
-    println!("-----");
-
-    assert_eq!(
-        cf.send(None, const_2_id, 0, 0).unwrap(),
-        ChobitFlowResult::Ended
-    );
-
-
-    assert_eq!(
-        cf.send(None, const_1_id, 0, 0).unwrap(),
-        ChobitFlowResult::Ended
-    );
-}
-
-#[test]
-fn stop_test() {
-    let (
-        mut cf,
-        const_1_id,
-        const_2_id,
-        _const_3_id,
-        _const_4_id,
-        const_5_id,
-        _const_6_id,
-        _const_7_id,
-        hub_1_id,
-        _hub_2_id,
-        _hub_3_id,
-    ) = gen_const_tree();
-
-    let stop_1_id = cf.add_node(Box::new(Stop), 1, 1).unwrap();
-    let stop_2_id = cf.add_node(Box::new(Stop), 1, 1).unwrap();
-
-    assert!(cf.disconnect_nodes(hub_1_id, 0, const_2_id, 0).is_ok());
-    assert!(cf.disconnect_nodes(hub_1_id, 1, const_5_id, 0).is_ok());
-
-    assert!(cf.connect_nodes(hub_1_id, 0, stop_1_id, 0).is_ok());
-    assert!(cf.connect_nodes(stop_1_id, 0, const_2_id, 0).is_ok());
-
-    assert!(cf.connect_nodes(hub_1_id, 1, stop_2_id, 0).is_ok());
-    assert!(cf.connect_nodes(stop_2_id, 0, const_5_id, 0).is_ok());
-
-    assert_eq!(
-        cf.send(None, const_1_id, 0, 0).unwrap(),
-        ChobitFlowResult::Stopped(stop_1_id)
-    );
-
-    println!("-----");
-
-    assert_eq!(
-        cf.resume().unwrap(),
-        ChobitFlowResult::Stopped(stop_2_id)
-    );
-
-    println!("-----");
-
-    assert_eq!(
-        cf.resume().unwrap(),
-        ChobitFlowResult::Ended
-    );
-}
-
-#[test]
-fn connect_error_test() {
-    let mut cf = ChobitFlow::new(64);
-
-    let const_1_id =
-        cf.add_node(Box::new(Const {data: 1}), 1, 1).unwrap();
-
-    let test_1_1 = cf.add_node(Box::new(Test1), 1, 1).unwrap();
-
-    match cf.connect_nodes(const_1_id, 0, test_1_1, 1) {
-        Err(ChobitFlowError::InletNotFound {id, inlet_pos}) => {
-            assert_eq!(id, test_1_1);
-            assert_eq!(inlet_pos, 1);
-        },
-
-        other => {panic!("{:?}", other);}
+fn gen_message(direction: Direction) -> Message {
+    Message {
+        direction: direction,
+        route: Vec::<u64>::new(),
+        senders: Vec::<Option<u64>>::new()
     }
+}
+
+#[test]
+fn chobit_flow_test_1() {
+    let message = gen_message(Direction::Left);
+
+    let mut graph = gen_chobit_flow();
+
+    let message = {
+        assert_eq!(graph.next_id(), ID_START);
+        let (opt_next_id, message) = graph.next(None, message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_LEFT_1));
+
+        assert_eq!(graph.next_id(), ID_LEFT_1);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_START), message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_MIDDLE));
+
+        assert_eq!(graph.next_id(), ID_MIDDLE);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_LEFT_1), message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_LEFT_2));
+
+        assert_eq!(graph.next_id(), ID_LEFT_2);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_MIDDLE), message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_END));
+
+        assert_eq!(graph.next_id(), ID_END);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_LEFT_2), message).unwrap();
+        assert_eq!(opt_next_id, None);
+
+        message
+    };
+
+    assert_eq!(
+        message.route.as_slice(),
+        &[
+            ID_START,
+            ID_LEFT_1,
+            ID_MIDDLE,
+            ID_LEFT_2,
+            ID_END
+        ]
+    );
+
+    assert_eq!(
+        message.senders.as_slice(),
+        &[
+            None,
+            Some(ID_START),
+            Some(ID_LEFT_1),
+            Some(ID_MIDDLE),
+            Some(ID_LEFT_2)
+        ]
+    );
+}
+
+#[test]
+fn chobit_flow_test_2() {
+    let message = gen_message(Direction::Right);
+
+    let mut graph = gen_chobit_flow();
+
+    let message = {
+        assert_eq!(graph.next_id(), ID_START);
+        let (opt_next_id, message) = graph.next(None, message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_RIGHT_1));
+
+        assert_eq!(graph.next_id(), ID_RIGHT_1);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_START), message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_MIDDLE));
+
+        assert_eq!(graph.next_id(), ID_MIDDLE);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_RIGHT_1), message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_RIGHT_2));
+
+        assert_eq!(graph.next_id(), ID_RIGHT_2);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_MIDDLE), message).unwrap();
+        assert_eq!(opt_next_id, Some(ID_END));
+
+        assert_eq!(graph.next_id(), ID_END);
+        let (opt_next_id, message) =
+            graph.next(Some(ID_RIGHT_2), message).unwrap();
+        assert_eq!(opt_next_id, None);
+
+        message
+    };
+
+    assert_eq!(
+        message.route.as_slice(),
+        &[
+            ID_START,
+            ID_RIGHT_1,
+            ID_MIDDLE,
+            ID_RIGHT_2,
+            ID_END
+        ]
+    );
+
+    assert_eq!(
+        message.senders.as_slice(),
+        &[
+            None,
+            Some(ID_START),
+            Some(ID_RIGHT_1),
+            Some(ID_MIDDLE),
+            Some(ID_RIGHT_2)
+        ]
+    );
+}
+
+#[test]
+fn chobit_flow_test_3() {
+    let message = gen_message(Direction::Left);
+
+    let mut graph = gen_chobit_flow();
+
+    let message = graph.run(None, message).unwrap();
+
+    assert_eq!(
+        message.route.as_slice(),
+        &[
+            ID_START,
+            ID_LEFT_1,
+            ID_MIDDLE,
+            ID_LEFT_2,
+            ID_END
+        ]
+    );
+
+    assert_eq!(
+        message.senders.as_slice(),
+        &[
+            None,
+            Some(ID_START),
+            Some(ID_LEFT_1),
+            Some(ID_MIDDLE),
+            Some(ID_LEFT_2)
+        ]
+    );
+}
+
+#[test]
+fn chobit_flow_test_4() {
+    let message = gen_message(Direction::Right);
+
+    let mut graph = gen_chobit_flow();
+
+    let message = graph.run(None, message).unwrap();
+
+    assert_eq!(
+        message.route.as_slice(),
+        &[
+            ID_START,
+            ID_RIGHT_1,
+            ID_MIDDLE,
+            ID_RIGHT_2,
+            ID_END
+        ]
+    );
+
+    assert_eq!(
+        message.senders.as_slice(),
+        &[
+            None,
+            Some(ID_START),
+            Some(ID_RIGHT_1),
+            Some(ID_MIDDLE),
+            Some(ID_RIGHT_2)
+        ]
+    );
+}
+
+const ERROR_ID: u64 = ID_END + 10;
+
+struct NodeLeft3;
+impl Node for NodeLeft3 {
+    type Message = Message;
+
+    fn id(&self) -> u64 {ID_LEFT_2}
+
+    fn execute(
+        &mut self,
+        prev_node: Option<u64>,
+        mut message: Message
+    ) -> (Option<u64>, Message) {
+        message.route.push(self.id());
+        message.senders.push(prev_node);
+
+        (Some(ERROR_ID), message)
+    }
+}
+
+#[test]
+fn node_not_found_test_1() {
+    let mut map = gen_map();
+    *(map.get_mut(ID_LEFT_2).unwrap()) = Rc::new(RefCell::new(NodeLeft3));
+
+    let id_to_node = TestIdToNode {map: map};
+
+    let mut graph = ChobitFlow::<Message, TestIdToNode>::new(
+        ID_START,
+        id_to_node
+    );
+
+    let message = gen_message(Direction::Left);
+
+    assert_eq!(graph.next_id(), ID_START);
+    let (opt_next_id, message) = graph.next(None, message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_LEFT_1));
+
+    assert_eq!(graph.next_id(), ID_LEFT_1);
+    let (opt_next_id, message) = graph.next(Some(ID_START), message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_MIDDLE));
+
+    assert_eq!(graph.next_id(), ID_MIDDLE);
+    let (opt_next_id, message) = graph.next(Some(ID_LEFT_1), message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_LEFT_2));
+
+    assert_eq!(graph.next_id(), ID_LEFT_2);
+    let (opt_next_id, message) = graph.next(Some(ID_MIDDLE), message).unwrap();
+    assert_eq!(opt_next_id, Some(ERROR_ID));
+
+    assert_eq!(graph.next_id(), ERROR_ID);
+    let result = graph.next(Some(ID_LEFT_1), message).err().unwrap();
+    assert_eq!(result, ChobitFlowError::NodeNotFound {id: ERROR_ID});
+
+    println!("{result}");
+}
+
+#[test]
+fn node_not_found_test_2() {
+    let mut map = gen_map();
+    *(map.get_mut(ID_LEFT_2).unwrap()) = Rc::new(RefCell::new(NodeLeft3));
+
+    let id_to_node = TestIdToNode {map: map};
+
+    let mut graph = ChobitFlow::<Message, TestIdToNode>::new(
+        ID_START,
+        id_to_node
+    );
+
+    let message = gen_message(Direction::Left);
+    assert_eq!(
+        graph.run(None, message).err().unwrap(),
+        ChobitFlowError::NodeNotFound {id: ERROR_ID}
+    );
+}
+
+#[test]
+fn failed_to_borrow_test_1() {
+    let map = gen_map();
+    let node = map.get(ID_END).unwrap().clone();
+    let _node = node.borrow();
+
+    let id_to_node = TestIdToNode {map: map};
+
+    let mut graph = ChobitFlow::<Message, TestIdToNode>::new(
+        ID_START,
+        id_to_node
+    );
+
+    let message = gen_message(Direction::Left);
+
+    assert_eq!(graph.next_id(), ID_START);
+    let (opt_next_id, message) = graph.next(None, message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_LEFT_1));
+
+    assert_eq!(graph.next_id(), ID_LEFT_1);
+    let (opt_next_id, message) = graph.next(Some(ID_START), message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_MIDDLE));
+
+    assert_eq!(graph.next_id(), ID_MIDDLE);
+    let (opt_next_id, message) = graph.next(Some(ID_LEFT_1), message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_LEFT_2));
+
+    assert_eq!(graph.next_id(), ID_LEFT_2);
+    let (opt_next_id, message) = graph.next(Some(ID_MIDDLE), message).unwrap();
+    assert_eq!(opt_next_id, Some(ID_END));
+
+    assert_eq!(graph.next_id(), ID_END);
+    let result = graph.next(Some(ID_LEFT_2), message).err().unwrap();
+    assert_eq!(result, ChobitFlowError::FailedToBorrowNode {id: ID_END});
+
+    println!("{result}");
+}
+
+#[test]
+fn failed_to_borrow_test_2() {
+    let map = gen_map();
+    let node = map.get(ID_END).unwrap().clone();
+    let _node = node.borrow();
+
+    let id_to_node = TestIdToNode {map: map};
+
+    let mut graph = ChobitFlow::<Message, TestIdToNode>::new(
+        ID_START,
+        id_to_node
+    );
+
+    let message = gen_message(Direction::Left);
+
+    assert_eq!(
+        graph.run(None, message).err().unwrap(),
+        ChobitFlowError::FailedToBorrowNode {id: ID_END}
+    );
 }

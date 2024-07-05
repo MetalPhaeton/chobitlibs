@@ -122,7 +122,7 @@ pub enum ChobitSexprError {
 
 impl fmt::Display for ChobitSexprError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, r#"{{"error": "ChobitSexprError", "kind": "#)?;
+        write!(formatter, r#"{{"error":"ChobitSexprError","kind":"#)?;
 
         match self {
             Self::HeaderError(error) => {
@@ -132,7 +132,7 @@ impl fmt::Display for ChobitSexprError {
             Self::CouldNotRead(value_type) => {
                 write!(
                     formatter,
-                    r#""CouldNotRead", "value_type": "{}""#,
+                    r#""CouldNotRead","value_type":"{}""#,
                     value_type.as_str()
                 )?;
             },
@@ -140,7 +140,7 @@ impl fmt::Display for ChobitSexprError {
             Self::CouldNotWrite(value_type) => {
                 write!(
                     formatter,
-                    r#""CouldNotWrite", "value_type": "{}""#,
+                    r#""CouldNotWrite","value_type":"{}""#,
                     value_type.as_str()
                 )?;
             },
@@ -171,7 +171,7 @@ pub enum SexprHeaderError {
 
 impl fmt::Display for SexprHeaderError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, r#"{{"error": "SexprHeaderError", "kind": "#)?;
+        write!(formatter, r#"{{"error":"SexprHeaderError","kind":"#)?;
 
         match self {
             Self::CouldNotConvertFromSlice => {
