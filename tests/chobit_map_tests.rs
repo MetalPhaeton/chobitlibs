@@ -1,17 +1,18 @@
 extern crate chobitlibs;
+extern crate turbo_json_checker;
+
 use chobitlibs::chobit_map::*;
+use turbo_json_checker as tjc;
 
 #[test]
 fn display_error_test() {
-    println!(
-        "{}",
-        ChobitMapError::AlreadyExists {key: 100},
-    );
+    assert!(tjc::validate_str(
+        &(ChobitMapError::AlreadyExists {key: 100}).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitMapError::NotFound {key: 200},
-    );
+    assert!(tjc::validate_str(
+        &(ChobitMapError::NotFound {key: 200}).to_string()
+    ).is_ok());
 }
 
 #[test]

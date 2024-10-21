@@ -1,4 +1,5 @@
 extern crate chobitlibs;
+extern crate turbo_json_checker;
 
 use std::{
     prelude::rust_2021::*,
@@ -6,7 +7,20 @@ use std::{
     rc::Rc
 };
 
+use turbo_json_checker as tjc;
+
 use chobitlibs::{chobit_flow::*, chobit_map::*};
+
+#[test]
+fn display_error_test() {
+    assert!(tjc::validate_str(
+        &(ChobitFlowError::NodeNotFound {id: 100}).to_string()
+    ).is_ok());
+
+    assert!(tjc::validate_str(
+        &(ChobitFlowError::FailedToBorrowNode {id: 100}).to_string()
+    ).is_ok());
+}
 
 struct Message {
     pub direction: Direction,

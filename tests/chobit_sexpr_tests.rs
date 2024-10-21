@@ -1,43 +1,39 @@
 extern crate chobitlibs;
+extern crate turbo_json_checker;
 
 use std::prelude::rust_2021::*;
+use turbo_json_checker as tjc;
 
 use chobitlibs::chobit_sexpr::*;
 use core::mem::size_of;
 
 #[test]
 fn display_error_test() {
-    println!(
-        "{}",
-        ChobitSexprError::HeaderError(
+    assert!(tjc::validate_str(
+        &ChobitSexprError::HeaderError(
             SexprHeaderError::CouldNotConvertFromSlice
-        ),
-    );
+        ).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitSexprError::CouldNotRead(ValueType::I32),
-    );
+    assert!(tjc::validate_str(
+        &ChobitSexprError::CouldNotRead(ValueType::I32).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitSexprError::CouldNotWrite(ValueType::U64),
-    );
+    assert!(tjc::validate_str(
+        &ChobitSexprError::CouldNotWrite(ValueType::U64).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitSexprError::NotSexpr,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitSexprError::NotSexpr).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitSexprError::NotAtom,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitSexprError::NotAtom).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitSexprError::NotCons,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitSexprError::NotCons).to_string()
+    ).is_ok());
 }
 
 fn gen_test_data() -> Vec<u8> {

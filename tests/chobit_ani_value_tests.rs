@@ -1,30 +1,28 @@
 extern crate chobitlibs;
+extern crate turbo_json_checker;
 
 use std::prelude::rust_2021::*;
+use turbo_json_checker as tjc;
 
 use chobitlibs::chobit_ani_value::*;
 
 #[test]
 fn display_error_test() {
-    println!(
-        "{}",
-        ChobitAniValueError::InvalidColumns,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitAniValueError::InvalidColumns).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitAniValueError::InvalidFramesOfEachRow,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitAniValueError::InvalidFramesOfEachRow).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitAniValueError::InvalidRows,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitAniValueError::InvalidRows).to_string()
+    ).is_ok());
 
-    println!(
-        "{}",
-        ChobitAniValueError::InvalidFramesPerSecond,
-    );
+    assert!(tjc::validate_str(
+        &(ChobitAniValueError::InvalidFramesPerSecond).to_string()
+    ).is_ok());
 }
 
 fn gen_chobit_ani_value() -> ChobitAniValue {
