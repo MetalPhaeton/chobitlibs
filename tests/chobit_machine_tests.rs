@@ -211,7 +211,7 @@ fn test_stack_push_pop_frame() {
     assert_eq!(stack.frame_stack(), &frame_stack);
 
     // pop ----------
-    assert!(stack.pop_frame());
+    stack.pop_frame();
     body.truncate(bp_4);
     let _ = frame_stack.pop().unwrap();
 
@@ -220,7 +220,7 @@ fn test_stack_push_pop_frame() {
     assert_eq!(stack.bp(), bp_3);
     assert_eq!(stack.frame_stack(), &frame_stack);
 
-    assert!(stack.pop_frame());
+    stack.pop_frame();
     body.truncate(bp_3);
     let _ = frame_stack.pop().unwrap();
 
@@ -229,7 +229,7 @@ fn test_stack_push_pop_frame() {
     assert_eq!(stack.bp(), bp_2);
     assert_eq!(stack.frame_stack(), &frame_stack);
 
-    assert!(stack.pop_frame());
+    stack.pop_frame();
     body.truncate(bp_2);
     frame_stack.clear();
 
@@ -238,13 +238,44 @@ fn test_stack_push_pop_frame() {
     assert_eq!(stack.bp(), bp_1);
     assert_eq!(stack.frame_stack(), &frame_stack);
 
-    assert!(stack.pop_frame());
+    stack.pop_frame();
     body.clear();
 
     assert_eq!(stack.body(), &body);
     assert_eq!(stack.current_frame(), &[]);
     assert_eq!(stack.bp(), bp_1);
     assert_eq!(stack.frame_stack(), &frame_stack);
+}
+
+#[test]
+fn test_stack_merge_frame() {
+    let body_1: Vec<i32> = vec![1, 2, 3];
+    let body_2: Vec<i32> = vec![4, 5];
+    let bp_1: usize = 0;
+    let bp_2: usize = bp_1 + body_1.len();
+
+    let mut body = Vec::<i32>::new();
+    let mut stack = ChobitStack::<i32>::new();
+
+    body_1.iter().for_each(|val| {
+        stack.push(*val);
+        body.push(*val);
+    });
+    assert_eq!(stack.current_frame(), &body_1);
+    assert_eq!(stack.bp(), bp_1);
+
+    stack.push_frame();
+
+    body_2.iter().for_each(|val| {
+        stack.push(*val);
+        body.push(*val);
+    });
+    assert_eq!(stack.current_frame(), &body_2);
+    assert_eq!(stack.bp(), bp_2);
+
+    stack.merge_frame();
+    assert_eq!(stack.current_frame(), &body);
+    assert_eq!(stack.bp(), bp_1);
 }
 
 #[test]
@@ -685,7 +716,7 @@ fn test_code_others() {
 
     // pop_frame --------
 
-    assert!(code.pop_frame());
+    code.pop_frame();
     let _ = frame_stack.pop();
     body.truncate(bp_3);
 
@@ -696,7 +727,7 @@ fn test_code_others() {
     assert_eq!(code.ip(), ip_2);
     assert_eq!(code.bp_ip(), bp_2 + ip_2);
 
-    assert!(code.pop_frame());
+    code.pop_frame();
     let _ = frame_stack.pop();
     body.truncate(bp_2);
 
@@ -707,7 +738,7 @@ fn test_code_others() {
     assert_eq!(code.ip(), ip_1);
     assert_eq!(code.bp_ip(), bp_1 + ip_1);
 
-    assert!(code.pop_frame());
+    code.pop_frame();
     let _ = frame_stack.pop();
     body.clear();
 
@@ -718,7 +749,7 @@ fn test_code_others() {
     assert_eq!(code.ip(), 0);
     assert_eq!(code.bp_ip(), 0);
 
-    assert!(!code.pop_frame());
+    code.pop_frame();
 
     assert_eq!(code.body(), &body);
     assert_eq!(code.current_frame(), &[]);
@@ -1009,6 +1040,7 @@ fn test_env_others() {
         .map(|(key, value)| (*key, *value))
         .collect();
 
+    env.push_frame();
     env.store(&keys_values_3);
     frame_stack.push(bp_2);
 
@@ -1075,7 +1107,7 @@ fn test_env_others() {
 
     // pop_frame ----------
 
-    assert!(env.pop_frame());
+    env.pop_frame();
     keys.truncate(bp_3);
     values.truncate(bp_3);
     keys_values.truncate(bp_3);
@@ -1090,7 +1122,7 @@ fn test_env_others() {
     env.dump(&mut keys_values_out);
     assert_eq!(&keys_values_out, &keys_values);
 
-    assert!(env.pop_frame());
+    env.pop_frame();
     keys.truncate(bp_2);
     values.truncate(bp_2);
     keys_values.truncate(bp_2);
@@ -1105,7 +1137,7 @@ fn test_env_others() {
     env.dump(&mut keys_values_out);
     assert_eq!(&keys_values_out, &keys_values);
 
-    assert!(env.pop_frame());
+    env.pop_frame();
     keys.truncate(bp_1);
     values.truncate(bp_1);
     keys_values.truncate(bp_1);
@@ -1120,5 +1152,45 @@ fn test_env_others() {
     env.dump(&mut keys_values_out);
     assert_eq!(&keys_values_out, &keys_values);
 
-    assert!(!env.pop_frame());
+    env.pop_frame();
+}
+
+#[test]
+fn test_env_marge_test() {
+    let keys_1: Vec<u64> = vec![1, 2, 1];
+    let keys_2: Vec<u64> = vec![4, 5];
+    let values_1: Vec<i32> = vec![10, 20, 30];
+    let values_2: Vec<i32> = vec![40, 50];
+    let bp_1: usize = 0;
+    let bp_2: usize = bp_1 + keys_1.len();
+
+    let mut env = ChobitEnv::<i32>::new();
+
+    let mut keys = Vec::<u64>::new();
+    let mut values = Vec::<i32>::new();
+
+    keys_1.iter().zip(values_1.iter()).for_each(|(key, value)| {
+        env.define(*key, *value);
+        keys.push(*key);
+        values.push(*value);
+    });
+    assert_eq!(env.current_frame_keys(), &keys_1);
+    assert_eq!(env.current_frame_values(), &values_1);
+    assert_eq!(env.bp(), bp_1);
+
+    env.push_frame();
+
+    keys_2.iter().zip(values_2.iter()).for_each(|(key, value)| {
+        env.define(*key, *value);
+        keys.push(*key);
+        values.push(*value);
+    });
+    assert_eq!(env.current_frame_keys(), &keys_2);
+    assert_eq!(env.current_frame_values(), &values_2);
+    assert_eq!(env.bp(), bp_2);
+
+    env.merge_frame();
+    assert_eq!(env.current_frame_keys(), &keys);
+    assert_eq!(env.current_frame_values(), &values);
+    assert_eq!(env.bp(), bp_1);
 }
