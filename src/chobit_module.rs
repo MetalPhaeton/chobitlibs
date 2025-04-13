@@ -29,7 +29,7 @@
 use alloc::{boxed::Box, vec};
 
 #[link(wasm_import_module = "env")]
-extern {
+extern "C" {
     fn notify_input_buffer(offset: usize, size: usize);
     fn notify_output_buffer(offset: usize, size: usize);
 
