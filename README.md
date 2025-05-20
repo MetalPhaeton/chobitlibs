@@ -24,10 +24,6 @@ All libraries can be used in `no_std`.
 
 ### ReScript
 
-*  `ChobitModuleSystem.res` and `ChobitModuleSystem.resi`
-*  `ChobitModuleActor.res` and `ChobitModuleActor.resi`
-
-### TypeScript
-
-* `chobit_sexpr.ts` : Structured byte string written in Typescript.
-
+* `ChobitModuleSystem.res` and `ChobitModuleSystem.resi`
+* `ChobitModuleActor.res` and `ChobitModuleActor.resi`
+* `ChobitSexpr.res` and `ChobitSexpr.resi`
