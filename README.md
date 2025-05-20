@@ -22,9 +22,12 @@ All libraries can be used in `no_std`.
 * `chobit_flow.rs` : Flowchart framework.
 * `chobit_machine.rs` : Stack machine library.
 
+### ReScript
+
+*  `ChobitModuleSystem.res` and `ChobitModuleSystem.resi`
+*  `ChobitModuleActor.res` and `ChobitModuleActor.resi`
+
 ### TypeScript
 
-* `chobit_module.rs` : WASM module library.
-* `chobit_module_util.ts` : Utility for `chobit_module.rs` written in Typescript.
 * `chobit_sexpr.ts` : Structured byte string written in Typescript.
 
